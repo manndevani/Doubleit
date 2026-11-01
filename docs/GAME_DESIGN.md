@@ -106,8 +106,9 @@ board first, and a move the step does not teach is never played. The instruction
 soft low note sounds, and the player simply tries again. While the lifted piece waits in the centre (step 5) the aim line
 is hidden, since the ring is not the answer. "(otherwise retry)" below means such moves are refused.
 A soft coral circle breathes under the tap that completes each step (a gap, the stone to lift, or the centre). It is
-found by trying every possible tap on a copy of the board, preferring the centre, then gaps, then stones, so it always
-points at a correct answer even if a board changes. It hides while a move plays.
+found by trying every possible tap on a copy of the board, preferring the centre, then what the centre piece acts
+on: gaps for a piece that is placed, stones for one that lifts (a tap in a gap also lifts the nearest stone, but the
+hint should show the stone). So it always points at a correct answer even if a board changes. It hides while a move plays.
 
 | Step | Board | Done when |
 |---|---|---|

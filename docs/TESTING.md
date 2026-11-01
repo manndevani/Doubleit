@@ -25,7 +25,7 @@
 | `DoubleIt.Core.FusionEventsTrackIds` | event ids the renderer follows |
 | `DoubleIt.Core.Synth` | pentatonic and chord frequencies; note PCM (no clipping, decays, stereo width, no clicks at either end); the pad loop has the right length and no seam; the live sea continues seamlessly across blocks, never clips, rises and falls with waves (logs `STAT sea rms`) and differs per seed |
 | `DoubleIt.Core.TutorialHappyPathAndRetry` | all 6 tutorial boards; wrong moves (a wrong gap, placing the lifted piece) are judged Retry on a copy without moving the tutorial or touching the real board |
-| `DoubleIt.Core.TutorialHintCompletesEachStep` | following only the hint (`FDITutorial::FindTarget`) completes all 6 steps, at two ring rotations |
+| `DoubleIt.Core.TutorialHintCompletesEachStep` | following only the hint (`FDITutorial::FindTarget`) completes all 6 steps, at two ring rotations; with a lifting piece the hint sits on a stone, not a gap |
 | `DoubleIt.Core.AdaptivePace` | neutral with no data, struggling/strong detection, bounds, one bad run is only a nudge, sim: helped runs last longer |
 | `DoubleIt.Layout.TilePositionsClockwiseFromTop`, `SlotAndTileHitTesting`, `TapRouting` | ring geometry and tap routing |
 | `DoubleIt.Layout.ReanchorIsSymmetric` | placed piece lands in the aimed gap, fusion result lands where the plus was, offset hit testing |

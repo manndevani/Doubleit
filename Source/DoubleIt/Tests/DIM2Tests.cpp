@@ -1,6 +1,7 @@
 #include "Misc/AutomationTest.h"
 #include "Core/DIAdaptive.h"
 #include "Core/DIGame.h"
+#include "Core/DIPieceType.h"
 #include "Core/DIRingLayout.h"
 #include "Core/DISea.h"
 #include "Core/DISynth.h"
@@ -329,6 +330,16 @@ bool FDITutorialHintTest::RunTest(const FString&)
 			if (!TestTrue(FString::Printf(TEXT("step %d has a hint"), Step), Target.IsSet()))
 			{
 				return false;
+			}
+			if (Target->Pos != FVector2D::ZeroVector && DIPieces::Of(Game.GetCenter()).LiftsFromRing())
+			{
+				// A piece that lifts points at the stone itself, never at the gap beside it.
+				bool bOnStone = false;
+				for (int32 i = 0; i < Game.GetRing().Num(); ++i)
+				{
+					bOnStone |= Target->Pos.Equals(DIRingLayout::TilePosition(i, Game.GetRing().Num(), Offset), 0.01f);
+				}
+				TestTrue(FString::Printf(TEXT("step %d hint sits on a stone"), Step), bOnStone);
 			}
 			DIRingLayout::ApplyTap(Game, Target->Pos, Offset);
 			if (!TestTrue(FString::Printf(TEXT("tapping the hint completes step %d"), Step), Tut.Evaluate(Game) == EDITutorialResult::Advance))

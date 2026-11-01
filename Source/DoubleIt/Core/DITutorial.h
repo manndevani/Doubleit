@@ -42,8 +42,8 @@ public:
 
 	/**
 	 * The tap that completes this step on Game (ring at Offset): every possible tap (centre, each gap, each stone) is
-	 * tried on a copy and judged, so the hint can never point the wrong way. The centre is preferred, then gaps, then
-	 * stones; when several of one kind complete it (any gap will do), the middle one is shown. Unset if none does.
+	 * tried on a copy and judged, so the hint can never point the wrong way. The centre is preferred, then gaps for a
+	 * piece that is placed (stones for one that lifts); when several of one kind complete it, the middle one is shown.
 	 */
 	TOptional<FDITapTarget> FindTarget(const FDIGame& Game, float Offset) const;
 

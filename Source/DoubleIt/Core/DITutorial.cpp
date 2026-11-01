@@ -1,5 +1,6 @@
 #include "DITutorial.h"
 #include "DIGame.h"
+#include "DIPieceType.h"
 #include "DIRingLayout.h"
 
 FString FDITutorial::GetInstructionKey() const
@@ -60,22 +61,28 @@ TOptional<FDITapTarget> FDITutorial::FindTarget(const FDIGame& Game, float Offse
 {
 	using namespace DIRingLayout;
 	const int32 Num = Game.GetRing().Num();
-	// Groups in the order a player would naturally tap: the centre, then gaps, then stones. Tapping a stone with a
-	// plus also lands it beside the stone, so the first group that completes the step is the one to show.
-	TArray<TArray<FDITapTarget>> Groups;
-	Groups.Add({ { FVector2D::ZeroVector, CenterSize } });
-	TArray<FDITapTarget>& Gaps = Groups.AddDefaulted_GetRef();
+	TArray<FDITapTarget> Gaps;
 	for (int32 Slot = 0; Slot < FMath::Max(Num, 1); ++Slot)
 	{
 		// The middle of the gap before Ring[Slot] (the top of an empty ring).
 		const float Angle = Num > 0 ? TileAngle(Slot, Num, Offset) - UE_PI / Num : 0.f;
 		Gaps.Add({ RingRadius * FVector2D(FMath::Sin(Angle), FMath::Cos(Angle)), TileSize });
 	}
-	TArray<FDITapTarget>& Stones = Groups.AddDefaulted_GetRef();
+	TArray<FDITapTarget> Stones;
 	for (int32 i = 0; i < Num; ++i)
 	{
 		Stones.Add({ TilePosition(i, Num, Offset), TileSize });
 	}
+
+	// Groups in the order a player would naturally tap: the centre first, then what the centre piece acts on. A tap
+	// near a stone and a tap in the next gap often do the same thing (a plus lands beside the stone; a minus lifts the
+	// nearest stone), so the hint shows the gap for a piece that is placed and the stone for one that lifts.
+	const bool bLifts = DIPieces::Of(Game.GetCenter()).LiftsFromRing();
+	const TArray<TArray<FDITapTarget>> Groups = {
+		{ { FVector2D::ZeroVector, CenterSize } },
+		bLifts ? Stones : Gaps,
+		bLifts ? Gaps : Stones,
+	};
 
 	for (const TArray<FDITapTarget>& Group : Groups)
 	{
