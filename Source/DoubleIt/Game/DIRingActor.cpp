@@ -10,9 +10,30 @@
 namespace
 {
 	constexpr float PlaneMeshSize = 100.f; // /Engine/BasicShapes/Plane is 100x100
-	constexpr float MoveRate = 10.f;
+	constexpr float MoveRate = 12.f;
 	constexpr float FadeRate = 7.f;
 	constexpr float PulseScale = 1.35f;
+	constexpr float AimKind = 4.f; // M_Tile kind for guide dots
+	constexpr float AimDotSize = 9.f;
+	constexpr float AimSpacing = 26.f;
+}
+
+void ADIRingActor::SetAim(float Angle, bool bAtTile)
+{
+	AimAngle = Angle; // snaps: the guide must answer the finger immediately
+	bAimAtTile = bAtTile;
+	AimTargetAlpha = 1.f;
+	bAnimating = true;
+	PushInstances();
+}
+
+void ADIRingActor::ClearAim()
+{
+	if (AimTargetAlpha > 0.f)
+	{
+		AimTargetAlpha = 0.f;
+		bAnimating = true;
+	}
 }
 
 ADIRingActor::ADIRingActor()
@@ -60,18 +81,19 @@ void ADIRingActor::SyncFromGame(const FDIGame& Game)
 	struct FTarget
 	{
 		FDIPiece Piece;
-		FVector2D Pos;
+		float Angle;
+		float Radius;
 		float Size;
 		bool bCenter;
 	};
 	TMap<uint32, FTarget> Targets;
 	if (!Game.IsGameOver())
 	{
-		Targets.Add(Game.GetCenter().Id, { Game.GetCenter(), FVector2D::ZeroVector, DIRingLayout::CenterSize, true });
+		Targets.Add(Game.GetCenter().Id, { Game.GetCenter(), 0.f, 0.f, DIRingLayout::CenterSize, true });
 	}
 	for (int32 i = 0; i < Ring.Num(); ++i)
 	{
-		Targets.Add(Ring[i].Id, { Ring[i], DIRingLayout::TilePosition(i, Ring.Num()), DIRingLayout::TileSize, false });
+		Targets.Add(Ring[i].Id, { Ring[i], UE_TWO_PI * i / Ring.Num(), DIRingLayout::RingRadius, DIRingLayout::TileSize, false });
 	}
 
 	TMap<uint32, uint32> ConsumedBy;
@@ -108,7 +130,19 @@ void ADIRingActor::SyncFromGame(const FDIGame& Game)
 		if (const FTarget* T = Targets.Find(V.Piece.Id))
 		{
 			V.Piece = T->Piece;
-			V.TargetPos = T->Pos;
+			if (T->bCenter)
+			{
+				V.TargetAngle = V.Angle; // lifted pieces travel straight in along their own spoke
+			}
+			else
+			{
+				if (V.Radius < 1.f)
+				{
+					V.Angle = T->Angle; // placed pieces travel straight out along the target spoke
+				}
+				V.TargetAngle = T->Angle;
+			}
+			V.TargetRadius = T->Radius;
 			V.TargetSize = T->Size;
 			V.bCenter = T->bCenter;
 			V.bDying = false;
@@ -125,7 +159,9 @@ void ADIRingActor::SyncFromGame(const FDIGame& Game)
 			{
 				if (const FTarget* Into = FinalTarget(V.Piece.Id))
 				{
-					V.TargetPos = Into->Pos;
+					// Merging pieces slide along the ring into the result.
+					V.TargetAngle = Into->Angle;
+					V.TargetRadius = Into->Radius;
 				}
 			}
 		}
@@ -140,19 +176,11 @@ void ADIRingActor::SyncFromGame(const FDIGame& Game)
 		const FTarget& T = Pair.Value;
 		FTileVisual& V = Visuals.AddDefaulted_GetRef();
 		V.Piece = T.Piece;
-		V.TargetPos = T.Pos;
+		V.Angle = V.TargetAngle = T.Angle;
+		V.Radius = V.TargetRadius = T.Radius;
 		V.TargetSize = T.Size;
 		V.bCenter = T.bCenter;
-		if (Results.Contains(Pair.Key))
-		{
-			V.Pos = T.Pos;
-			V.Size = T.Size * PulseScale;
-		}
-		else
-		{
-			V.Pos = T.bCenter ? FVector2D::ZeroVector : T.Pos;
-			V.Size = 0.f;
-		}
+		V.Size = Results.Contains(Pair.Key) ? T.Size * PulseScale : 0.f;
 	}
 
 	Background->SetCustomPrimitiveDataFloat(0, float(Ring.Num()) / FDIGame::MaxRingPieces);
@@ -173,12 +201,16 @@ void ADIRingActor::Tick(float DeltaSeconds)
 	bAnimating = false;
 	for (FTileVisual& V : Visuals)
 	{
-		V.Pos = FMath::Lerp(V.Pos, V.TargetPos, Move);
+		V.Angle += FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle) * Move; // shortest way round the ring
+		V.Radius = FMath::Lerp(V.Radius, V.TargetRadius, Move);
 		V.Size = FMath::Lerp(V.Size, V.TargetSize, Move);
 		V.Alpha = FMath::Lerp(V.Alpha, V.TargetAlpha, Fade);
-		bAnimating |= !V.Pos.Equals(V.TargetPos, 0.2) || !FMath::IsNearlyEqual(V.Size, V.TargetSize, 0.2f)
+		bAnimating |= FMath::Abs(FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle)) > 0.001f
+			|| !FMath::IsNearlyEqual(V.Radius, V.TargetRadius, 0.3f) || !FMath::IsNearlyEqual(V.Size, V.TargetSize, 0.3f)
 			|| !FMath::IsNearlyEqual(V.Alpha, V.TargetAlpha, 0.01f);
 	}
+	AimAlpha = FMath::Lerp(AimAlpha, AimTargetAlpha, 1.f - FMath::Exp(-14.f * DeltaSeconds));
+	bAnimating |= !FMath::IsNearlyEqual(AimAlpha, AimTargetAlpha, 0.01f);
 	Visuals.RemoveAll([](const FTileVisual& V) { return V.bDying && V.Alpha < 0.02f; });
 	PushInstances();
 }
@@ -186,15 +218,34 @@ void ADIRingActor::Tick(float DeltaSeconds)
 void ADIRingActor::PushInstances()
 {
 	TArray<FTransform> Transforms;
-	Transforms.Reserve(Visuals.Num());
+	Transforms.Reserve(Visuals.Num() + 12);
 	for (const FTileVisual& V : Visuals)
 	{
 		// Centre above ring above dying pieces, so translucency sorts predictably.
 		const float Z = V.bCenter ? 2.f : (V.bDying ? 0.5f : 1.f);
-		Transforms.Emplace(FQuat::Identity, ToWorld(V.Pos, Z), FVector(FMath::Max(V.Size, 0.01f) / PlaneMeshSize));
+		const FVector2D Pos(V.Radius * FMath::Sin(V.Angle), V.Radius * FMath::Cos(V.Angle));
+		Transforms.Emplace(FQuat::Identity, ToWorld(Pos, Z), FVector(FMath::Max(V.Size, 0.01f) / PlaneMeshSize));
 	}
 
-	if (Tiles->GetInstanceCount() != Visuals.Num())
+	// Aim guide: dots along the spoke from the centre piece out to the gap (or the tile a minus would lift).
+	TArray<float> AimDotAlpha;
+	if (AimAlpha > 0.01f)
+	{
+		const FVector2D Dir(FMath::Sin(AimAngle), FMath::Cos(AimAngle));
+		const float Start = DIRingLayout::CenterSize * 0.5f + 18.f;
+		const float End = bAimAtTile ? DIRingLayout::RingRadius - DIRingLayout::TileSize * 0.5f - 12.f : DIRingLayout::RingRadius;
+		const int32 Dots = FMath::Max(2, FMath::FloorToInt32((End - Start) / AimSpacing) + 1);
+		for (int32 d = 0; d < Dots; ++d)
+		{
+			const float T = float(d) / (Dots - 1);
+			const bool bTip = !bAimAtTile && d == Dots - 1; // a slightly larger dot marks the landing gap
+			const float Size = bTip ? AimDotSize * 1.8f : AimDotSize;
+			Transforms.Emplace(FQuat::Identity, ToWorld(Dir * FMath::Lerp(Start, End, T), 0.8f), FVector(Size / PlaneMeshSize));
+			AimDotAlpha.Add(AimAlpha * FMath::Lerp(0.3f, 0.85f, T));
+		}
+	}
+
+	if (Tiles->GetInstanceCount() != Transforms.Num())
 	{
 		Tiles->ClearInstances();
 		Tiles->AddInstances(Transforms, false);
@@ -215,6 +266,10 @@ void ADIRingActor::PushInstances()
 				: float(P.Value);
 		}
 		Tiles->SetCustomData(i, { float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, Visuals[i].Alpha }, false);
+	}
+	for (int32 d = 0; d < AimDotAlpha.Num(); ++d)
+	{
+		Tiles->SetCustomData(Visuals.Num() + d, { bAimAtTile ? 1.f : 0.f, AimKind, 0.f, AimDotAlpha[d] }, false);
 	}
 	Tiles->MarkRenderStateDirty();
 }

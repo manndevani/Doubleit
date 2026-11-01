@@ -39,6 +39,10 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Tutorial (6 scripted steps, retry on a wrong move), replayable from the menu
 - [x] Balance pass with the greedy `DoubleIt.Sim` bot (Addition spawn range narrowed)
 - [x] Android back / Esc toggles pause
+- [x] Full-run playthrough bot (`Scripts/playthrough.ps1`): PASS, ~0.6 s settle, ~2.6 ms average frame
+- [x] Radial motion (arc reflow/merges, radial place/lift), dotted aim guide (touch: aim while held, place on release)
+- [x] Glyph clarity: flagged "1", dark/coral minus, breeze wind lines
+- [ ] Touch aim/release verified by hand on a phone (automation drives taps, not drags)
 - [ ] Android-only code (JNI, UPL) compiled and tested on a phone, which needs UE's Android platform support installed
 - [ ] Save and restore the current run when the app is backgrounded
 

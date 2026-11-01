@@ -17,7 +17,7 @@ class DOUBLEIT_API FDITutorial
 public:
 	static constexpr int32 NumSteps = 6;
 
-	void Reset() { Step = 0; }
+	void Reset(int32 First = 0) { Step = FMath::Clamp(First, 0, NumSteps - 1); }
 	int32 GetStep() const { return Step; }
 	bool IsFinished() const { return Step >= NumSteps; }
 	FString GetInstruction() const;

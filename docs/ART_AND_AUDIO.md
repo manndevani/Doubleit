@@ -18,7 +18,8 @@ It deliberately avoids warm beige/clay "generic app" palettes.
 | Fullness arc near full | → coral `#FF9B85` | same |
 | UI ink / soft ink | `#F2F4F8` / `#8FB3C4` | `#10233A` / `#5A7A8C` |
 | Buttons / panel | `#1E4A5C` / `#0C2433` | `#CDE9EC` / `#E3F3F4` |
-| Plus / Minus / Breeze | coral `#FF9B85` / aqua `#5BC0EB` / pearl `#F2F4F8` + glow | same |
+| Plus / Minus / Breeze | coral `#FF9B85` with dark + / ink `#1C2E4A` with coral rim and − / pearl `#F2F4F8` with wind lines + glow | same |
+| Aim guide dots | pearl `#E6EAF2` to a gap, coral to the tile a minus would lift | same |
 
 Tile ranks (1, 2, 4, 8… or 1, 2, 3… in Addition) cycle through 12 sea-glass colours:
 mint `#7FE0C2`, aqua `#5BC0EB`, lilac `#B9A6F5`, sun `#FFD480`, rose `#F7A8C8`, seafoam `#9EE6E0`,
@@ -29,13 +30,18 @@ Theme follows the phone (Android night mode via JNI, Windows app theme on deskto
 ## Typography
 
 Nunito (OFL, `Content/DoubleIt/Fonts/`): static Regular for text and buttons; the variable file's ExtraLight default for the large score.
-Loaded from loose files (staged as NonUFS), so no font assets. Tile digits are procedural seven-segment glyphs in the tile shader.
+Loaded from loose files (staged as NonUFS), so no font assets. Tile digits are procedural seven-segment glyphs in the tile shader,
+except "1", which has a centred stem and flag (a bare seven-segment 1 reads as a sideways minus).
 
 ## Motion (`ADIRingActor`)
 
-- Pieces are tracked by id: when the ring reflows they glide to their new angle.
-- Fusion: consumed pieces glide into the merge point and fade, and the result pulses in at 1.35× its size and settles.
+All motion is polar (angle + radius), so nothing cuts across the inside of the ring:
+- Pieces are tracked by id: when the ring reflows they slide along the ring arc (shortest way round) to their new angle.
+- Placing travels straight out along the target spoke; a minus lift travels straight in along the piece's own spoke.
+- Fusion: consumed pieces slide along the arc into the merge point and fade, and the result pulses in at 1.35× its size and settles.
 - New centre pieces grow from nothing; the background drifts on a ~60 s cycle.
+- Aim guide: while a finger is down (or the mouse hovers) a dotted spoke runs from the centre to the landing gap, with a larger dot
+  at the gap. The piece is placed when the finger lifts. Settle after a move averages ~0.6 s (playthrough metric).
 
 ## Audio and haptics (all generated, no assets)
 

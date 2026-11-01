@@ -5,7 +5,8 @@
 ## Core loop
 
 1. A **ring** of pieces surrounds a **center** piece.
-2. Tap a gap in the ring to place the center piece there.
+2. Tap a gap in the ring to place the center piece there. While the finger is down, a dotted line runs from the center to the gap
+   it will land in; drag to change the gap and lift to place.
 3. Merges resolve, a new center piece spawns, and you repeat.
 4. The game ends when the ring holds more than **18** pieces after a move resolves *(tune)*.
 
@@ -15,7 +16,7 @@
 |---|---|---|
 | **Number** | soft circle with a number | Placed into the ring. |
 | **Plus (+)** | warm accent dot | When both neighbours are equal numbers, it fuses them (see below). If they aren't, it stays in the ring and fires later when its neighbours become equal. |
-| **Minus (−)** | cool accent dot | Tap any ring piece to take it out. That piece becomes the new center; you can place it, or tap the center to turn it into a Plus. |
+| **Minus (−)** | dark dot with a coral rim | Tap any ring piece to take it out. That piece becomes the new center; you can place it, or tap the center to turn it into a Plus. |
 | **Breeze** | white glow | Placed anywhere: it clears the lowest half of the number tiles (`floor(ringSize/2)`). Pluses stay. It is the calm version of Atomas' Antimatter. |
 
 ## Fusion

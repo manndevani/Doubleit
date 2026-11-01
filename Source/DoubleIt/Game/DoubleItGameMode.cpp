@@ -28,6 +28,20 @@ ADoubleItGameMode::ADoubleItGameMode()
 	DefaultPawnClass = ADIPawn::StaticClass();
 	PlayerControllerClass = ADIPlayerController::StaticClass();
 	HUDClass = AHUD::StaticClass();
+	PrimaryActorTick.bCanEverTick = true;
+}
+
+void ADoubleItGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+#if !UE_BUILD_SHIPPING
+	if (bPlaythrough && Pt.Moves > 0)
+	{
+		Pt.Frames++;
+		Pt.FrameSum += DeltaSeconds;
+		Pt.WorstFrame = FMath::Max<double>(Pt.WorstFrame, DeltaSeconds);
+	}
+#endif
 }
 
 void ADoubleItGameMode::BeginPlay()
@@ -63,11 +77,11 @@ void ADoubleItGameMode::BeginPlay()
 	bool bWantTutorial = !Save->bTutorialDone;
 #if !UE_BUILD_SHIPPING
 	// Automation: -DITutorial forces it; -DIAutoplay (screenshots) skips it.
-	if (FParse::Param(FCommandLine::Get(), TEXT("DITutorial")))
+	if (FParse::Param(FCommandLine::Get(), TEXT("DITutorial")) || FCString::Strifind(FCommandLine::Get(), TEXT("DITutorialStep=")))
 	{
 		bWantTutorial = true;
 	}
-	else if (FCString::Strifind(FCommandLine::Get(), TEXT("DIAutoplay=")))
+	else if (FCString::Strifind(FCommandLine::Get(), TEXT("DIAutoplay=")) || FCString::Strifind(FCommandLine::Get(), TEXT("DIPlaythrough")))
 	{
 		bWantTutorial = false;
 	}
@@ -115,13 +129,54 @@ void ADoubleItGameMode::StartTutorial()
 	bBoardPaused = false;
 	CurrentRules = EDIRuleSet::Doubling;
 	Game = MakeUnique<FDIGame>(CurrentRules, 1);
-	Tutorial.Reset();
+	int32 FirstStep = 0;
+#if !UE_BUILD_SHIPPING
+	FParse::Value(FCommandLine::Get(), TEXT("DITutorialStep="), FirstStep); // automation: jump to a tutorial board
+#endif
+	Tutorial.Reset(FirstStep);
 	Tutorial.SetupStep(*Game);
 	BoardChanged();
 }
 
+void ADoubleItGameMode::HandleAim(const TOptional<FVector2D>& BoardPos)
+{
+	if (!RingActor)
+	{
+		return;
+	}
+	const int32 Num = Game ? Game->GetRing().Num() : 0;
+	const bool bMinus = Game && Game->GetCenter().Kind == EDIPieceKind::Minus;
+	if (!BoardPos || !Game || bBoardPaused || bInputLocked || Game->IsGameOver() || DIRingLayout::IsCenter(*BoardPos)
+		|| (bMinus && Num == 0))
+	{
+		RingActor->ClearAim();
+		return;
+	}
+
+	const float Step = UE_TWO_PI / FMath::Max(Num, 1);
+	float Angle;
+	if (bMinus)
+	{
+		Angle = DIRingLayout::TileFromPoint(*BoardPos, Num) * Step; // straight at the tile it would lift
+	}
+	else if (Num == 0)
+	{
+		Angle = DIRingLayout::AngleOf(*BoardPos);
+	}
+	else
+	{
+		const int32 Slot = DIRingLayout::SlotFromPoint(*BoardPos, Num);
+		Angle = ((Slot == 0 ? Num : Slot) - 0.5f) * Step; // the gap between the two neighbours
+	}
+	RingActor->SetAim(Angle, bMinus);
+}
+
 void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 {
+	if (RingActor)
+	{
+		RingActor->ClearAim();
+	}
 	if (!Game || bBoardPaused || bInputLocked)
 	{
 		return;
@@ -327,6 +382,28 @@ void ADoubleItGameMode::RunAutomationFromCommandLine()
 	if (FParse::Param(FCommandLine::Get(), TEXT("DIPaused")))
 	{
 		SetBoardPaused(true);
+	}
+	float AimDegrees = 0.f;
+	if (FParse::Value(FCommandLine::Get(), TEXT("DIAim="), AimDegrees))
+	{
+		// Pointer held at this clockwise angle on the ring (after the first mouse-hover tick has run).
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, AimDegrees]()
+		{
+			const float A = FMath::DegreesToRadians(AimDegrees);
+			HandleAim(FVector2D(DIRingLayout::RingRadius * FMath::Sin(A), DIRingLayout::RingRadius * FMath::Cos(A)));
+		}), 1.f, false);
+	}
+
+	if (FCString::Strifind(FCommandLine::Get(), TEXT("DIPlaythrough")))
+	{
+		int32 Seed = 12345;
+		FParse::Value(FCommandLine::Get(), TEXT("DIPlaythrough="), Seed);
+		FParse::Value(FCommandLine::Get(), TEXT("DIShotDir="), PlaythroughDir);
+		StartNewGame(EDIGameModeRules::Doubling, Seed);
+		bPlaythrough = true;
+		UE_LOG(LogDoubleIt, Display, TEXT("Playthrough: start seed=%d"), Seed);
+		PlaythroughSchedule(2.f);
 	}
 
 	if (FParse::Value(FCommandLine::Get(), TEXT("DIShot="), ScreenshotPath))

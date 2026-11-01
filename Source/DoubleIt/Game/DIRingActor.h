@@ -11,8 +11,8 @@ class UStaticMeshComponent;
 
 /**
  * Draws the board: one instanced quad per visible piece and a full-screen background quad.
- * Visuals are keyed by piece id, so pieces glide when the ring reflows, fused pieces glide into
- * the merge point and fade, and fusion results pulse in.
+ * Visuals are keyed by piece id and animated in polar space: reflows and merges slide along the
+ * ring arc, placements and lifts travel radially, fused pieces fade, and fusion results pulse in.
  * Per-instance custom data feeds M_Tile: [0] value, [1] kind, [2] colour rank, [3] alpha.
  */
 UCLASS()
@@ -25,6 +25,11 @@ public:
 
 	void SyncFromGame(const FDIGame& Game);
 	void SetDark(bool bDark);
+	bool IsAnimating() const { return bAnimating; }
+
+	/** Radial dotted guide from the centre to Angle: a gap between two tiles, or the tile a minus would lift. */
+	void SetAim(float Angle, bool bAtTile);
+	void ClearAim();
 
 	/** Screen-aligned 2D board space <-> world. The camera looks down -Z with +X as screen-up. */
 	static FVector ToWorld(const FVector2D& P, float Z) { return FVector(P.Y, P.X, Z); }
@@ -36,11 +41,14 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+	/** Polar state (clockwise angle from the top, radius from the centre) so motion follows the ring, never cuts across it. */
 	struct FTileVisual
 	{
 		FDIPiece Piece;
-		FVector2D Pos = FVector2D::ZeroVector;
-		FVector2D TargetPos = FVector2D::ZeroVector;
+		float Angle = 0.f;
+		float TargetAngle = 0.f;
+		float Radius = 0.f;
+		float TargetRadius = 0.f;
 		float Size = 0.f;
 		float TargetSize = 0.f;
 		float Alpha = 1.f;
@@ -58,6 +66,10 @@ private:
 	TObjectPtr<UInstancedStaticMeshComponent> Tiles;
 
 	TArray<FTileVisual> Visuals;
+	float AimAngle = 0.f;
+	float AimAlpha = 0.f;
+	float AimTargetAlpha = 0.f;
+	bool bAimAtTile = false;
 	EDIRuleSet Rules = EDIRuleSet::Doubling;
 	bool bAnimating = false;
 };

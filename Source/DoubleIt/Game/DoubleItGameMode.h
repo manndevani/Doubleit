@@ -34,6 +34,8 @@ public:
 
 	/** Tap in board space (see DIRingLayout). Restarts the run after game over. */
 	void HandleTap(const FVector2D& BoardPos);
+	/** Shows the radial aim guide for a pointer at BoardPos (or hides it when unset). */
+	void HandleAim(const TOptional<FVector2D>& BoardPos);
 
 	void RestartRun();
 	void StartTutorial();
@@ -82,7 +84,32 @@ private:
 	void TakeScreenshotWhenReady();
 	FString ScreenshotPath;
 	FTimerHandle AutomationTimer;
+
+	/** -DIPlaythrough[=Seed] -DIShotDir=<dir>: a bot plays a full run through real screen taps (DoubleItGameMode_Playthrough.cpp). */
+	void PlaythroughStep();
+	void PlaythroughFinish();
+	FVector2D PlaythroughChooseTap() const;
+	bool PlaythroughTap(const FVector2D& BoardPos);
+	void PlaythroughShot(const FString& Label, float Delay = 0.f);
+	void PlaythroughSchedule(float Delay);
+
+	struct FPlaythroughStats
+	{
+		int32 Moves = 0, Rejected = 0, Mismatches = 0, Fusions = 0, MaxChain = 0, Minus = 0, Converts = 0, Shots = 0;
+		int32 Frames = 0;
+		double FrameSum = 0, WorstFrame = 0, SettleSum = 0, SettleMax = 0, MoveStart = 0;
+		int32 Settles = 0;
+		int64 FinalScore = 0;
+		bool bAwaitingSettle = false, bSawGameOver = false, bRestarted = false;
+	};
+	bool bPlaythrough = false;
+	FString PlaythroughDir;
+	FPlaythroughStats Pt;
+	FTimerHandle PlaythroughTimer;
 #endif
+
+public:
+	virtual void Tick(float DeltaSeconds) override;
 
 	TUniquePtr<FDIGame> Game;
 	FDITutorial Tutorial;
