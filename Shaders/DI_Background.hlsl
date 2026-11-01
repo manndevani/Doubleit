@@ -20,13 +20,13 @@ float R = length(P);
 float AA = max(fwidth(R), 1e-3);
 float D = abs(R - RingRadius);
 float Line = 1 - smoothstep(1.5 - AA, 1.5 + AA, D);
-float Glow = exp(-D * 0.06) * 0.35;
+float Glow = exp(-D * D * 0.004) * 0.3; // tight gaussian halo hugging the line (~15 units)
 
 float Ang = atan2(P.x, P.y);
 if (Ang < 0) Ang += 6.2831853;
 float A01 = Ang / 6.2831853;
 float InArc = 1 - smoothstep(Fill - 0.004, Fill + 0.004, A01);
-float GlowArc = 1 - smoothstep(Fill - 0.04, Fill + 0.01, A01); // glow fades out softly at the arc's tip
+float GlowArc = (1 - smoothstep(Fill - 0.06, Fill, A01)) * step(0.001, Fill); // glow tapers off before the arc's tip
 
 float3 RingCol = lerp(float3(0.247, 0.663, 0.627), float3(0.373, 0.827, 0.776), Dark); // #3FA9A0 / #5FD3C6
 float3 ArcCol = lerp(RingCol, float3(1.000, 0.608, 0.522), saturate((Fill - 0.7) / 0.3)); // -> coral near full

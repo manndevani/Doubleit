@@ -22,7 +22,7 @@ It deliberately avoids warm beige/clay "generic app" palettes.
 
 Tile ranks (1, 2, 4, 8… or 1, 2, 3… in Addition) cycle through 12 sea-glass colours:
 mint `#7FE0C2`, aqua `#5BC0EB`, lilac `#B9A6F5`, sun `#FFD480`, rose `#F7A8C8`, seafoam `#9EE6E0`,
-periwinkle `#8C9EFF`, peach `#FFC3A0`, lagoon `#3FB8AF`, orchid `#D98BE0`, pearl `#E6EAF2`, deep sea `#2E86AB`.
+periwinkle `#8C9EFF`, lime `#C5E86C`, lagoon `#3FB8AF`, orchid `#D98BE0`, pearl `#E6EAF2`, deep sea `#2E86AB`.
 
 Theme follows the phone (Android night mode via JNI, Windows app theme on desktop), with a manual light/dark override in the pause menu.
 

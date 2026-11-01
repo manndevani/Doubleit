@@ -65,7 +65,7 @@ const float3 Palette[12] =
 	float3(0.969, 0.659, 0.784), // rose      #F7A8C8
 	float3(0.620, 0.902, 0.878), // seafoam   #9EE6E0
 	float3(0.549, 0.620, 1.000), // periwinkle#8C9EFF
-	float3(1.000, 0.765, 0.627), // peach     #FFC3A0
+	float3(0.773, 0.910, 0.424), // lime      #C5E86C (no orange tiles: coral is reserved for plus)
 	float3(0.247, 0.722, 0.686), // lagoon    #3FB8AF
 	float3(0.851, 0.545, 0.878), // orchid    #D98BE0
 	float3(0.902, 0.918, 0.949), // pearl     #E6EAF2
