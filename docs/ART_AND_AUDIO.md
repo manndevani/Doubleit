@@ -63,6 +63,8 @@ All motion is polar (angle + radius), so nothing cuts across the inside of the r
 - New centre pieces grow from nothing; the background drifts on a ~60 s cycle.
 - Aim guide: while a finger is down (or the mouse hovers) a dotted spoke runs from the centre to the landing gap, with a larger dot
   at the gap. The piece is placed when the finger lifts. Settle after a move averages ~1.6 s including chain playback.
+- Breeze preview: while a breeze is aimed, the stones it would clear ease (10/s) to 35% opacity and 85% size, so you
+  see which half goes before lifting the finger. Found by trying the tap on a copy (`HandleAim`). `UDIGameSettings` > Motion.
 
 ## Status glow (`Shaders/DI_Background.hlsl`)
 

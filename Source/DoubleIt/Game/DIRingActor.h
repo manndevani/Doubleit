@@ -42,6 +42,8 @@ public:
 	/** Radial dotted guide from the centre to Angle: a gap between two tiles, or the tile a minus would lift. */
 	void SetAim(float Angle, bool bAtTile);
 	void ClearAim();
+	/** While aiming: these pieces (by id) would be cleared by the tap (a breeze), so they fade and shrink. Empty = none. */
+	void SetPreview(const TSet<uint32>& Ids);
 
 	/** Tutorial: a soft coral circle at a ring-space point (a gap, a stone, the centre) of the given size. */
 	void SetHint(const FVector2D& Pos, float Size);
@@ -73,6 +75,8 @@ private:
 		float Seed = 0.f;      // 0..1 from the piece id: pebble outline and breathing phase
 		float Alpha = 1.f;
 		float TargetAlpha = 1.f;
+		float Preview = 0.f;   // 0..1 eased: how far this stone is shown as about to be cleared
+		float PreviewTarget = 0.f;
 		// Soft body: a damped wobble along WobbleAngle after an impact, and Deform (log-stretch [a, b], see M_Tile) to draw.
 		float WobbleAge = TNumericLimits<float>::Max();
 		float WobbleAmp = 0.f;

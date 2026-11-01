@@ -45,8 +45,19 @@ void ADIRingActor::SetAim(float Angle, bool bAtTile)
 	PushInstances();
 }
 
+void ADIRingActor::SetPreview(const TSet<uint32>& Ids)
+{
+	for (FTileVisual& V : Visuals)
+	{
+		const float Target = Ids.Contains(V.Piece.Id) && !V.bCenter ? 1.f : 0.f;
+		bAnimating |= V.PreviewTarget != Target;
+		V.PreviewTarget = Target;
+	}
+}
+
 void ADIRingActor::ClearAim()
 {
+	SetPreview({});
 	if (AimTargetAlpha > 0.f)
 	{
 		AimTargetAlpha = 0.f;
@@ -356,6 +367,7 @@ void ADIRingActor::Tick(float DeltaSeconds)
 			V.Size = FMath::Max(V.Size + V.SizeVel * H, 0.f);
 		}
 		V.Alpha = FMath::Lerp(V.Alpha, V.TargetAlpha, Fade);
+		V.Preview = FMath::Lerp(V.Preview, V.PreviewTarget, 1.f - FMath::Exp(-Feel().PreviewRate * DeltaSeconds));
 
 		// Soft body: stretch along the path (board velocity from the polar springs) plus any impact wobble.
 		const FVector2D Vel(V.RadiusVel * FMath::Sin(V.Angle) + V.Radius * FMath::Cos(V.Angle) * V.AngleVel,
@@ -371,7 +383,7 @@ void ADIRingActor::Tick(float DeltaSeconds)
 		bAnimating |= FMath::Abs(FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle)) > SettleAngle || FMath::Abs(V.AngleVel) > SettleAngleVel
 			|| !FMath::IsNearlyEqual(V.Radius, V.TargetRadius, SettleLength) || FMath::Abs(V.RadiusVel) > SettleLengthVel
 			|| !FMath::IsNearlyEqual(V.Size, V.TargetSize, SettleLength) || FMath::Abs(V.SizeVel) > SettleLengthVel
-			|| !FMath::IsNearlyEqual(V.Alpha, V.TargetAlpha, SettleAlpha);
+			|| !FMath::IsNearlyEqual(V.Alpha, V.TargetAlpha, SettleAlpha) || !FMath::IsNearlyEqual(V.Preview, V.PreviewTarget, SettleAlpha);
 	}
 	AimAlpha = FMath::Lerp(AimAlpha, AimTargetAlpha, 1.f - FMath::Exp(-14.f * DeltaSeconds));
 	bAnimating |= !FMath::IsNearlyEqual(AimAlpha, AimTargetAlpha, SettleAlpha);
@@ -427,8 +439,11 @@ void ADIRingActor::PushInstances()
 		{
 			Rank = float(Mode.Rules->ColourRank(P.Value));
 		}
-		Add(FVector2D(V.Radius * FMath::Sin(V.Angle), V.Radius * FMath::Cos(V.Angle)), Z, V.Size * TileQuadPad,
-			FVector4f(float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, V.Alpha), V.Seed, V.Deform);
+		// A stone a breeze is aimed at fades and shrinks a little: "these go".
+		const float Shown = FMath::Lerp(1.f, Feel().PreviewOpacity, V.Preview);
+		const float Scale = FMath::Lerp(1.f, Feel().PreviewScale, V.Preview);
+		Add(FVector2D(V.Radius * FMath::Sin(V.Angle), V.Radius * FMath::Cos(V.Angle)), Z, V.Size * Scale * TileQuadPad,
+			FVector4f(float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, V.Alpha * Shown), V.Seed, V.Deform);
 	}
 
 	for (const FRipple& R : Ripples)

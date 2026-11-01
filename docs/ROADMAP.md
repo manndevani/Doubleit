@@ -64,6 +64,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Save and restore the current run when the app is backgrounded (saved every move too)
 - [x] Breeze owned, not dealt: button top right, clears the half nearest the tap, 1 to start + 1 per first-ever number from 256
 - [x] Breeze shop UI behind `IDIStore` (fake store in development builds)
+- [x] Breeze aim preview: the stones it would clear fade while you aim
 
 ## M3: Support page & store
 - [ ] (?) Ad defaults confirmed (see MONETIZATION.md)

@@ -30,8 +30,9 @@ The breeze is a rescue the player owns and uses by choice, never a random piece 
 
 - **Using one:** the breeze button (a pearl dot and the count, top right) brings a breeze into the centre; the current
   centre waits behind it (a lifted piece keeps its turn-into-plus option). Tap a gap to clear the half nearest it, or
-  tap the button again to put the breeze back unused. After it is used, the waiting piece is the centre again. It
-  counts as a move. One is spent only when it is placed. With none left, the button opens the shop.
+  tap the button again to put the breeze back unused. While you aim, the stones it would clear fade. After it is
+  used, the waiting piece is the centre again. It counts as a move. One is spent only when it is placed. With none
+  left, the button opens the shop.
 - **Free breezes:** a new player starts with 1 (`UDIGameSettings::StartingPieces`). Every time you make a number you
   have never made before in that mode, from `RewardFrom` on (Classic 256, Addition 9), you get one: 256, then 512,
   then 1024... Each number pays once, ever (`FDIWallet`, saved). Tutorial and automation runs neither earn nor spend.

@@ -221,6 +221,25 @@ void ADoubleItGameMode::HandleAim(const TOptional<FVector2D>& BoardPos)
 		Angle = DIRingLayout::TileAngle(Slot == 0 ? Num : Slot, Num, RingOffset) - UE_PI / Num; // the gap between the two neighbours
 	}
 	RingActor->SetAim(Angle, bMinus);
+
+	// Show what the tap would clear right away (a breeze): try it on a copy and compare before fusions run.
+	TSet<uint32> Cleared;
+	if (!bMinus)
+	{
+		FDIGame Trial = *Game;
+		if (DIRingLayout::ApplyTap(Trial, *BoardPos, RingOffset))
+		{
+			for (const FDIPiece& Piece : Game->GetRing())
+			{
+				Cleared.Add(Piece.Id);
+			}
+			for (const FDIPiece& Piece : Trial.GetPlacedRing())
+			{
+				Cleared.Remove(Piece.Id);
+			}
+		}
+	}
+	RingActor->SetPreview(Cleared);
 }
 
 void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
@@ -781,6 +800,10 @@ void ADoubleItGameMode::RunAutomationFromCommandLine()
 		Game->SetBoard(Ring, FDIPiece::Number(90));
 		RingOffset = 0.f;
 		BoardChanged();
+	}
+	if (FParse::Param(FCommandLine::Get(), TEXT("DIBringIn")))
+	{
+		ToggleBringIn(); // as if the breeze button was tapped (with -DIAim: the clear preview)
 	}
 	float AimDegrees = 0.f;
 	if (FParse::Value(FCommandLine::Get(), TEXT("DIAim="), AimDegrees))

@@ -118,6 +118,16 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (Units = "s"))
 	float RippleSeconds = 0.8f;
 
+	/** Aiming a breeze: the stones it would clear ease (at this rate, 1/s) to this opacity and size. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float PreviewRate = 10.f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float PreviewOpacity = 0.35f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float PreviewScale = 0.85f;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Motion")
 	float AimDotSize = 9.f;
 
