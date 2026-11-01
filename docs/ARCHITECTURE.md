@@ -70,16 +70,23 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
 
 - Orthographic camera, **unlit** materials, no dynamic lights, shadows or post (bloom, motion blur, auto exposure off).
 - Everything on the board is **one** `UInstancedStaticMeshComponent` of `/Engine/BasicShapes/Plane` quads, so one draw call.
-  Per-instance custom data `[value, kind, rank, alpha]` drives `M_Tile`. Kinds: 0 number, 1 plus, 2 minus, 3 breeze,
+  Per-instance custom data `[value, kind, rank, alpha, seed]` drives `M_Tile`. Kinds: 0 number, 1 plus, 2 minus, 3 breeze,
   4 aim dot (value 1 = coral), 5 ripple ring (value 1 = gold reveal).
 - `ADIRingActor` animates in **polar space** (angle + radius per visual, keyed by piece id): reflows and merges slide along
   the arc (shortest way round), placements travel out along a spoke, lifts travel in. Consumed pieces slide into the
-  result and fade; results pulse in at 1.35x. Ripples grow and fade over 0.55 s; shake (2-4 px) decays quickly.
-  `IsAnimating()` reports when everything has settled (used by the playthrough bot).
-- Tile material (`Shaders/DI_Tile.hlsl`): SDF disc + procedural seven-segment digits (flagged "1"), plus/minus/breeze
+  result and fade; results pulse in at 1.22x. Motion is spring-driven (k 230, c 23, 2 substeps, ~3% overshoot).
+  Ripples grow and fade over 0.55 s; shake (2-4 px) decays quickly. `Tick` returns early once settled, so a still
+  board costs no CPU. `IsAnimating()` reports when everything has settled (used by the playthrough bot).
+- Tile material (`Shaders/DI_Tile.hlsl`): seeded pebble outline + rounded procedural digits, plus/minus/breeze
   glyphs, aim dots and ripple rings. Tile space comes from the screen-space UV Jacobian, so glyphs stay upright.
+  A second custom node (`Shaders/DI_TileBreath.hlsl`) feeds World Position Offset: idle breathing on the GPU.
 - Background (`Shaders/DI_Background.hlsl`): drifting gradient, ring line, fullness arc (custom primitive data 0 = fill,
-  1 = dark). It reads camera-relative world position, so **the camera must stay at X=Y=0**.
+  1 = dark). It reads absolute world position, so the camera may move.
+- Camera fit (`ADIPawn::FitToViewport`, re-run when viewport size or UI scale changes): the ring is centred in the band
+  between the top HUD (500 UMG units) and the game-over lines (80% height) by moving the pawn along world X, and the
+  ortho width only zooms out from the 820-unit phone layout (squat screens, foldables), capped at 1.6 px per unit.
+  The HUD sits inside a `USafeZone` (notches, cutouts).
+- Mobile cost: MSAA off (shaders antialias their own edges), `t.MaxFPS=60`, translucent stones over one opaque quad.
 - Materials are generated: `Scripts/generate_assets.ps1` runs `UDIGenerateAssetsCommandlet`. Edit the HLSL, re-run, commit the `.uasset`.
 - Exact colours: manual exposure with `ToneCurveAmount=0` on desktop; `r.MobileHDR=False` on mobile.
 - Map: `/Engine/Maps/Entry` (empty). Everything is spawned from C++ by `ADoubleItGameMode`.

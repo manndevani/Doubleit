@@ -30,8 +30,17 @@ Theme follows the phone (Android night mode via JNI, Windows app theme on deskto
 ## Typography
 
 Nunito (OFL, `Content/DoubleIt/Fonts/`): static Regular for text and buttons; the variable file's ExtraLight default for the large score.
-Loaded from loose files (staged as NonUFS), so no font assets. Tile digits are procedural seven-segment glyphs in the tile shader,
-except "1", which has a centred stem and flag (a bare seven-segment 1 reads as a sideways minus).
+Loaded from loose files (staged as NonUFS), so no font assets. Tile digits are procedural, rounded hand-lettered strokes
+(arcs and capsules) in the tile shader, tilted a hair per piece; "1" has a flag so it never reads as a sideways minus.
+
+## Tiles: sea-glass pebbles
+
+The aim is organic, not "generic app". Every stone is drawn in `Shaders/DI_Tile.hlsl`:
+- Outline: a circle bent by 3 low harmonics with phases seeded per piece, so no two stones match. The phases drift
+  slowly over time and the stone swells ~1.5%, so shapes gently morph.
+- Shading: soft dome light from the top left, a thin sheen, faint frosted grain, rim darkening like worn glass.
+- Breathing: each stone drifts ~1.5 px on its own slow rhythm (`Shaders/DI_TileBreath.hlsl`, vertex shader).
+- Aim dots and ripples stay perfect circles and hold still.
 
 ## Motion (`ADIRingActor`)
 
@@ -40,9 +49,10 @@ All motion is polar (angle + radius), so nothing cuts across the inside of the r
   evenly on both sides of a placed piece, and a fusion collapses onto the plus from left and right at once.
 - Pieces are tracked by id: when the ring reflows they slide along the ring arc (shortest way round) to their new angle.
 - Moves play back in steps: the piece lands, each chain collision follows ~220 ms apart, then the next centre appears.
-  Each collision: result pulses in (1.35×), a thin ripple ring spreads (0.55 s), chains of 3+ add a 2–4 px shake.
+  Each collision: result pulses in (1.22×), a thin ripple ring spreads (0.55 s), chains of 3+ add a 2–4 px shake.
+- Motion uses lightly under-damped springs (damping ratio ~0.75, ~3% overshoot): a small, soft settle, not a bounce.
 - Placing travels straight out along the target spoke; a minus lift travels straight in along the piece's own spoke.
-- Fusion: consumed pieces slide along the arc into the merge point and fade, and the result pulses in at 1.35× its size and settles.
+- Fusion: consumed pieces slide along the arc into the merge point and fade, and the result pulses in at 1.22× its size and settles.
 - New centre pieces grow from nothing; the background drifts on a ~60 s cycle.
 - Aim guide: while a finger is down (or the mouse hovers) a dotted spoke runs from the centre to the landing gap, with a larger dot
   at the gap. The piece is placed when the finger lifts. Settle after a move averages ~0.7 s including chain playback.

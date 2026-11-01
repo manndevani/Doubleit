@@ -47,6 +47,9 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Placement notes by position, breeze chime, first-ever-number reveal, new-best celebration
 - [x] Invisible adaptive pace per mode (`Core/DIAdaptive`, tested), saved with the profile
 - [x] Android Auto Backup enabled (save restored after reinstall)
+- [x] Sea-glass pebble stones: seeded morphing outlines, GPU idle breathing, subtle springs (~3% overshoot)
+- [x] Mobile pass: MSAA off, 60 fps cap, CPU idle on a still board; layout verified at 5 screen shapes (`Scripts/screen_sizes.ps1`)
+- [ ] Profile on a real low-end phone (GPU time per frame, battery over a 10-minute session)
 - [ ] Touch aim/release verified by hand on a phone (automation drives taps, not drags)
 - [ ] Auto Backup restore verified on a phone (`adb shell bmgr backupnow com.doubleit.game`, uninstall, reinstall)
 - [ ] Android-only code (JNI, UPL) compiled and tested on a phone, which needs UE's Android platform support installed

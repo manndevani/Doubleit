@@ -585,6 +585,21 @@ void ADoubleItGameMode::RunAutomationFromCommandLine()
 	{
 		SetBoardPaused(true);
 	}
+	if (FParse::Param(FCommandLine::Get(), TEXT("DIGlyphBoard")))
+	{
+		// Every digit and piece kind on one board, for checking tile art.
+		TArray<FDIPiece> Ring;
+		for (int64 V : { 1024, 2048, 4096, 8192, 16384, 32768, 65536, 512, 256, 128, 64, 32, 16 })
+		{
+			Ring.Add(FDIPiece::Number(V));
+		}
+		Ring.Add(FDIPiece::Plus());
+		Ring.Add(FDIPiece::Minus());
+		Ring.Add(FDIPiece::Breeze());
+		Game->SetBoard(Ring, FDIPiece::Number(90));
+		RingOffset = 0.f;
+		BoardChanged();
+	}
 	float AimDegrees = 0.f;
 	if (FParse::Value(FCommandLine::Get(), TEXT("DIAim="), AimDegrees))
 	{

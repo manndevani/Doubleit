@@ -6,7 +6,7 @@
 
 class UCameraComponent;
 
-/** Static orthographic camera looking down on the ring. */
+/** Orthographic camera looking down on the ring; its zoom adapts to the screen shape. */
 UCLASS()
 class DOUBLEIT_API ADIPawn : public APawn
 {
@@ -15,8 +15,16 @@ class DOUBLEIT_API ADIPawn : public APawn
 public:
 	ADIPawn();
 
+public:
+	virtual void Tick(float DeltaSeconds) override;
+
 protected:
 	virtual void BeginPlay() override;
+
+	/** Fits the board between the HUD bands on any screen shape (tall phones, tablets, foldables). */
+	void FitToViewport(const FIntPoint& Size);
+	FIntPoint FittedSize = FIntPoint::ZeroValue;
+	float FittedUIScale = 0.f;
 
 private:
 	UPROPERTY(VisibleAnywhere)

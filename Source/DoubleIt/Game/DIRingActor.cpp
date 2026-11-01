@@ -10,9 +10,11 @@
 namespace
 {
 	constexpr float PlaneMeshSize = 100.f; // /Engine/BasicShapes/Plane is 100x100
-	constexpr float MoveRate = 12.f;
+	constexpr float SpringK = 230.f;      // stiffness: visibly settled in ~0.45 s
+	constexpr float SpringC = 23.f;       // damping ratio ~0.75: a ~3% overshoot, felt more than seen
+	constexpr int32 SpringSubsteps = 2;
 	constexpr float FadeRate = 7.f;
-	constexpr float PulseScale = 1.35f;
+	constexpr float PulseScale = 1.22f;
 	constexpr float AimKind = 4.f; // M_Tile kind for guide dots
 	constexpr float RippleKind = 5.f;
 	constexpr float RippleSeconds = 0.55f;
@@ -56,7 +58,7 @@ ADIRingActor::ADIRingActor()
 	Tiles->SetupAttachment(RootComponent);
 	Tiles->SetStaticMesh(Plane.Object);
 	Tiles->SetAbsolute(true, true, true);
-	Tiles->NumCustomDataFloats = 4;
+	Tiles->NumCustomDataFloats = 5;
 	Tiles->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Tiles->CastShadow = false;
 }
@@ -200,6 +202,7 @@ void ADIRingActor::ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Cente
 		V.TargetSize = T.Size;
 		V.bCenter = T.bCenter;
 		V.Size = Results.Contains(Pair.Key) ? T.Size * PulseScale : 0.f;
+		V.Seed = FMath::Frac(Pair.Key * 0.6180339887f); // golden-ratio spread: neighbouring ids get unlike stones
 	}
 
 	Background->SetCustomPrimitiveDataFloat(0, float(Ring.Num()) / FDIGame::MaxRingPieces);
@@ -212,20 +215,28 @@ void ADIRingActor::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if (!bAnimating)
 	{
-		return;
+		return; // idle breathing and shape drift run in M_Tile on the GPU; nothing to do here
 	}
 
-	const float Move = 1.f - FMath::Exp(-MoveRate * DeltaSeconds);
 	const float Fade = 1.f - FMath::Exp(-FadeRate * DeltaSeconds);
+	const float H = FMath::Min(DeltaSeconds, 1.f / 30.f) / SpringSubsteps;
 	bAnimating = false;
 	for (FTileVisual& V : Visuals)
 	{
-		V.Angle += FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle) * Move; // shortest way round the ring
-		V.Radius = FMath::Lerp(V.Radius, V.TargetRadius, Move);
-		V.Size = FMath::Lerp(V.Size, V.TargetSize, Move);
+		// Under-damped springs: a slight overshoot and settle reads as physical, a pure ease reads as software.
+		for (int32 s = 0; s < SpringSubsteps; ++s)
+		{
+			V.AngleVel += (SpringK * FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle) - SpringC * V.AngleVel) * H; // shortest way round
+			V.Angle += V.AngleVel * H;
+			V.RadiusVel += (SpringK * (V.TargetRadius - V.Radius) - SpringC * V.RadiusVel) * H;
+			V.Radius += V.RadiusVel * H;
+			V.SizeVel += (SpringK * (V.TargetSize - V.Size) - SpringC * V.SizeVel) * H;
+			V.Size = FMath::Max(V.Size + V.SizeVel * H, 0.f);
+		}
 		V.Alpha = FMath::Lerp(V.Alpha, V.TargetAlpha, Fade);
-		bAnimating |= FMath::Abs(FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle)) > 0.001f
-			|| !FMath::IsNearlyEqual(V.Radius, V.TargetRadius, 0.3f) || !FMath::IsNearlyEqual(V.Size, V.TargetSize, 0.3f)
+		bAnimating |= FMath::Abs(FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle)) > 0.003f || FMath::Abs(V.AngleVel) > 0.03f // under ~1 px
+			|| !FMath::IsNearlyEqual(V.Radius, V.TargetRadius, 0.8f) || FMath::Abs(V.RadiusVel) > 6.f
+			|| !FMath::IsNearlyEqual(V.Size, V.TargetSize, 0.8f) || FMath::Abs(V.SizeVel) > 6.f
 			|| !FMath::IsNearlyEqual(V.Alpha, V.TargetAlpha, 0.01f);
 	}
 	AimAlpha = FMath::Lerp(AimAlpha, AimTargetAlpha, 1.f - FMath::Exp(-14.f * DeltaSeconds));
@@ -245,13 +256,15 @@ void ADIRingActor::Tick(float DeltaSeconds)
 
 void ADIRingActor::PushInstances()
 {
-	// One instance list for tiles, impact ripples and aim dots; each carries [value, kind, rank, alpha] for M_Tile.
+	// One instance list for tiles, impact ripples and aim dots; each carries [value, kind, rank, alpha, seed] for M_Tile.
 	TArray<FTransform> Transforms;
 	TArray<FVector4f> Data;
-	auto Add = [&](const FVector2D& Pos, float Z, float Size, const FVector4f& Custom)
+	TArray<float> Seeds;
+	auto Add = [&](const FVector2D& Pos, float Z, float Size, const FVector4f& Custom, float Seed = 0.f)
 	{
 		Transforms.Emplace(FQuat::Identity, ToWorld(Pos + ShakeOffset, Z), FVector(FMath::Max(Size, 0.01f) / PlaneMeshSize));
 		Data.Add(Custom);
+		Seeds.Add(Seed);
 	};
 
 	for (const FTileVisual& V : Visuals)
@@ -267,7 +280,7 @@ void ADIRingActor::PushInstances()
 				: float(P.Value);
 		}
 		Add(FVector2D(V.Radius * FMath::Sin(V.Angle), V.Radius * FMath::Cos(V.Angle)), Z, V.Size,
-			FVector4f(float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, V.Alpha));
+			FVector4f(float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, V.Alpha), V.Seed);
 	}
 
 	for (const FRipple& R : Ripples)
@@ -305,7 +318,7 @@ void ADIRingActor::PushInstances()
 	}
 	for (int32 i = 0; i < Data.Num(); ++i)
 	{
-		Tiles->SetCustomData(i, { Data[i].X, Data[i].Y, Data[i].Z, Data[i].W }, false);
+		Tiles->SetCustomData(i, { Data[i].X, Data[i].Y, Data[i].Z, Data[i].W, Seeds[i] }, false);
 	}
 	Tiles->MarkRenderStateDirty();
 }

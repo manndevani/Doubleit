@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/SafeZone.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -82,9 +83,13 @@ UButton* UDIHUDWidget::MakeButton(UPanelWidget* Parent, TObjectPtr<UTextBlock>& 
 
 void UDIHUDWidget::Build()
 {
+	// Safe zone keeps the score and pause button clear of notches, punch holes and rounded corners.
+	USafeZone* Safe = WidgetTree->ConstructWidget<USafeZone>();
+	Safe->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	WidgetTree->RootWidget = Safe;
 	Root = WidgetTree->ConstructWidget<UCanvasPanel>();
 	Root->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	WidgetTree->RootWidget = Root;
+	Safe->AddChild(Root);
 
 	Score = MakeText(104.f);
 	Score->SetFont(NunitoFont(104.f, true));
@@ -94,9 +99,11 @@ void UDIHUDWidget::Build()
 
 	TutorialText = MakeText(36.f);
 	TutorialText->SetAutoWrapText(true);
-	UCanvasPanelSlot* TutSlot = Place(Root, TutorialText, FVector2D(0.5, 0.0), FVector2D(0, 380), FVector2D(0.5, 0.0));
-	TutSlot->SetAutoSize(false);
-	TutSlot->SetSize(FVector2D(900, 160));
+	// Stretches to 84% of the screen width, so it wraps instead of overflowing on narrow or small screens.
+	UCanvasPanelSlot* TutSlot = Root->AddChildToCanvas(TutorialText);
+	TutSlot->SetAnchors(FAnchors(0.08f, 0.f, 0.92f, 0.f));
+	TutSlot->SetOffsets(FMargin(0, 380, 0, 160));
+	TutorialText->SetJustification(ETextJustify::Center);
 
 	GameOverTitle = MakeText(48.f);
 	GameOverTitle->SetText(FText::FromString(TEXT("a calm finish")));

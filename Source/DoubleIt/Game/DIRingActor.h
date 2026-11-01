@@ -61,6 +61,10 @@ private:
 		float TargetRadius = 0.f;
 		float Size = 0.f;
 		float TargetSize = 0.f;
+		float AngleVel = 0.f;  // springs: pieces overshoot a touch and settle, like stones dropped in water
+		float RadiusVel = 0.f;
+		float SizeVel = 0.f;
+		float Seed = 0.f;      // 0..1 from the piece id: pebble outline and breathing phase
 		float Alpha = 1.f;
 		float TargetAlpha = 1.f;
 		bool bCenter = false;

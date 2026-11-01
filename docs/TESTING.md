@@ -10,6 +10,8 @@
 | Visual check | `-DIAutoplay=N -DIShot=<png>`: the game plays N bot taps, waits for shaders, saves a PNG and quits | Win64 window | `./Scripts/screenshot.ps1 -Moves 20` |
 | Full run and feel | `-DIPlaythrough[=Seed] -DIShotDir=<dir>`: a bot plays one Classic game through real screen taps, checks every tap against `DIRingLayout::ApplyTap`, restarts, logs `Playthrough: RESULT=PASS|FAIL` with settle and frame times, and builds a contact sheet | Win64 window | `./Scripts/playthrough.ps1` |
 | Specific boards | `-DITutorialStep=N` opens tutorial board N; `-DIAim=<degrees>` holds the aim guide at that ring angle | Win64 window | `./Scripts/screenshot.ps1 -Moves 0 -Extra '-DITutorialStep=3 -DIAim=200'` |
+| Glyphs | `-DIGlyphBoard` fills the ring with every glyph (digits, plus, minus, breeze) for a close look | Win64 window | `./Scripts/screenshot.ps1 -Moves 0 -Extra '-DIGlyphBoard'` |
+| Screen sizes | Runs the visual check at 20:9, 16:9, 360x640, 3:4 tablet and an unfolded foldable, then builds one sheet (`Saved/Screenshots/sizes.png`); check that the HUD and ring never overlap | Win64 window | `./Scripts/screen_sizes.ps1` |
 | Device smoke test | `adb install` + launch + logcat grep for `LogDoubleIt: Ready` | phone/emulator | `./Scripts/package_android.ps1 -Install` |
 | Reinstall keeps the profile | Auto Backup round trip: play a run, force a backup, uninstall, reinstall, check logcat `Run tuning: ... (N runs learned)` with N > 0 | phone | `adb shell bmgr backupnow com.doubleit.game`, then `adb uninstall com.doubleit.game` and reinstall |
 

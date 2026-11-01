@@ -86,13 +86,16 @@ namespace
 
 		UMaterialExpression* UV = AddExpression<UMaterialExpressionTextureCoordinate>(M);
 		TArray<TPair<FName, UMaterialExpression*>> Inputs = { { TEXT("UV"), UV } };
-		const TCHAR* DataNames[] = { TEXT("Value"), TEXT("Kind"), TEXT("Rank"), TEXT("Alpha") };
-		for (uint32 i = 0; i < 4; ++i)
+		const TCHAR* DataNames[] = { TEXT("Value"), TEXT("Kind"), TEXT("Rank"), TEXT("Alpha"), TEXT("Seed") };
+		for (uint32 i = 0; i < UE_ARRAY_COUNT(DataNames); ++i)
 		{
 			UMaterialExpressionPerInstanceCustomData* Data = AddExpression<UMaterialExpressionPerInstanceCustomData>(M);
 			Data->DataIndex = i;
 			Inputs.Emplace(DataNames[i], Data);
 		}
+
+		UMaterialExpressionTime* Time = AddExpression<UMaterialExpressionTime>(M);
+		Inputs.Emplace(TEXT("Time"), Time);
 
 		UMaterialExpressionCustom* Custom = AddCustom(M, TEXT("DI_Tile.hlsl"), CMOT_Float4, Inputs);
 		UMaterialEditorOnlyData* Ed = M->GetEditorOnlyData();
@@ -100,6 +103,11 @@ namespace
 		Ed->EmissiveColor.SetMask(1, 1, 1, 1, 0);
 		Ed->Opacity.Connect(0, Custom);
 		Ed->Opacity.SetMask(1, 0, 0, 0, 1);
+
+		// Idle breathing runs in the vertex shader, so the CPU does nothing while the board is still.
+		UMaterialExpressionCustom* Breath = AddCustom(M, TEXT("DI_TileBreath.hlsl"), CMOT_Float3,
+			{ { TEXT("Kind"), Inputs[2].Value }, { TEXT("Seed"), Inputs[5].Value }, { TEXT("Time"), Time } });
+		Ed->WorldPositionOffset.Connect(0, Breath);
 		return SaveMaterial(M);
 	}
 
@@ -110,7 +118,7 @@ namespace
 
 		UMaterialExpressionScreenPosition* Screen = AddExpression<UMaterialExpressionScreenPosition>(M);
 		UMaterialExpressionWorldPosition* World = AddExpression<UMaterialExpressionWorldPosition>(M);
-		World->WorldPositionShaderOffset = WPT_CameraRelative;
+		World->WorldPositionShaderOffset = WPT_Default; // absolute: the camera may move to centre the board between HUD bands
 		UMaterialExpressionTime* Time = AddExpression<UMaterialExpressionTime>(M);
 		UMaterialExpressionScalarParameter* Fill = AddExpression<UMaterialExpressionScalarParameter>(M);
 		Fill->ParameterName = TEXT("Fill");
