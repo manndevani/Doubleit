@@ -19,7 +19,7 @@ It deliberately avoids warm beige/clay "generic app" palettes.
 | UI ink / soft ink | `#F2F4F8` / `#8FB3C4` | `#10233A` / `#5A7A8C` |
 | Buttons / panel | `#1E4A5C` / `#0C2433` | `#CDE9EC` / `#E3F3F4` |
 | Plus / Minus / Breeze | coral `#FF9B85` with dark + / ink `#1C2E4A` with coral rim and − / pearl `#F2F4F8` with wind lines + glow | same |
-| Aim guide dots | pearl `#E6EAF2` to a gap, coral to the tile a minus would lift | same |
+| Aim guide dots, impact ripples | pearl `#E6EAF2` (dots: coral to the tile a minus would lift; ripples: sun-gold on a first-ever number) | ink `#1C2E4A` instead of pearl, so they show on the light background |
 
 Tile ranks (1, 2, 4, 8… or 1, 2, 3… in Addition) cycle through 12 sea-glass colours:
 mint `#7FE0C2`, aqua `#5BC0EB`, lilac `#B9A6F5`, sun `#FFD480`, rose `#F7A8C8`, seafoam `#9EE6E0`,

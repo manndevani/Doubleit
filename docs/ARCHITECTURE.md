@@ -71,7 +71,7 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
 - Orthographic camera, **unlit** materials, no dynamic lights, shadows or post (bloom, motion blur, auto exposure off).
 - Everything on the board is **one** `UInstancedStaticMeshComponent` of `/Engine/BasicShapes/Plane` quads, so one draw call.
   Per-instance custom data `[value, kind, rank, alpha, seed]` drives `M_Tile`. Kinds: 0 number, 1 plus, 2 minus, 3 breeze,
-  4 aim dot (value 1 = coral), 5 ripple ring (value 1 = gold reveal).
+  4 aim dot (value 1 = coral), 5 ripple ring (value 1 = gold reveal); for 4 and 5, rank 1 = light theme (ink).
 - `ADIRingActor` animates in **polar space** (angle + radius per visual, keyed by piece id): reflows and merges slide along
   the arc (shortest way round), placements travel out along a spoke, lifts travel in. Consumed pieces slide into the
   result and fade; results pulse in at 1.22x. Motion is spring-driven (k 230, c 23, 2 substeps, ~3% overshoot).

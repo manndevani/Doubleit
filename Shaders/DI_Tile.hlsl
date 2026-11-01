@@ -158,14 +158,14 @@ else if (K == 3)
 }
 else if (K == 4)
 {
-	// Aim guide dot: pearl towards a gap, coral towards the tile a minus would lift.
-	Fill = Value > 0.5 ? float3(1.000, 0.608, 0.522) : float3(0.902, 0.918, 0.949);
+	// Aim guide dot: pearl towards a gap, coral towards the tile a minus would lift. Rank 1 = light theme: ink instead of pearl.
+	Fill = Value > 0.5 ? float3(1.000, 0.608, 0.522) : (Rank > 0.5 ? float3(0.110, 0.180, 0.290) : float3(0.902, 0.918, 0.949));
 	Disc = 1 - smoothstep(0.92 - AA, 0.92 + AA, R);
 }
 else if (K == 5)
 {
-	// Impact ripple: a thin ring that the renderer grows and fades. Sun-gold for a first-ever number.
-	Fill = Value > 0.5 ? float3(1.000, 0.831, 0.502) : float3(0.902, 0.918, 0.949);
+	// Impact ripple: a thin ring that the renderer grows and fades. Sun-gold for a first-ever number. Ink on the light theme.
+	Fill = Value > 0.5 ? float3(1.000, 0.831, 0.502) : (Rank > 0.5 ? float3(0.110, 0.180, 0.290) : float3(0.902, 0.918, 0.949));
 	Disc = 1 - smoothstep(0.035, 0.035 + AA * 1.5, abs(R - 0.86));
 }
 else

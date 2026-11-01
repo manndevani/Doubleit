@@ -95,6 +95,7 @@ private:
 	float AimAlpha = 0.f;
 	float AimTargetAlpha = 0.f;
 	bool bAimAtTile = false;
+	bool bLightTheme = false; // aim dots and ripples turn ink on the light background
 	EDIRuleSet Rules = EDIRuleSet::Doubling;
 	bool bAnimating = false;
 };

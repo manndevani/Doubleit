@@ -75,6 +75,8 @@ void ADIRingActor::BeginPlay()
 void ADIRingActor::SetDark(bool bDark)
 {
 	Background->SetCustomPrimitiveDataFloat(1, bDark ? 1.f : 0.f);
+	bLightTheme = !bDark;
+	PushInstances();
 }
 
 void ADIRingActor::SyncFromGame(const FDIGame& Game, float Offset)
@@ -288,7 +290,7 @@ void ADIRingActor::PushInstances()
 		const float T = R.Age / RippleSeconds;
 		const float Ease = 1.f - FMath::Square(1.f - T);
 		Add(R.Pos, 0.7f, FMath::Lerp(DIRingLayout::TileSize * 0.9f, R.MaxSize, Ease),
-			FVector4f(R.bReveal ? 1.f : 0.f, RippleKind, 0.f, 0.7f * FMath::Square(1.f - T)));
+			FVector4f(R.bReveal ? 1.f : 0.f, RippleKind, bLightTheme ? 1.f : 0.f, 0.7f * FMath::Square(1.f - T)));
 	}
 
 	// Aim guide: dots along the spoke from the centre piece out to the gap (or the tile a minus would lift).
@@ -303,7 +305,7 @@ void ADIRingActor::PushInstances()
 			const float T = float(d) / (Dots - 1);
 			const bool bTip = !bAimAtTile && d == Dots - 1; // a slightly larger dot marks the landing gap
 			Add(Dir * FMath::Lerp(Start, End, T), 0.8f, bTip ? AimDotSize * 1.8f : AimDotSize,
-				FVector4f(bAimAtTile ? 1.f : 0.f, AimKind, 0.f, AimAlpha * FMath::Lerp(0.3f, 0.85f, T)));
+				FVector4f(bAimAtTile ? 1.f : 0.f, AimKind, bLightTheme ? 1.f : 0.f, AimAlpha * FMath::Lerp(0.3f, 0.85f, T)));
 		}
 	}
 
