@@ -108,9 +108,6 @@ is hidden, since the ring is not the answer. "(otherwise retry)" below means suc
 A soft coral circle breathes under the tap that completes each step (a gap, the stone to lift, or the centre). It is
 found by trying every possible tap on a copy of the board, preferring the centre, then gaps, then stones, so it always
 points at a correct answer even if a board changes. It hides while a move plays.
-A soft coral circle breathes under the tap that completes each step (a gap, the stone to lift, or the centre). It is
-found by trying every possible tap on a copy of the board, preferring the centre, then gaps, then stones, so it always
-points at a correct answer even if a board changes. It hides while a move plays.
 
 | Step | Board | Done when |
 |---|---|---|
