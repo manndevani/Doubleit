@@ -48,6 +48,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Invisible adaptive pace per mode (`Core/DIAdaptive`, tested), saved with the profile
 - [x] Android Auto Backup enabled (save restored after reinstall)
 - [x] Sea-glass pebble stones: seeded morphing outlines, GPU idle breathing, subtle springs (~3% overshoot)
+- [x] Alive stones: squash and stretch, occasional shrug, flowing outline, number and sheen sway (all GPU)
 - [x] Mobile pass: MSAA off, 60 fps cap, CPU idle on a still board; layout verified at 5 screen shapes (`Scripts/screen_sizes.ps1`)
 - [x] Data-driven modes: rule-set strategy + per-mode config + registry; feel numbers in Project Settings
 - [x] Scalable structure: event hub, piece types + spawn table, versioned save, string table, sound cue data

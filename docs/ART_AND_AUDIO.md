@@ -37,9 +37,13 @@ Loaded from loose files (staged as NonUFS), so no font assets. Tile digits are p
 
 The aim is organic, not "generic app". Every stone is drawn in `Shaders/DI_Tile.hlsl`:
 - Outline: a circle bent by 3 low harmonics with phases seeded per piece, so no two stones match. The phases drift
-  slowly over time and the stone swells ~1.5%, so shapes gently morph.
+  round the edge (BendScale 1.6, BendSpeed 1.7) and the stone swells ~1.5%, so the shape visibly flows.
+- Alive: each stone, on its own seeded clock, squashes and stretches ~4.5% along a slowly turning axis (area kept), and
+  every 5-10 s gives a quick damped shrug (~7%). Its number and sheen sway ~0.035 tile inside the body, like jelly.
+  Tunables are named constants at the top of the alive block in `Shaders/DI_Tile.hlsl`.
+- Stone quads are 1.25x the stone (`TileQuadPad` in DIRingActor, `QuadPad` in the shader) so the stretch never clips.
 - Shading: soft dome light from the top left, a thin sheen, faint frosted grain, rim darkening like worn glass.
-- Breathing: each stone drifts ~1.5 px on its own slow rhythm (`Shaders/DI_TileBreath.hlsl`, vertex shader).
+- Breathing: each stone drifts ~2.5 px on its own slow rhythm (`Shaders/DI_TileBreath.hlsl`, vertex shader).
 - Aim dots and ripples stay perfect circles and hold still.
 
 ## Motion (`ADIRingActor`)

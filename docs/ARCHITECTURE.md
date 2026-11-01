@@ -88,6 +88,8 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
 - Tile material (`Shaders/DI_Tile.hlsl`): seeded pebble outline + rounded procedural digits, plus/minus/breeze
   glyphs, aim dots and ripple rings. Tile space comes from the screen-space UV Jacobian, so glyphs stay upright.
   A second custom node (`Shaders/DI_TileBreath.hlsl`) feeds World Position Offset: idle breathing on the GPU.
+  All alive motion (squash, shrug, flowing outline, inner sway) is per-pixel from Time + Seed: zero CPU while idle.
+  Stone quads are padded by `TileQuadPad` (must equal the shader's `QuadPad`) so the stretch has room.
 - Background (`Shaders/DI_Background.hlsl`): drifting gradient, ring line, fullness arc (custom primitive data 0 = fill,
   1 = dark). It reads absolute world position, so the camera may move.
 - Camera fit (`ADIPawn::FitToViewport`, re-run when viewport size or UI scale changes): the ring is centred in the band

@@ -20,6 +20,7 @@ namespace
 	constexpr float SettleAngle = 0.003f, SettleAngleVel = 0.03f, SettleLength = 0.8f, SettleLengthVel = 6.f, SettleAlpha = 0.01f;
 	constexpr float ShakeStop = 0.1f, FadeGone = 0.02f;
 	constexpr float RippleStartTiles = 0.9f; // a ripple starts just inside its tile's edge
+	constexpr float TileQuadPad = 1.25f; // stone quads are this much larger than the stone, room to squash and wobble (Shaders/DI_Tile.hlsl QuadPad)
 
 	const UDIGameSettings& Feel() { return UDIGameSettings::Get(); }
 }
@@ -284,7 +285,7 @@ void ADIRingActor::PushInstances()
 		{
 			Rank = float(Mode.Rules->ColourRank(P.Value));
 		}
-		Add(FVector2D(V.Radius * FMath::Sin(V.Angle), V.Radius * FMath::Cos(V.Angle)), Z, V.Size,
+		Add(FVector2D(V.Radius * FMath::Sin(V.Angle), V.Radius * FMath::Cos(V.Angle)), Z, V.Size * TileQuadPad,
 			FVector4f(float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, V.Alpha), V.Seed);
 	}
 

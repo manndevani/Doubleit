@@ -112,28 +112,62 @@ float Det = dU.x * dV.y - dV.x * dU.y;
 float2 C = UV - 0.5;
 float2 S = float2(dV.y * C.x - dV.x * C.y, -dU.y * C.x + dU.x * C.y) / Det; // pixels from centre, +y down
 float2 P = float2(S.x, -S.y) * length(dU) * 2;
+int K = (int)round(Kind);
+bool bPebble = K <= 3;
+
+// Alive motion (pebbles only), each stone on its own clock from its seed:
+//   squash: a slow, area-keeping stretch along a turning axis, like a soft body breathing;
+//   shrug:  every few seconds a quick damped wobble;
+//   bend:   three outline harmonics drifting round the edge, so the pebble shape itself flows;
+//   sway:   the number and the sheen drift a touch inside the body, like things held in jelly.
+const float QuadPad = 1.25;         // the quad is this much larger than the stone (DIRingActor TileQuadPad), room to stretch
+const float SquashAmount = 0.045;   // share of size
+const float SquashSpeed = 1.3;      // rad/s
+const float AxisSpeed = 0.2;        // rad/s
+const float ShrugAmount = 0.07;     // share of size at the start of a shrug
+const float ShrugFreq = 17.0;       // rad/s
+const float ShrugDecay = 4.5;       // 1/s
+const float ShrugEveryMin = 5.0;    // s between shrugs: each stone picks from [Min, Min + Spread]
+const float ShrugEverySpread = 5.0;
+const float BendScale = 1.6;        // outline harmonic amplitudes
+const float BendSpeed = 1.7;        // outline drift pace
+const float InnerSway = 0.035;      // tile units
+
+float Pace = 0.6 + 0.8 * T.Hash(Seed * 13.7 + 8.0);
+float2 Sway = float2(0, 0);
+if (bPebble)
+{
+	P *= QuadPad;
+	float Every = ShrugEveryMin + ShrugEverySpread * T.Hash(Seed * 4.19 + 9.0);
+	float Since = fmod(Time + Seed * Every * 7.0, Every);
+	float Shrug = ShrugAmount * exp(-Since * ShrugDecay) * sin(Since * ShrugFreq);
+	float Squash = SquashAmount * sin(Time * SquashSpeed * Pace + Seed * 31.4) + Shrug;
+	float Axis = Seed * 6.283 + Time * AxisSpeed * (T.Hash(Seed * 2.71) > 0.5 ? 1 : -1);
+	float2 Ax = float2(cos(Axis), sin(Axis));
+	float2 Ay = float2(-Ax.y, Ax.x);
+	float2 Local = float2(dot(P, Ax), dot(P, Ay)) * float2(1 + Squash, 1 / (1 + Squash)); // x(1+s), y/(1+s) keeps the area
+	P = Local.x * Ax + Local.y * Ay;
+	Sway = InnerSway * float2(sin(Time * 0.9 * Pace + Seed * 20.0), cos(Time * 0.7 * Pace + Seed * 9.0)) + Ax * Shrug * 0.3;
+}
 float R = length(P);
 float AA = max(fwidth(R), 1e-4);
-int K = (int)round(Kind);
 
-// Pebble outline: a circle bent by three low harmonics, amplitudes and phases from the piece's seed.
-// The phases drift slowly (each stone at its own pace) and the stone swells a hair: alive, like a soft blob, never wobbly.
+// Pebble outline: a circle bent by three low harmonics, amplitudes and phases from the piece's seed, drifting round.
 float Theta = atan2(P.y, P.x);
-float Pace = 0.6 + 0.8 * T.Hash(Seed * 13.7 + 8.0);
-float Bend = (0.03 + 0.025 * T.Hash(Seed * 3.31 + 2.0)) * cos(2 * Theta + 6.283 * T.Hash(Seed * 17.1 + 1.0) + Time * 0.35 * Pace)
-	+ (0.015 + 0.02 * T.Hash(Seed * 5.73 + 3.0)) * cos(3 * Theta + 6.283 * T.Hash(Seed * 11.9 + 4.0) - Time * 0.5 * Pace)
-	+ 0.01 * T.Hash(Seed * 7.77 + 5.0) * cos(5 * Theta + 6.283 * T.Hash(Seed * 23.3 + 6.0) + Time * 0.7 * Pace);
+float Bend = BendScale * ((0.03 + 0.025 * T.Hash(Seed * 3.31 + 2.0)) * cos(2 * Theta + 6.283 * T.Hash(Seed * 17.1 + 1.0) + Time * 0.35 * BendSpeed * Pace)
+	+ (0.015 + 0.02 * T.Hash(Seed * 5.73 + 3.0)) * cos(3 * Theta + 6.283 * T.Hash(Seed * 11.9 + 4.0) - Time * 0.5 * BendSpeed * Pace)
+	+ 0.01 * T.Hash(Seed * 7.77 + 5.0) * cos(5 * Theta + 6.283 * T.Hash(Seed * 23.3 + 6.0) + Time * 0.7 * BendSpeed * Pace));
 float Base = (K == 3 ? 0.72 : 0.86) * (1 + 0.015 * sin(Time * 1.05 + Seed * 14.4));
 float Rad = Base * (1 + Bend);
 float Disc = 1 - smoothstep(Rad - AA, Rad + AA, R);
 
 // Glyphs lean a degree or two, like hand lettering.
 float Tilt = (T.Hash(Seed * 9.13 + 7.0) - 0.5) * 0.07;
-float2 G = float2(P.x * cos(Tilt) - P.y * sin(Tilt), P.x * sin(Tilt) + P.y * cos(Tilt));
+float2 GP = P - Sway;
+float2 G = float2(GP.x * cos(Tilt) - GP.y * sin(Tilt), GP.x * sin(Tilt) + GP.y * cos(Tilt));
 
 float3 Fill;
 float Sd = 1e5;
-bool bPebble = K <= 3;
 if (K == 1)
 {
 	Fill = float3(1.000, 0.608, 0.522); // coral #FF9B85
@@ -182,7 +216,7 @@ if (bPebble)
 	float Dome = sqrt(1 - U * U);
 	float Side = dot(P / max(R, 1e-3) * U, float2(-0.51, 0.86));
 	float Rim = 1 - 0.1 * smoothstep(0.7, 1.0, U);
-	float2 SheenAt = P - float2(-0.3, 0.36) * Rad;
+	float2 SheenAt = P + Sway * 1.5 - float2(-0.3, 0.36) * Rad; // the light slides against the sway
 	float Sheen = exp(-dot(SheenAt, SheenAt) * 16) * 0.16;
 	float Grain = (T.Hash2(floor(P * 60) + Seed * 97.0) - 0.5) * 0.035;
 	Body = Fill * (0.9 + 0.12 * Dome + 0.05 * Side) * Rim + Sheen + Grain;

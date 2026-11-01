@@ -36,3 +36,4 @@
 | 2026-11-01 | Save `SaveVersion` (default 0) + ordered migration steps, additive changes only | Old saves have no version field and load as 0; database-style steps are the common advice for USaveGame |
 | 2026-11-01 | Player text in a CSV string table via `LOCTABLE_FROMFILE_GAME`, staged NonUFS | Ready for translation in the Localization Dashboard without assets; literal path so the gatherer finds it |
 | 2026-11-01 | Sound cues as data (`UDIGameSettings::Cues`) | Sounds tunable without code; events name cues, pieces name their landing cue |
+| 2026-11-02 | Alive motion in the pixel shader (area-keeping squash, seeded shrug, inner sway), quads padded 1.25x | Feels like a soft creature at zero CPU cost; padding instead of shrinking keeps stone size and tap areas unchanged |
