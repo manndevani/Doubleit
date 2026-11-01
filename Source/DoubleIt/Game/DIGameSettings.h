@@ -204,13 +204,13 @@ public:
 
 	/** Ambience (sea wash + calm pad, and a warm pad that grows as the ring fills) at full slider. */
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
-	float SeaGain = 0.3f;
+	float SeaGain = 0.2f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
-	float CalmPadGain = 0.18f;
+	float CalmPadGain = 0.12f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
-	float WarmPadGain = 0.2f;
+	float WarmPadGain = 0.14f;
 
 	/** E4 G4 D5: added over the calm pad as the ring fills, a gentle lift rather than an alarm. */
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
@@ -225,10 +225,10 @@ public:
 
 	/** Slider defaults for a new player (0..1). */
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
-	float DefaultEffectsVolume = 0.8f;
+	float DefaultEffectsVolume = 0.7f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
-	float DefaultAmbienceVolume = 0.5f;
+	float DefaultAmbienceVolume = 0.4f;
 
 	/** Moving stones stretch along their path: share of size per board unit/s, capped at StretchMax. */
 	UPROPERTY(Config, EditAnywhere, Category = "Body")

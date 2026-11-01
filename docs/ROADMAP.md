@@ -12,7 +12,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [ ] UE Android target platform installed in the Launcher (owner)
 - [x] First green run of `run_tests.ps1` (10/10, 2026-11-01)
 - [ ] Empty map + first Android package installs on a phone
-- [ ] `git init` + remote repo
+- [x] `git init` + remote repo
 
 ## M1: Playable prototype (Classic / Doubling)
 - [x] `ADIRingActor`: instanced tiles placed on the ring, slot hit-testing from touch angle
@@ -21,9 +21,9 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Materials generated from `Shaders/*.hlsl` by the `DIGenerateAssets` commandlet
 - [x] Center piece, Plus/Minus/Breeze visuals (Breeze not yet seen in a screenshot)
 - [x] Placement easing (C++ exponential ease)
-- [ ] Fusion animation (pieces glide into the merge point + pulse) → M2
+- [x] Fusion animation (pieces glide into the merge point + pulse) → M2
 - [x] HUD: score, best (canvas prototype)
-- [ ] Pause button
+- [x] Pause button
 - [x] Game over state, tap to restart
 - [x] Save high score (`UDISaveGame`)
 - [x] Automated screenshot check (`Scripts/screenshot.ps1`)

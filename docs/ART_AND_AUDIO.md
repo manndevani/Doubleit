@@ -99,11 +99,11 @@ plays them in response to game events; placed pieces name their own landing cue.
   new seed each session. Waves arrive every 5-12 s, each with its own strength, side (left to right), swell (1.6-3.2 s)
   and wash-back (2.5-5 s). A wave swells as a low rumble (220 Hz), opens up to a brighter hiss as it breaks (up to
   2.6 kHz), then pulls back with bubbling foam (noise above 1.5 kHz, fluttering at ~14 Hz). A deep distant wash
-  (140 Hz) runs underneath, and a soft limiter rounds off overlapping waves. Sea gain 0.3.
-- Pads (22.05 kHz stereo loops of 24 s, generated once): a calm pad on C3 G3 C4 (gain 0.18), and a warm pad (E4 G4 D5,
-  gain 0.2) that fades in with the ring fullness, a gentle lift rather than an alarm. Kept low so they sit under the
+  (140 Hz) runs underneath, and a soft limiter rounds off overlapping waves. Sea gain 0.2.
+- Pads (22.05 kHz stereo loops of 24 s, generated once): a calm pad on C3 G3 C4 (gain 0.12), and a warm pad (E4 G4 D5,
+  gain 0.14) that fades in with the ring fullness, a gentle lift rather than an alarm. Kept low so they sit under the
   sea instead of reading as a tone. Pausing drops the ambience to 40% over 1.5 s. Sound off stops it.
-- Volume sliders in the pause menu: effects (default 80%) and sea (default 50%). Live while dragging; saved when the
+- Volume sliders in the pause menu: effects (default 70%) and sea (default 40%). Live while dragging; saved when the
   finger lifts, and the effects slider plays a sample note at the new level.
 - Place: soft low note whose pitch follows where the piece lands (8 notes around the ring), so every move is musical.
 - Chain: one note per collision, each higher (step = depth + 1), played as the collision lands (~220 ms apart);
