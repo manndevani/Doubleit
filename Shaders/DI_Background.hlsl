@@ -20,7 +20,7 @@ float R = length(P);
 float AA = max(fwidth(R), 1e-3);
 float D = abs(R - RingRadius);
 float Line = 1 - smoothstep(1.5 - AA, 1.5 + AA, D);
-float Glow = exp(-D * D * 0.004) * 0.3; // tight gaussian halo hugging the line (~15 units)
+float Glow = exp(-D * D * 0.02) * 0.18; // faint gaussian sheen hugging the line (~6 units), never a visible band
 
 float Ang = atan2(P.x, P.y);
 if (Ang < 0) Ang += 6.2831853;
