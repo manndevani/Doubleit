@@ -13,11 +13,11 @@ symmetric numbers around the merge keep chaining outward.
 | File | What it's for |
 |---|---|
 | [CLAUDE.md](CLAUDE.md) | Short rules for AI/dev sessions (read first, keeps sessions cheap) |
-| [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) | Rules, pieces, merge math, spawning, scoring |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Code layout, C++ vs Blueprint boundary, rendering plan |
-| [docs/ART_AND_AUDIO.md](docs/ART_AND_AUDIO.md) | Minimal/soothing visual + sound direction, palette |
+| [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) | Rules, pieces, merge math, spawning, scoring, adaptive pace |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Code layout, ring geometry, move playback, rendering, saved data |
+| [docs/ART_AND_AUDIO.md](docs/ART_AND_AUDIO.md) | Palette, glyphs, motion, sound and haptic cues (game feel) |
 | [docs/MONETIZATION.md](docs/MONETIZATION.md) | Ads choice page, banner rules, donations |
-| [docs/TESTING.md](docs/TESTING.md) | Automated, headless test strategy |
+| [docs/TESTING.md](docs/TESTING.md) | Automated test strategy, automation flags, test inventory |
 | [docs/SETUP.md](docs/SETUP.md) | Toolchain (UE 5.8, VS 2022, Android SDK/NDK) |
 | [docs/PLAYSTORE.md](docs/PLAYSTORE.md) | Release checklist for Google Play |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Milestones + task checkboxes (the tracker) |

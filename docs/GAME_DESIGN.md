@@ -44,6 +44,11 @@ Fusion starts at a Plus whose left (L) and right (R) neighbours are equal number
 | Addition | `[5,3,3,5,1]`, slot 2 | `[16,1]` (3+3=6, then 6+5+5) |
 | Doubling | `[2,4,2]`, slot 0 (wraps) | `[4,4]` |
 
+**How a fusion is shown:** the rules resolve instantly, then the move plays back step by step. The piece lands, then each
+collision follows ~220 ms apart with a rising note. Both neighbours close in on the plus from left and right at the same
+time, and the result stays where the plus was (the ring re-anchors; there is no fixed top). Details: ARCHITECTURE.md#move-flow-and-playback,
+ART_AND_AUDIO.md#motion-adiringactor.
+
 ## Scoring
 
 Each fusion adds `resultValue × chainDepth` (the first fusion is depth 1). The run's high score is saved per rule set.
