@@ -1,0 +1,7 @@
+* text=auto
+*.uasset binary
+*.umap binary
+*.png binary
+*.jpg binary
+*.wav binary
+*.ttf binary

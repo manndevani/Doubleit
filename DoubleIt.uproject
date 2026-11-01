@@ -1,0 +1,18 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.8",
+	"Category": "",
+	"Description": "Double It - a calm number-merging ring puzzle",
+	"Modules": [
+		{
+			"Name": "DoubleIt",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{ "Name": "ModelingToolsEditorMode", "Enabled": false },
+		{ "Name": "OnlineSubsystemGooglePlay", "Enabled": true, "SupportedTargetPlatforms": [ "Android" ] }
+	],
+	"TargetPlatforms": [ "Android", "Windows" ]
+}

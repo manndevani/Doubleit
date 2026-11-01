@@ -1,0 +1,13 @@
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Build/Packaged/
+Build/Android/*.jks
+Build/Android/*.keystore
+.vs/
+*.sln
+*.slnx
+*.suo
+*.VC.db
+*.opendb
