@@ -30,9 +30,10 @@
 | `DoubleIt.Layout.ReanchorIsSymmetric` | placed piece lands in the aimed gap, fusion result lands where the plus was, offset hit testing |
 | `DoubleIt.Sim.GreedyBalance`, `RandomPlayTerminates` | balance stats (`STAT` lines) and that random play always ends |
 | `DoubleIt.Modes.Registry`, `CustomModePlays`, `ConfigDrivesRules` | built-in modes, fallback key, a test-only mode registered and played with no game code changes, config fields (start ring, ring limit, breeze share, adaptive bounds) drive the rules |
-| `DoubleIt.Save.Migrations` | a pre-versioning save migrates (bests move to the per-mode map, higher wins; v2 volume sliders get their defaults), re-running is a no-op, fresh saves need nothing, newer saves are left alone (expected warning) |
+| `DoubleIt.Save.Migrations` | a pre-versioning save migrates (bests move to the per-mode map, higher wins; v2 volume sliders get their defaults; v3 starts with no run to resume), re-running is a no-op, fresh saves need nothing, newer saves are left alone (expected warning) |
+| `DoubleIt.Core.RunResumes` | 20 seeded runs (with a tuned spawn table) are saved mid-game, loaded into a game built from another seed, and must play on identically, ring ids included, until game over (logs `STAT run resume`); garbage or another format is refused |
 
-Latest: 23 passed (1 with an expected warning). Playthrough: PASS, 112 moves, 0 mismatches, settle ~0.7 s average including chain playback.
+Latest: 24 passed (1 with an expected warning). Playthrough: PASS, 0 mismatches, settle ~0.7 s average including chain playback.
 
 ## Rules
 

@@ -96,6 +96,10 @@ private:
 	void LearnFromRun();
 	void NoteMove(const FDIPiece& Placed, double ThinkSeconds);
 	void OnAppForeground();
+	/** Writes the run in progress into the save (or clears it once the run is over or the tutorial is on) and saves. */
+	void SaveRun();
+	/** Picks up the saved run, if there is a valid one. */
+	bool ResumeRun();
 
 #if !UE_BUILD_SHIPPING
 	/** -DIAutoplay=N plays N random taps; -DIShot=<file.png> saves a screenshot then quits; -DITutorial / -DIPaused show those states. */
@@ -138,6 +142,8 @@ public:
 	bool bBoardPaused = false;
 	FTimerHandle TutorialTimer;
 	FDelegateHandle ForegroundHandle;
+	FDelegateHandle BackgroundHandle;
+	FDelegateHandle DeactivateHandle;
 
 	float RingOffset = 0.f;
 	TArray<FPlayStep> PlaySteps;

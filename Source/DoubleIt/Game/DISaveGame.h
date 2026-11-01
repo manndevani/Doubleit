@@ -45,7 +45,7 @@ public:
 	static constexpr const TCHAR* SlotName = TEXT("DoubleIt");
 
 	/** Bump when the layout changes, and add the matching step in DISaveGame.cpp. */
-	static constexpr int32 CurrentVersion = 2;
+	static constexpr int32 CurrentVersion = 3;
 
 	/**
 	 * Version this data was written with. Defaults to 0 on purpose: a save from before versioning has no such field,
@@ -83,6 +83,14 @@ public:
 
 	UPROPERTY()
 	float AmbienceVolume = -1.f;
+
+	/** The run in progress (FDIGame::SerializeRun + its stats, written by the game mode after every settled move and when
+	    the app goes to the background), so closing the app never loses a run. Empty: no run to resume. */
+	UPROPERTY()
+	TArray<uint8> RunData;
+
+	UPROPERTY()
+	FName RunMode;
 
 	UPROPERTY()
 	EDIThemeMode ThemeMode = EDIThemeMode::System;

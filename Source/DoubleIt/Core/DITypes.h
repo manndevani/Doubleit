@@ -34,6 +34,14 @@ struct FDIPiece
 
 	bool IsNumber() const { return Kind == EDIPieceKind::Number; }
 	bool operator==(const FDIPiece& Other) const { return Kind == Other.Kind && Value == Other.Value; }
+
+	friend FArchive& operator<<(FArchive& Ar, FDIPiece& P)
+	{
+		uint8 Kind = uint8(P.Kind);
+		Ar << Kind << P.Value << P.Id;
+		P.Kind = EDIPieceKind(Kind);
+		return Ar;
+	}
 };
 
 /** One fusion step, emitted so the renderer can animate it. */

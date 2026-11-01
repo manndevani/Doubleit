@@ -173,3 +173,26 @@ void FDIGame::FinishMove()
 	}
 	Center = Tag(Spawner.Next(Moves, Ring.Num()));
 }
+
+bool FDIGame::SerializeRun(FArchive& Ar)
+{
+	int32 Format = RunFormat;
+	Ar << Format;
+	if (Ar.IsError() || Format != RunFormat)
+	{
+		return false;
+	}
+	Ar << Ring << Center << Score << HighestValue << Moves << NextId << bGameOver << bCenterAbsorbed;
+	bool bConverts = LiftConvertsTo.IsSet();
+	uint8 ConvertsTo = bConverts ? uint8(LiftConvertsTo.GetValue()) : 0;
+	Ar << bConverts << ConvertsTo;
+	Spawner.Serialize(Ar);
+	if (Ar.IsLoading())
+	{
+		LiftConvertsTo = bConverts ? TOptional<EDIPieceKind>(EDIPieceKind(ConvertsTo)) : TOptional<EDIPieceKind>();
+		Mode.Config.Spawn = Spawner.GetTuning();
+		LastEvents.Reset();
+		PlacedRing = Ring;
+	}
+	return !Ar.IsError() && (!Ar.IsLoading() || Ring.Num() <= Mode.Config.MaxRingPieces + 1);
+}

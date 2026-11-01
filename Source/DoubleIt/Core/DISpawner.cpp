@@ -45,3 +45,54 @@ FDIPiece FDISpawner::NextNumber(int32 Moves)
 {
 	return FDIPiece::Number(Rules->SpawnNumber(Moves / FMath::Max(1, Tuning.MovesPerRangeStep), Stream));
 }
+
+void FDISpawner::Serialize(FArchive& Ar)
+{
+	int32 Seed = Stream.GetCurrentSeed();
+	Ar << Seed;
+	if (Ar.IsLoading())
+	{
+		Stream.Initialize(Seed);
+	}
+
+	Ar << Tuning.MovesPerRangeStep;
+	int32 Rows = Tuning.Specials.Num();
+	Ar << Rows;
+	if (Ar.IsLoading())
+	{
+		Tuning.Specials.SetNum(FMath::Clamp(Rows, 0, 64));
+	}
+	for (FDISpawnRow& Row : Tuning.Specials)
+	{
+		uint8 Kind = uint8(Row.Kind);
+		Ar << Kind << Row.Chance << Row.FromMove << Row.MinRing << Row.GuaranteeWindow << Row.bNoRepeat;
+		Row.Kind = EDIPieceKind(Kind);
+	}
+
+	uint8 Last = uint8(LastKind);
+	Ar << Last;
+	LastKind = EDIPieceKind(Last);
+	TArray<TPair<uint8, int32>> Since;
+	for (const TPair<EDIPieceKind, int32>& Pair : SpawnsSince)
+	{
+		Since.Emplace(uint8(Pair.Key), Pair.Value);
+	}
+	int32 Count = Since.Num();
+	Ar << Count;
+	if (Ar.IsLoading())
+	{
+		Since.SetNum(FMath::Clamp(Count, 0, 64));
+	}
+	for (TPair<uint8, int32>& Pair : Since)
+	{
+		Ar << Pair.Key << Pair.Value;
+	}
+	if (Ar.IsLoading())
+	{
+		SpawnsSince.Reset();
+		for (const TPair<uint8, int32>& Pair : Since)
+		{
+			SpawnsSince.Add(EDIPieceKind(Pair.Key), Pair.Value);
+		}
+	}
+}

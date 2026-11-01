@@ -60,7 +60,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [ ] Touch aim/release verified by hand on a phone (automation drives taps, not drags)
 - [ ] Auto Backup restore verified on a phone (`adb shell bmgr backupnow com.doubleit.game`, uninstall, reinstall)
 - [ ] Android-only code (JNI, UPL) compiled and tested on a phone, which needs UE's Android platform support installed
-- [ ] Save and restore the current run when the app is backgrounded
+- [x] Save and restore the current run when the app is backgrounded (saved every move too)
 
 ## M3: Support page & store
 - [ ] (?) Ad defaults confirmed (see MONETIZATION.md)

@@ -37,6 +37,14 @@ public:
 	/** Ring right after the last move placed its piece (or breeze cleared), before any fusion. */
 	const TArray<FDIPiece>& GetPlacedRing() const { return PlacedRing; }
 
+	/**
+	 * Writes or reads the whole run (Ar.IsLoading()), so it survives the app closing. The rules come from this game.s
+	 * mode; the spawn tuning and random state travel with the run, so a resumed run plays on exactly as it would have.
+	 * Returns false (and leaves the game unusable) if the data is corrupt or from another format.
+	 */
+	bool SerializeRun(FArchive& Ar);
+	static constexpr int32 RunFormat = 1;
+
 	/** Scripted board (tutorial, tests). Assigns fresh ids and clears transient state. */
 	void SetBoard(const TArray<FDIPiece>& InRing, const FDIPiece& InCenter);
 

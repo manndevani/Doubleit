@@ -16,6 +16,8 @@
 #include "GameFramework/HUD.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/CoreDelegates.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
 #include "TimerManager.h"
 #include "UI/DIHUDWidget.h"
 
@@ -85,6 +87,9 @@ void ADoubleItGameMode::BeginPlay()
 	}
 
 	ForegroundHandle = FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddUObject(this, &ADoubleItGameMode::OnAppForeground);
+	// Phones may close a backgrounded app without warning: the run is saved on the way out (and after every move).
+	BackgroundHandle = FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddUObject(this, &ADoubleItGameMode::SaveRun);
+	DeactivateHandle = FCoreDelegates::ApplicationWillDeactivateDelegate.AddUObject(this, &ADoubleItGameMode::SaveRun);
 	ApplyTheme();
 
 	bool bWantTutorial = !Save->bTutorialDone;
@@ -105,7 +110,7 @@ void ADoubleItGameMode::BeginPlay()
 	{
 		StartTutorial();
 	}
-	else
+	else if (!ResumeRun())
 	{
 		StartNewGame(UDIGameSettings::Get().DefaultMode, FMath::Rand());
 	}
@@ -118,7 +123,10 @@ void ADoubleItGameMode::BeginPlay()
 
 void ADoubleItGameMode::EndPlay(const EEndPlayReason::Type Reason)
 {
+	SaveRun();
 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Remove(ForegroundHandle);
+	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Remove(BackgroundHandle);
+	FCoreDelegates::ApplicationWillDeactivateDelegate.Remove(DeactivateHandle);
 	Super::EndPlay(Reason);
 }
 
@@ -549,6 +557,85 @@ void ADoubleItGameMode::OnAppForeground()
 	ApplyTheme();
 }
 
+namespace
+{
+	/** Layout of UDISaveGame::RunData around FDIGame::SerializeRun. Bump when the stats below change. */
+	constexpr int32 RunRecordFormat = 1;
+}
+
+void ADoubleItGameMode::SaveRun()
+{
+	if (!Save || bAutomationRun)
+	{
+		return; // bots and screenshots never touch the player.s run
+	}
+	if (!Game || bInTutorial || Game->IsGameOver())
+	{
+		if (Save->RunData.Num() == 0)
+		{
+			return;
+		}
+		Save->RunData.Reset();
+	}
+	else
+	{
+		Save->RunData.Reset();
+		FMemoryWriter Ar(Save->RunData);
+		int32 Format = RunRecordFormat;
+		Ar << Format;
+		Game->SerializeRun(Ar);
+		Ar << RunStats << ThinkSum << RunStartBest << HighestEverAtStart << bBestCelebrated;
+		Save->RunMode = CurrentMode;
+	}
+	UGameplayStatics::SaveGameToSlot(Save, UDISaveGame::SlotName, 0);
+}
+
+bool ADoubleItGameMode::ResumeRun()
+{
+	if (!Save || bAutomationRun || Save->RunData.Num() == 0)
+	{
+		return false;
+	}
+	TUniquePtr<FDIGame> Loaded = MakeUnique<FDIGame>(UDIGameSettings::MakeMode(Save->RunMode), 0);
+	FMemoryReader Ar(Save->RunData);
+	int32 Format = 0;
+	Ar << Format;
+	FDIRunSummary Stats;
+	double Think = 0.0;
+	int64 StartBest = 0, HighestStart = 0;
+	bool bCelebrated = false;
+	bool bOk = Format == RunRecordFormat && Loaded->SerializeRun(Ar);
+	if (bOk)
+	{
+		Ar << Stats << Think << StartBest << HighestStart << bCelebrated;
+		bOk = !Ar.IsError() && !Loaded->IsGameOver();
+	}
+	if (!bOk)
+	{
+		UE_LOG(LogDoubleIt, Warning, TEXT("Saved run could not be read (format %d); starting a new one"), Format);
+		Save->RunData.Reset();
+		return false;
+	}
+
+	FinishPlayback();
+	bInTutorial = false;
+	bInputLocked = false;
+	bBoardPaused = false;
+	Game = MoveTemp(Loaded);
+	CurrentMode = Game->GetMode().Key;
+	RingOffset = 0.f;
+	RunStats = Stats;
+	ThinkSum = Think;
+	TurnStart = FPlatformTime::Seconds();
+	bRunLearned = false;
+	RunStartBest = StartBest;
+	bBestCelebrated = bCelebrated;
+	HighestEverAtStart = HighestStart;
+	UE_LOG(LogDoubleIt, Log, TEXT("Resumed run: %d moves, score %lld"), Game->GetMoves(), Game->GetScore());
+	BoardChanged();
+	return true;
+}
+
 int64 ADoubleItGameMode::GetBest() const
 {
 	if (!Save)
@@ -571,6 +658,7 @@ void ADoubleItGameMode::BoardChanged()
 		RecordBest();
 		LearnFromRun();
 	}
+	SaveRun();
 	Events->StateChanged.Broadcast();
 }
 

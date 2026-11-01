@@ -12,6 +12,11 @@ struct FDIRunSummary
 	int32 Fusions = 0;          // first-step fusions (one per plus that fired)
 	float AvgThinkSeconds = 0.f;
 	int64 Highest = 0;
+
+	friend FArchive& operator<<(FArchive& Ar, FDIRunSummary& S)
+	{
+		return Ar << S.Moves << S.BestChain << S.PlusesPlaced << S.Fusions << S.AvgThinkSeconds << S.Highest;
+	}
 };
 
 /**

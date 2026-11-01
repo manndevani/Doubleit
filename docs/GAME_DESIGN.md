@@ -8,7 +8,9 @@
 2. Tap a gap in the ring to place the center piece there. While the finger is down, a dotted line runs from the center to the gap
    it will land in; drag to change the gap and lift to place.
 3. Merges resolve, a new center piece spawns, and you repeat.
-4. The game ends when the ring holds more than **18** pieces after a move resolves *(tune)*.
+. Leaving never costs a run: the run in progress is saved after every move and when the app goes to the background,
+   and the next launch picks it up exactly where it was (same next pieces, same score). A finished run, or opening the
+   tutorial, clears it.
 
 ## Pieces
 

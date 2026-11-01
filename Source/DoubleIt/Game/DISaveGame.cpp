@@ -27,9 +27,15 @@ namespace
 		Save.AmbienceVolume = UDIGameSettings::Get().DefaultAmbienceVolume;
 	}
 
+	/** 2 -> 3: the run in progress is saved; older saves have none to resume. */
+	void SavedRun(UDISaveGame& Save)
+	{
+		Save.RunData.Reset();
+	}
+
 	/** Step i upgrades version i to i + 1. Only ever append; never edit a shipped step. */
 	using FMigrationStep = void (*)(UDISaveGame&);
-	constexpr FMigrationStep Steps[] = { &BestsByMode, &AudioLevels };
+	constexpr FMigrationStep Steps[] = { &BestsByMode, &AudioLevels, &SavedRun };
 	static_assert(UE_ARRAY_COUNT(Steps) == UDISaveGame::CurrentVersion, "one migration step per version");
 }
 

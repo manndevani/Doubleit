@@ -39,6 +39,10 @@ public:
 
 	FDIPiece Next(int32 Moves, int32 RingSize);
 
+	/** Writes or reads the spawner (random state, guarantee counters, the run.s tuning) for a saved run. */
+	void Serialize(FArchive& Ar);
+	const FDISpawnTuning& GetTuning() const { return Tuning; }
+
 private:
 	FDIPiece NextNumber(int32 Moves);
 

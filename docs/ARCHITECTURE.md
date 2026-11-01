@@ -31,7 +31,7 @@ Source/DoubleIt/
     DIAudio.*        listens to events, plays named cues on the current chord (synth notes + haptics); streams the sea, loops the pads
     DIText.h         player text from the string table Content/DoubleIt/Text/DoubleIt.csv (DIText::Get)
     DIPlatform.*     night mode + vibrate (Android JNI via DoubleIt_UPL.xml, Windows registry on desktop)
-    DISaveGame.*     settings, per-mode bests and FDIProfileRecord map, tutorial flag; SaveVersion + ordered migration steps
+    DISaveGame.*     settings, volumes, per-mode bests, FDIProfileRecord map, tutorial flag, run in progress; SaveVersion + ordered migration steps
     DITheme.h        Dusk Lagoon UI colours (light/dark)
   UI/DIHUDWidget.*   whole UI built in C++ UMG (score, best, pause panel, tutorial line, game over, best shimmer)
   Editor/DIGenerateAssetsCommandlet  builds M_Tile / M_Background from Shaders/*.hlsl
@@ -115,6 +115,12 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
 - `NoteMove` collects the run summary (moves, pluses placed, first-step fusions, best chain, think time capped at `Adaptive.MaxThinkSeconds`).
 - `LearnFromRun` runs at game over, or when a run of `Adaptive.MinAbandonedMoves` (15) moves or more is abandoned; it updates and saves the profile.
 - New modes get a new `ModeKey` and their own profile automatically.
+- Run in progress: `ADoubleItGameMode::SaveRun` writes `FDIGame::SerializeRun` (ring, centre, score, ids, game flags, and
+  the spawner.s random state, guarantee counters and tuning) plus the run stats into `UDISaveGame::RunData` (an
+  `FArchive` blob with its own format number) after every settled board (`BoardChanged`), on
+  `ApplicationWillEnterBackground` / `WillDeactivate`, and in `EndPlay`. `BeginPlay` calls `ResumeRun` before starting a
+  new game; an unreadable blob is dropped with a warning. Game over and the tutorial clear it; automation runs never
+  read or write it.
 - Save file: UE `SaveGameToSlot("DoubleIt")`. On Android, Auto Backup (`android:allowBackup="true"`) restores it after reinstall.
   Rules and limits are in GAME_DESIGN.md#adaptive-pace and DECISIONS.md.
 
