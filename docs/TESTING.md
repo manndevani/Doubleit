@@ -7,6 +7,7 @@
 | Rules (fusion, chains, spawner, game over) | UE Automation tests (`DoubleIt.Core.*`) | headless editor, `-nullrhi` | `./Scripts/run_tests.ps1` |
 | Gameplay glue (GameMode API) | Automation tests (`DoubleIt.Game.*`) | headless | same |
 | Simulation / balance | `DoubleIt.Sim.*`: plays N seeded games with a greedy bot and logs average score/moves | headless | `./Scripts/run_tests.ps1 -Filter DoubleIt.Sim` |
+| Visual check | `-DIAutoplay=N -DIShot=<png>`: the game plays N bot taps, waits for shaders, saves a PNG and quits | Win64 window | `./Scripts/screenshot.ps1 -Moves 20` |
 | Device smoke test | `adb install` + launch + logcat grep for `LogDoubleIt: Ready` | phone/emulator | `./Scripts/package_android.ps1 -Install` |
 
 ## Rules

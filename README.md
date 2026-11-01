@@ -29,5 +29,7 @@ symmetric numbers around the merge keep chaining outward.
 ```powershell
 ./Scripts/build_editor.ps1      # compile C++ (Win64 editor)
 ./Scripts/run_tests.ps1         # build + run all DoubleIt.* automation tests headless
+./Scripts/generate_assets.ps1   # rebuild materials from Shaders/*.hlsl
+./Scripts/screenshot.ps1        # auto-play + save Saved/Screenshots/board.png
 ./Scripts/package_android.ps1   # cook + package an Android build (needs SDK/NDK, see docs/SETUP.md)
 ```

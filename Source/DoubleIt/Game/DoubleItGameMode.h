@@ -5,6 +5,9 @@
 #include "Core/DIGame.h"
 #include "DoubleItGameMode.generated.h"
 
+class ADIRingActor;
+class UDISaveGame;
+
 UENUM(BlueprintType)
 enum class EDIGameModeRules : uint8
 {
@@ -21,20 +24,19 @@ class DOUBLEIT_API ADoubleItGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 public:
+	ADoubleItGameMode();
+
 	UFUNCTION(BlueprintCallable, Category = "DoubleIt")
 	void StartNewGame(EDIGameModeRules Rules, int32 Seed);
 
-	UFUNCTION(BlueprintCallable, Category = "DoubleIt")
-	bool PlaceAt(int32 Slot);
-
-	UFUNCTION(BlueprintCallable, Category = "DoubleIt")
-	bool AbsorbAt(int32 Index);
-
-	UFUNCTION(BlueprintCallable, Category = "DoubleIt")
-	bool ConvertCenterToPlus();
+	/** Tap in board space (see DIRingLayout). Restarts the run after game over. */
+	void HandleTap(const FVector2D& BoardPos);
 
 	UFUNCTION(BlueprintPure, Category = "DoubleIt")
 	int64 GetScore() const { return Game ? Game->GetScore() : 0; }
+
+	UFUNCTION(BlueprintPure, Category = "DoubleIt")
+	int64 GetBest() const;
 
 	UFUNCTION(BlueprintPure, Category = "DoubleIt")
 	bool IsGameOver() const { return Game && Game->IsGameOver(); }
@@ -48,7 +50,23 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	bool Broadcast(bool bChanged);
+	void BoardChanged();
+	void RecordBest();
+
+#if !UE_BUILD_SHIPPING
+	/** -DIAutoplay=N plays N random taps; -DIShot=<file.png> saves a screenshot then quits. */
+	void RunAutomationFromCommandLine();
+	void TakeScreenshotWhenReady();
+	FString ScreenshotPath;
+	FTimerHandle AutomationTimer;
+#endif
 
 	TUniquePtr<FDIGame> Game;
+	EDIRuleSet CurrentRules = EDIRuleSet::Doubling;
+
+	UPROPERTY()
+	TObjectPtr<ADIRingActor> RingActor;
+
+	UPROPERTY()
+	TObjectPtr<UDISaveGame> Save;
 };

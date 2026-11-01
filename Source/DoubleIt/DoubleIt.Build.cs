@@ -8,6 +8,6 @@ public class DoubleIt : ModuleRules
 		PublicIncludePaths.Add(ModuleDirectory);
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine" });
-		PrivateDependencyModuleNames.AddRange(new string[] { "InputCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "InputCore", "AssetRegistry" });
 	}
 }

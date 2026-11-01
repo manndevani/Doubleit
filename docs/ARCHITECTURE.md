@@ -33,9 +33,15 @@ Source/DoubleIt/
 - Orthographic camera and **unlit** materials, with no dynamic lights, shadows or post-processing (bloom, motion blur and auto exposure are off).
 - All ring tiles come from **one** `UInstancedStaticMeshComponent` (one quad mesh), so a draw call covers every tile.
   Per-instance custom data `[value index, colour index, alpha, scale]` drives the material.
-- Tile material: a Custom HLSL node draws an anti-aliased disc (SDF) and samples a **digit atlas** texture to print the
-  number, so there is no per-tile `UTextRenderComponent` and no dynamic material instances.
-- The background is one full-screen quad with a Custom-node radial gradient plus a slow noise drift (the soothing motion).
+- Tile material (`Shaders/DI_Tile.hlsl`): a Custom HLSL node draws an anti-aliased disc (SDF) and **procedural
+  seven-segment digits**, so there are no textures, no per-tile `UTextRenderComponent` and no dynamic material instances. Tile space is
+  derived from the screen-space UV Jacobian, so glyphs are upright whatever the mesh's UV layout.
+- Background (`Shaders/DI_Background.hlsl`): a drifting gradient, the ring line and a fullness arc (custom primitive data 0).
+  It reads the camera-relative world position, so **the camera must stay at X=Y=0**.
+- Materials are **generated, not hand-made**: `Scripts/generate_assets.ps1` runs `UDIGenerateAssetsCommandlet`, which
+  builds `/Game/DoubleIt/Materials/M_*` from the `.hlsl` files. Edit the HLSL, re-run the script and commit the `.uasset`.
+- Exact colours: the camera uses manual exposure with `ToneCurveAmount=0` on desktop; mobile uses `r.MobileHDR=False` (no post at all).
+- Map: `/Engine/Maps/Entry` (empty). Everything is spawned from C++ by `ADoubleItGameMode`.
 - Particles are Niagara GPU sprites, few and soft, used only on fusion.
 
 ## Data flow

@@ -15,13 +15,19 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [ ] `git init` + remote repo
 
 ## M1: Playable prototype (Classic / Doubling)
-- [ ] `ADIRingActor`: instanced tiles placed on the ring, slot hit-testing from touch angle
-- [ ] Tile material (Custom node SDF disc + digit atlas)
-- [ ] Center piece, Plus/Minus/Breeze visuals
-- [ ] Fusion and placement animations (C++ easing)
-- [ ] HUD: score, best, pause
-- [ ] Game over screen, restart
-- [ ] Save high score (`UDISaveGame`)
+- [x] `ADIRingActor`: instanced tiles placed on the ring, slot hit-testing from touch angle
+- [x] Tile material (Custom node SDF disc + procedural seven-segment digits, no textures)
+- [x] Background material (drifting gradient, ring line, fullness arc)
+- [x] Materials generated from `Shaders/*.hlsl` by the `DIGenerateAssets` commandlet
+- [x] Center piece, Plus/Minus/Breeze visuals (Breeze not yet seen in a screenshot)
+- [x] Placement easing (C++ exponential ease)
+- [ ] Fusion animation (pieces glide into the merge point + pulse) → M2
+- [x] HUD: score, best (canvas prototype)
+- [ ] Pause button
+- [x] Game over state, tap to restart
+- [x] Save high score (`UDISaveGame`)
+- [x] Automated screenshot check (`Scripts/screenshot.ps1`)
+- [ ] Mouse/touch input verified by hand (automation bypasses the controller)
 
 ## M2: Feel & polish
 - [ ] Palette data asset, light/dark theme

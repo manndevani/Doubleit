@@ -6,6 +6,8 @@
 - Blueprints only for UMG widget layouts and asset references. Logic in BP is a bug.
 - Materials: use Custom (HLSL) nodes, unlit, opaque/masked where possible, and no per-tile dynamic material instances
   (use per-instance custom data).
+- Materials are generated from `Shaders/*.hlsl`: edit the HLSL, then run `./Scripts/generate_assets.ps1`. Never hand-edit `M_*`.
+- Visual check: `./Scripts/screenshot.ps1 -Moves 20` gives `Saved/Screenshots/board.png`. Look at one image, not many.
 - Unreal Editor must be closed before building from the CLI (Live Coding blocks UBT).
 - Verify with `./Scripts/run_tests.ps1` (headless, exit code = pass/fail). Don't ask the user to click through the editor
   to check logic.
