@@ -9,7 +9,7 @@
 namespace
 {
 	/** A fixed, simple player: same calls for the same board, so two identical games stay identical. */
-	void PlayOne(FDIGame& Game, int32 Turn)
+	void ResumePlayOne(FDIGame& Game, int32 Turn)
 	{
 		if (Game.IsGameOver())
 		{
@@ -31,7 +31,7 @@ namespace
 		Game.PlaceAt((Turn * 7) % (Size + 1));
 	}
 
-	bool SameBoard(const FDIGame& A, const FDIGame& B)
+	bool ResumeSameBoard(const FDIGame& A, const FDIGame& B)
 	{
 		if (A.GetRing().Num() != B.GetRing().Num() || A.GetScore() != B.GetScore() || A.GetMoves() != B.GetMoves()
 			|| A.IsGameOver() != B.IsGameOver() || !(A.GetCenter() == B.GetCenter()) || A.GetCenter().Id != B.GetCenter().Id)
@@ -62,7 +62,7 @@ bool FDIRunResumeTest::RunTest(const FString&)
 		const int32 SaveAt = 4 + Seed % 9; // early: this simple player loses fast
 		for (int32 Turn = 0; Turn < SaveAt; ++Turn)
 		{
-			PlayOne(Original, Turn);
+			ResumePlayOne(Original, Turn);
 		}
 		if (Original.IsGameOver())
 		{
@@ -80,12 +80,12 @@ bool FDIRunResumeTest::RunTest(const FString&)
 		{
 			return false;
 		}
-		TestTrue(TEXT("same board after load"), SameBoard(Original, Copy));
+		TestTrue(TEXT("same board after load"), ResumeSameBoard(Original, Copy));
 		for (int32 Turn = SaveAt; Turn < SaveAt + 200 && !Original.IsGameOver(); ++Turn)
 		{
-			PlayOne(Original, Turn);
-			PlayOne(Copy, Turn);
-			if (!SameBoard(Original, Copy))
+			ResumePlayOne(Original, Turn);
+			ResumePlayOne(Copy, Turn);
+			if (!ResumeSameBoard(Original, Copy))
 			{
 				AddError(FString::Printf(TEXT("seed %d diverged at turn %d"), Seed, Turn));
 				return false;

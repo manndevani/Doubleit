@@ -14,6 +14,8 @@
 - Materials are generated from `Shaders/*.hlsl`: edit the HLSL, then run `./Scripts/generate_assets.ps1`. Never hand-edit `M_*`.
 - Visual check: `./Scripts/screenshot.ps1 -Moves 20` gives `Saved/Screenshots/board.png`. Look at one image, not many.
 - Unreal Editor must be closed before building from the CLI (Live Coding blocks UBT).
+- Unity build: helpers in anonymous namespaces share one blob with other files, so give them file-specific names.
+  `Scripts/build_editor.ps1` passes `-DisableAdaptiveUnity`, so clashes fail the build before committing.
 - Verify with `./Scripts/run_tests.ps1` (headless, exit code = pass/fail). Don't ask the user to click through the editor
   to check logic.
 - Track progress by ticking boxes in `docs/ROADMAP.md`; log non-obvious choices in `docs/DECISIONS.md`.
