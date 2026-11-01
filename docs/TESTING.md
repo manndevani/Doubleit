@@ -29,8 +29,9 @@
 | `DoubleIt.Layout.TilePositionsClockwiseFromTop`, `SlotAndTileHitTesting`, `TapRouting` | ring geometry and tap routing |
 | `DoubleIt.Layout.ReanchorIsSymmetric` | placed piece lands in the aimed gap, fusion result lands where the plus was, offset hit testing |
 | `DoubleIt.Sim.GreedyBalance`, `RandomPlayTerminates` | balance stats (`STAT` lines) and that random play always ends |
+| `DoubleIt.Modes.Registry`, `CustomModePlays`, `ConfigDrivesRules` | built-in modes, fallback key, a test-only mode registered and played with no game code changes, config fields (start ring, ring limit, breeze share, adaptive bounds) drive the rules |
 
-Latest: 19 passed. Playthrough: PASS, 112 moves, 0 mismatches, settle ~0.7 s average including chain playback.
+Latest: 22 passed. Playthrough: PASS, 112 moves, 0 mismatches, settle ~0.7 s average including chain playback.
 
 ## Rules
 

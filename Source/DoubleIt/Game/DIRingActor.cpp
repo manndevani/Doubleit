@@ -3,6 +3,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Core/DIGame.h"
 #include "Core/DIRingLayout.h"
+#include "DIGameSettings.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInterface.h"
 #include "UObject/ConstructorHelpers.h"
@@ -10,16 +11,10 @@
 namespace
 {
 	constexpr float PlaneMeshSize = 100.f; // /Engine/BasicShapes/Plane is 100x100
-	constexpr float SpringK = 230.f;      // stiffness: visibly settled in ~0.45 s
-	constexpr float SpringC = 23.f;       // damping ratio ~0.75: a ~3% overshoot, felt more than seen
-	constexpr int32 SpringSubsteps = 2;
-	constexpr float FadeRate = 7.f;
-	constexpr float PulseScale = 1.22f;
-	constexpr float AimKind = 4.f; // M_Tile kind for guide dots
+	constexpr float AimKind = 4.f;        // M_Tile kinds (Shaders/DI_Tile.hlsl)
 	constexpr float RippleKind = 5.f;
-	constexpr float RippleSeconds = 0.55f;
-	constexpr float AimDotSize = 9.f;
-	constexpr float AimSpacing = 26.f;
+
+	const UDIGameSettings& Feel() { return UDIGameSettings::Get(); }
 }
 
 void ADIRingActor::SetAim(float Angle, bool bAtTile)
@@ -81,7 +76,7 @@ void ADIRingActor::SetDark(bool bDark)
 
 void ADIRingActor::SyncFromGame(const FDIGame& Game, float Offset)
 {
-	ShowBoard(Game.GetRing(), Game.IsGameOver() ? nullptr : &Game.GetCenter(), Offset, nullptr, Game.GetRules());
+	ShowBoard(Game.GetRing(), Game.IsGameOver() ? nullptr : &Game.GetCenter(), Offset, nullptr, Game.GetMode());
 }
 
 void ADIRingActor::Impact(float Angle, float Strength, bool bReveal)
@@ -97,9 +92,9 @@ void ADIRingActor::Impact(float Angle, float Strength, bool bReveal)
 	bAnimating = true;
 }
 
-void ADIRingActor::ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Center, float Offset, const FDIFusionEvent* Event, EDIRuleSet InRules)
+void ADIRingActor::ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Center, float Offset, const FDIFusionEvent* Event, const FDIMode& InMode)
 {
-	Rules = InRules;
+	Mode = InMode;
 
 	struct FTarget
 	{
@@ -203,11 +198,11 @@ void ADIRingActor::ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Cente
 		V.Radius = V.TargetRadius = T.Radius;
 		V.TargetSize = T.Size;
 		V.bCenter = T.bCenter;
-		V.Size = Results.Contains(Pair.Key) ? T.Size * PulseScale : 0.f;
+		V.Size = Results.Contains(Pair.Key) ? T.Size * Feel().PulseScale : 0.f;
 		V.Seed = FMath::Frac(Pair.Key * 0.6180339887f); // golden-ratio spread: neighbouring ids get unlike stones
 	}
 
-	Background->SetCustomPrimitiveDataFloat(0, float(Ring.Num()) / FDIGame::MaxRingPieces);
+	Background->SetCustomPrimitiveDataFloat(0, float(Ring.Num()) / FMath::Max(Mode.Config.MaxRingPieces, 1));
 	bAnimating = true;
 	PushInstances();
 }
@@ -220,19 +215,21 @@ void ADIRingActor::Tick(float DeltaSeconds)
 		return; // idle breathing and shape drift run in M_Tile on the GPU; nothing to do here
 	}
 
-	const float Fade = 1.f - FMath::Exp(-FadeRate * DeltaSeconds);
-	const float H = FMath::Min(DeltaSeconds, 1.f / 30.f) / SpringSubsteps;
+	const float Fade = 1.f - FMath::Exp(-Feel().FadeRate * DeltaSeconds);
+	const float K = Feel().SpringStiffness;
+	const float C = Feel().SpringDamping;
+	const float H = FMath::Min(DeltaSeconds, 1.f / 30.f) / Feel().SpringSubsteps;
 	bAnimating = false;
 	for (FTileVisual& V : Visuals)
 	{
 		// Under-damped springs: a slight overshoot and settle reads as physical, a pure ease reads as software.
-		for (int32 s = 0; s < SpringSubsteps; ++s)
+		for (int32 s = 0; s < Feel().SpringSubsteps; ++s)
 		{
-			V.AngleVel += (SpringK * FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle) - SpringC * V.AngleVel) * H; // shortest way round
+			V.AngleVel += (K * FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle) - C * V.AngleVel) * H; // shortest way round
 			V.Angle += V.AngleVel * H;
-			V.RadiusVel += (SpringK * (V.TargetRadius - V.Radius) - SpringC * V.RadiusVel) * H;
+			V.RadiusVel += (K * (V.TargetRadius - V.Radius) - C * V.RadiusVel) * H;
 			V.Radius += V.RadiusVel * H;
-			V.SizeVel += (SpringK * (V.TargetSize - V.Size) - SpringC * V.SizeVel) * H;
+			V.SizeVel += (K * (V.TargetSize - V.Size) - C * V.SizeVel) * H;
 			V.Size = FMath::Max(V.Size + V.SizeVel * H, 0.f);
 		}
 		V.Alpha = FMath::Lerp(V.Alpha, V.TargetAlpha, Fade);
@@ -248,7 +245,7 @@ void ADIRingActor::Tick(float DeltaSeconds)
 	{
 		R.Age += DeltaSeconds;
 	}
-	Ripples.RemoveAll([](const FRipple& R) { return R.Age >= RippleSeconds; });
+	Ripples.RemoveAll([](const FRipple& R) { return R.Age >= Feel().RippleSeconds; });
 	ShakeAmp *= FMath::Exp(-14.f * DeltaSeconds);
 	ShakeOffset = ShakeAmp > 0.1f ? FVector2D(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f)) * ShakeAmp : FVector2D::ZeroVector;
 	bAnimating |= Ripples.Num() > 0 || ShakeAmp > 0.1f;
@@ -275,11 +272,9 @@ void ADIRingActor::PushInstances()
 		const float Z = V.bCenter ? 2.f : (V.bDying ? 0.5f : 1.f);
 		const FDIPiece& P = V.Piece;
 		float Rank = 0.f;
-		if (P.IsNumber())
+		if (P.IsNumber() && Mode.IsValid())
 		{
-			Rank = Rules == EDIRuleSet::Doubling
-				? float(FMath::FloorLog2_64(uint64(FMath::Max<int64>(P.Value, 1))))
-				: float(P.Value);
+			Rank = float(Mode.Rules->ColourRank(P.Value));
 		}
 		Add(FVector2D(V.Radius * FMath::Sin(V.Angle), V.Radius * FMath::Cos(V.Angle)), Z, V.Size,
 			FVector4f(float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, V.Alpha), V.Seed);
@@ -287,7 +282,7 @@ void ADIRingActor::PushInstances()
 
 	for (const FRipple& R : Ripples)
 	{
-		const float T = R.Age / RippleSeconds;
+		const float T = R.Age / Feel().RippleSeconds;
 		const float Ease = 1.f - FMath::Square(1.f - T);
 		Add(R.Pos, 0.7f, FMath::Lerp(DIRingLayout::TileSize * 0.9f, R.MaxSize, Ease),
 			FVector4f(R.bReveal ? 1.f : 0.f, RippleKind, bLightTheme ? 1.f : 0.f, 0.7f * FMath::Square(1.f - T)));
@@ -299,12 +294,12 @@ void ADIRingActor::PushInstances()
 		const FVector2D Dir(FMath::Sin(AimAngle), FMath::Cos(AimAngle));
 		const float Start = DIRingLayout::CenterSize * 0.5f + 18.f;
 		const float End = bAimAtTile ? DIRingLayout::RingRadius - DIRingLayout::TileSize * 0.5f - 12.f : DIRingLayout::RingRadius;
-		const int32 Dots = FMath::Max(2, FMath::FloorToInt32((End - Start) / AimSpacing) + 1);
+		const int32 Dots = FMath::Max(2, FMath::FloorToInt32((End - Start) / Feel().AimDotSpacing) + 1);
 		for (int32 d = 0; d < Dots; ++d)
 		{
 			const float T = float(d) / (Dots - 1);
 			const bool bTip = !bAimAtTile && d == Dots - 1; // a slightly larger dot marks the landing gap
-			Add(Dir * FMath::Lerp(Start, End, T), 0.8f, bTip ? AimDotSize * 1.8f : AimDotSize,
+			Add(Dir * FMath::Lerp(Start, End, T), 0.8f, bTip ? Feel().AimDotSize * 1.8f : Feel().AimDotSize,
 				FVector4f(bAimAtTile ? 1.f : 0.f, AimKind, bLightTheme ? 1.f : 0.f, AimAlpha * FMath::Lerp(0.3f, 0.85f, T)));
 		}
 	}

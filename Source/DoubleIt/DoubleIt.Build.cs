@@ -9,7 +9,7 @@ public class DoubleIt : ModuleRules
 		PublicIncludePaths.Add(ModuleDirectory);
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine" });
-		PrivateDependencyModuleNames.AddRange(new string[] { "InputCore", "AssetRegistry", "UMG", "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "InputCore", "AssetRegistry", "UMG", "Slate", "SlateCore", "DeveloperSettings" });
 
 		if (Target.Platform == UnrealTargetPlatform.Android)
 		{

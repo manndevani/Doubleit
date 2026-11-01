@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Core/DITypes.h"
+#include "Core/DIMode.h"
 #include "DIRingActor.generated.h"
 
 class FDIGame;
@@ -30,7 +30,7 @@ public:
 	 * Shows one step of a move: Ring at Offset, an optional centre piece, and optionally the fusion event that produced
 	 * this ring (its consumed pieces collapse into the result from both sides, the result pulses in).
 	 */
-	void ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Center, float Offset, const FDIFusionEvent* Event, EDIRuleSet InRules);
+	void ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Center, float Offset, const FDIFusionEvent* Event, const FDIMode& InMode);
 
 	/** Expanding ring at a board angle; Strength 0..1 scales size and shake (shake only above 0.6). */
 	void Impact(float Angle, float Strength, bool bReveal);
@@ -96,6 +96,6 @@ private:
 	float AimTargetAlpha = 0.f;
 	bool bAimAtTile = false;
 	bool bLightTheme = false; // aim dots and ripples turn ink on the light background
-	EDIRuleSet Rules = EDIRuleSet::Doubling;
+	FDIMode Mode; // colour ranks and ring capacity of the mode on show
 	bool bAnimating = false;
 };

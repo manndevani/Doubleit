@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DITypes.h"
+#include "DIMode.h"
 #include "DISpawner.h"
 
 /**
@@ -11,9 +12,8 @@
 class DOUBLEIT_API FDIGame
 {
 public:
-	static constexpr int32 MaxRingPieces = 18;
-
-	FDIGame(EDIRuleSet InRules, int32 Seed, const FDISpawnTuning& Tuning = FDISpawnTuning());
+	/** Mode: rules + config (DIModes::Get). Tune Mode.Config before passing it, e.g. for the adaptive pace. */
+	FDIGame(const FDIMode& InMode, int32 Seed);
 
 	/** Insert the center piece before Ring[Slot] (Slot == Ring.Num() appends). Not valid for Minus. */
 	bool PlaceAt(int32 Slot);
@@ -26,7 +26,8 @@ public:
 
 	const TArray<FDIPiece>& GetRing() const { return Ring; }
 	const FDIPiece& GetCenter() const { return Center; }
-	EDIRuleSet GetRules() const { return Rules; }
+	const FDIMode& GetMode() const { return Mode; }
+	int32 GetMaxRingPieces() const { return Mode.Config.MaxRingPieces; }
 	int64 GetScore() const { return Score; }
 	int64 GetHighestValue() const { return HighestValue; }
 	int32 GetMoves() const { return Moves; }
@@ -50,7 +51,7 @@ private:
 	void FinishMove();
 	void RemoveNeighbours(int32& CenterIndex);
 
-	EDIRuleSet Rules;
+	FDIMode Mode;
 	FDISpawner Spawner;
 	TArray<FDIPiece> Ring;
 	FDIPiece Center;

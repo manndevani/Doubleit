@@ -12,13 +12,6 @@ class UDIAudio;
 class UDIHUDWidget;
 class UDISaveGame;
 
-UENUM(BlueprintType)
-enum class EDIGameModeRules : uint8
-{
-	Doubling,
-	Addition
-};
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDIOnBoardChanged);
 
 /** Owns the current run, tutorial, settings and the objects that present them (ring actor, HUD, audio). */
@@ -30,8 +23,9 @@ class DOUBLEIT_API ADoubleItGameMode : public AGameModeBase
 public:
 	ADoubleItGameMode();
 
+	/** Starts a run of the mode registered as ModeKey (see Core/DIMode.h), with the player's adaptive tuning. */
 	UFUNCTION(BlueprintCallable, Category = "DoubleIt")
-	void StartNewGame(EDIGameModeRules Rules, int32 Seed);
+	void StartNewGame(FName ModeKey, int32 Seed);
 
 	/** Tap in board space (see DIRingLayout). Restarts the run after game over. */
 	void HandleTap(const FVector2D& BoardPos);
@@ -95,6 +89,7 @@ private:
 	void PlayStep();
 	void ShowStep(int32 Index, bool bQuiet);
 	void FinishPlayback();
+	float StepDelay(int32 Index) const;
 	float PlaybackSeconds() const;
 
 	/** Adaptive pace: learn from finished runs, tune the next run's spawner. */
@@ -139,7 +134,7 @@ public:
 
 	TUniquePtr<FDIGame> Game;
 	FDITutorial Tutorial;
-	EDIRuleSet CurrentRules = EDIRuleSet::Doubling;
+	FName CurrentMode = DIModes::Classic;
 	bool bInTutorial = false;
 	bool bInputLocked = false;
 	bool bBoardPaused = false;

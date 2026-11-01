@@ -1,6 +1,7 @@
 #include "DoubleItGameMode.h"
 #include "DoubleIt.h"
 #include "DIAudio.h"
+#include "DIGameSettings.h"
 #include "DIPawn.h"
 #include "DIPlatform.h"
 #include "DIPlayerController.h"
@@ -23,14 +24,6 @@
 #include "ShaderCompiler.h"
 #endif
 #endif
-
-namespace
-{
-	// Move playback timing: the piece lands, then one collision every ~220 ms, then the next centre appears.
-	constexpr float FirstCollisionDelay = 0.16f;
-	constexpr float ChainStepDelay = 0.22f;
-	constexpr float SettleDelay = 0.14f;
-}
 
 ADoubleItGameMode::ADoubleItGameMode()
 {
@@ -62,6 +55,7 @@ void ADoubleItGameMode::BeginPlay()
 	{
 		Save = Cast<UDISaveGame>(UGameplayStatics::CreateSaveGameObject(UDISaveGame::StaticClass()));
 	}
+	Save->MigrateLegacy();
 
 	Audio = NewObject<UDIAudio>(this);
 	Audio->bSound = Save->bSound;
@@ -103,7 +97,7 @@ void ADoubleItGameMode::BeginPlay()
 	}
 	else
 	{
-		StartNewGame(EDIGameModeRules::Doubling, FMath::Rand());
+		StartNewGame(UDIGameSettings::Get().DefaultMode, FMath::Rand());
 	}
 	UE_LOG(LogDoubleIt, Log, TEXT("Ready"));
 
@@ -118,7 +112,7 @@ void ADoubleItGameMode::EndPlay(const EEndPlayReason::Type Reason)
 	Super::EndPlay(Reason);
 }
 
-void ADoubleItGameMode::StartNewGame(EDIGameModeRules Rules, int32 Seed)
+void ADoubleItGameMode::StartNewGame(FName ModeKey, int32 Seed)
 {
 	FinishPlayback();
 	LearnFromRun(); // an abandoned run still teaches us something if it went on long enough
@@ -126,13 +120,19 @@ void ADoubleItGameMode::StartNewGame(EDIGameModeRules Rules, int32 Seed)
 	bInTutorial = false;
 	bInputLocked = false;
 	bBoardPaused = false;
-	CurrentRules = Rules == EDIGameModeRules::Addition ? EDIRuleSet::Addition : EDIRuleSet::Doubling;
+	FDIMode Mode = UDIGameSettings::MakeMode(ModeKey);
+	CurrentMode = Mode.Key;
 
 	const FDIPlayerProfile Profile = LoadProfile();
-	const FDISpawnTuning Tuning = bAutomationRun ? FDISpawnTuning() : DIAdaptive::TuningFor(Profile);
+	const FDIAdaptiveTuning& Adapt = Mode.Config.Adaptive;
+	if (!bAutomationRun)
+	{
+		Mode.Config.Spawn = DIAdaptive::TuningFor(Profile, Mode.Config.Spawn, Adapt);
+	}
+	const FDISpawnTuning& Tuning = Mode.Config.Spawn;
 	UE_LOG(LogDoubleIt, Log, TEXT("Run tuning: skill %.2f, plus %.3f, growth every %d moves (%d runs learned)"),
-		DIAdaptive::Skill(Profile), Tuning.PlusChance, Tuning.MovesPerRangeStep, Profile.Runs);
-	Game = MakeUnique<FDIGame>(CurrentRules, Seed, Tuning);
+		DIAdaptive::Skill(Profile, Adapt), Tuning.PlusChance, Tuning.MovesPerRangeStep, Profile.Runs);
+	Game = MakeUnique<FDIGame>(Mode, Seed);
 
 	RingOffset = 0.f;
 	RunStats = FDIRunSummary();
@@ -147,7 +147,7 @@ void ADoubleItGameMode::StartNewGame(EDIGameModeRules Rules, int32 Seed)
 
 void ADoubleItGameMode::RestartRun()
 {
-	StartNewGame(CurrentRules == EDIRuleSet::Addition ? EDIGameModeRules::Addition : EDIGameModeRules::Doubling, FMath::Rand());
+	StartNewGame(CurrentMode, FMath::Rand());
 }
 
 void ADoubleItGameMode::StartTutorial()
@@ -158,9 +158,9 @@ void ADoubleItGameMode::StartTutorial()
 	bInTutorial = true;
 	bInputLocked = false;
 	bBoardPaused = false;
-	CurrentRules = EDIRuleSet::Doubling;
+	CurrentMode = DIModes::Classic; // the tutorial boards are written for Classic
 	RingOffset = 0.f;
-	Game = MakeUnique<FDIGame>(CurrentRules, 1);
+	Game = MakeUnique<FDIGame>(UDIGameSettings::MakeMode(CurrentMode), 1);
 	int32 FirstStep = 0;
 #if !UE_BUILD_SHIPPING
 	FParse::Value(FCommandLine::Get(), TEXT("DITutorialStep="), FirstStep); // automation: jump to a tutorial board
@@ -283,7 +283,7 @@ void ADoubleItGameMode::StartPlayback(const TArray<FDIPiece>& Before, float Befo
 	PlayIndex = 0;
 	ShowStep(0, true);
 	PlayIndex = 1;
-	GetWorldTimerManager().SetTimer(PlaybackTimer, this, &ADoubleItGameMode::PlayStep, PlayEvents.Num() > 0 ? FirstCollisionDelay : SettleDelay, false);
+	GetWorldTimerManager().SetTimer(PlaybackTimer, this, &ADoubleItGameMode::PlayStep, StepDelay(PlayIndex), false);
 }
 
 void ADoubleItGameMode::PlayStep()
@@ -296,8 +296,7 @@ void ADoubleItGameMode::PlayStep()
 	ShowStep(Index, false);
 	if (IsPlayingMove())
 	{
-		const bool bNextIsCollision = PlaySteps[PlayIndex].EventIndex != INDEX_NONE;
-		GetWorldTimerManager().SetTimer(PlaybackTimer, this, &ADoubleItGameMode::PlayStep, bNextIsCollision ? ChainStepDelay : SettleDelay, false);
+		GetWorldTimerManager().SetTimer(PlaybackTimer, this, &ADoubleItGameMode::PlayStep, StepDelay(PlayIndex), false);
 	}
 }
 
@@ -312,9 +311,24 @@ void ADoubleItGameMode::FinishPlayback()
 	ShowStep(PlaySteps.Num() - 1, true);
 }
 
+float ADoubleItGameMode::StepDelay(int32 Index) const
+{
+	const UDIGameSettings& S = UDIGameSettings::Get();
+	if (!PlaySteps.IsValidIndex(Index) || PlaySteps[Index].EventIndex == INDEX_NONE)
+	{
+		return S.SettleDelay;
+	}
+	return Index == 1 ? S.FirstCollisionDelay : S.ChainStepDelay;
+}
+
 float ADoubleItGameMode::PlaybackSeconds() const
 {
-	return PlayEvents.Num() > 0 ? FirstCollisionDelay + (PlayEvents.Num() - 1) * ChainStepDelay + SettleDelay : SettleDelay;
+	float Total = 0.f;
+	for (int32 i = 1; i < PlaySteps.Num(); ++i)
+	{
+		Total += StepDelay(i);
+	}
+	return FMath::Max(Total, UDIGameSettings::Get().SettleDelay);
 }
 
 void ADoubleItGameMode::ShowStep(int32 Index, bool bQuiet)
@@ -352,14 +366,14 @@ void ADoubleItGameMode::ShowStep(int32 Index, bool bQuiet)
 	}
 
 	const FDIFusionEvent* Event = Step.EventIndex != INDEX_NONE ? &PlayEvents[Step.EventIndex] : nullptr;
-	RingActor->ShowBoard(Step.Ring, nullptr, Step.Offset, Event, CurrentRules);
+	RingActor->ShowBoard(Step.Ring, nullptr, Step.Offset, Event, Game->GetMode());
 	if (!Event)
 	{
 		return;
 	}
 
 	// A number never made before (past the first few) gets a sun-gold ripple and a chime once the chain settles.
-	const int64 RevealFloor = CurrentRules == EDIRuleSet::Doubling ? 32 : 6;
+	const int64 RevealFloor = Game->GetMode().Config.RevealFrom;
 	const bool bReveal = !bInTutorial && !bAutomationRun && Event->ResultValue > HighestEverAtStart && Event->ResultValue >= RevealFloor;
 	if (bReveal)
 	{
@@ -384,14 +398,14 @@ void ADoubleItGameMode::NoteMove(const FDIPiece& Placed, double ThinkSeconds)
 		RunStats.Fusions += E.ChainDepth == 1 ? 1 : 0;
 		RunStats.BestChain = FMath::Max(RunStats.BestChain, E.ChainDepth);
 	}
-	ThinkSum += FMath::Min(ThinkSeconds, 30.0); // a phone set down mid-run should not read as slow thinking
+	ThinkSum += FMath::Min(ThinkSeconds, double(Game->GetMode().Config.Adaptive.MaxThinkSeconds));
 	RunStats.AvgThinkSeconds = float(ThinkSum / FMath::Max(RunStats.Moves, 1));
 	RunStats.Highest = Game->GetHighestValue();
 }
 
 FName ADoubleItGameMode::ModeKey() const
 {
-	return CurrentRules == EDIRuleSet::Addition ? FName(TEXT("Addition")) : FName(TEXT("Classic"));
+	return CurrentMode;
 }
 
 FDIPlayerProfile ADoubleItGameMode::LoadProfile() const
@@ -403,16 +417,17 @@ FDIPlayerProfile ADoubleItGameMode::LoadProfile() const
 void ADoubleItGameMode::LearnFromRun()
 {
 	// Finished runs always count; abandoned ones only once they say something (15+ moves).
-	if (bRunLearned || bInTutorial || bAutomationRun || !Game || !Save || (!Game->IsGameOver() && RunStats.Moves < 15))
+	if (bRunLearned || bInTutorial || bAutomationRun || !Game || !Save || (!Game->IsGameOver() && RunStats.Moves < Game->GetMode().Config.Adaptive.MinAbandonedMoves))
 	{
 		return;
 	}
 	bRunLearned = true;
 	FDIPlayerProfile Profile = LoadProfile();
-	DIAdaptive::Learn(Profile, RunStats);
+	const FDIAdaptiveTuning& Adapt = Game->GetMode().Config.Adaptive;
+	DIAdaptive::Learn(Profile, RunStats, Adapt);
 	Save->Profiles.Add(ModeKey(), FDIProfileRecord::From(Profile));
 	PersistSettings();
-	UE_LOG(LogDoubleIt, Log, TEXT("Learned run: %d moves, chain %d, skill now %.2f"), RunStats.Moves, RunStats.BestChain, DIAdaptive::Skill(Profile));
+	UE_LOG(LogDoubleIt, Log, TEXT("Learned run: %d moves, chain %d, skill now %.2f"), RunStats.Moves, RunStats.BestChain, DIAdaptive::Skill(Profile, Adapt));
 }
 
 void ADoubleItGameMode::TutorialAfterMove()
@@ -437,7 +452,7 @@ void ADoubleItGameMode::TutorialAfterMove()
 		{
 			Save->bTutorialDone = true;
 			PersistSettings();
-			StartNewGame(EDIGameModeRules::Doubling, FMath::Rand());
+			StartNewGame(UDIGameSettings::Get().DefaultMode, FMath::Rand());
 			return;
 		}
 		FinishPlayback();
@@ -518,7 +533,7 @@ int64 ADoubleItGameMode::GetBest() const
 	{
 		return 0;
 	}
-	const int64 Stored = CurrentRules == EDIRuleSet::Addition ? Save->BestAddition : Save->BestDoubling;
+	const int64 Stored = Save->Bests.FindRef(ModeKey());
 	return FMath::Max(Stored, bInTutorial ? 0 : GetScore());
 }
 
@@ -542,7 +557,7 @@ void ADoubleItGameMode::BoardChanged()
 
 void ADoubleItGameMode::RecordBest()
 {
-	int64& Best = CurrentRules == EDIRuleSet::Addition ? Save->BestAddition : Save->BestDoubling;
+	int64& Best = Save->Bests.FindOrAdd(ModeKey());
 	if (GetScore() > Best)
 	{
 		Best = GetScore();
@@ -617,7 +632,7 @@ void ADoubleItGameMode::RunAutomationFromCommandLine()
 		int32 Seed = 12345;
 		FParse::Value(FCommandLine::Get(), TEXT("DIPlaythrough="), Seed);
 		FParse::Value(FCommandLine::Get(), TEXT("DIShotDir="), PlaythroughDir);
-		StartNewGame(EDIGameModeRules::Doubling, Seed);
+		StartNewGame(UDIGameSettings::Get().DefaultMode, Seed);
 		bPlaythrough = true;
 		UE_LOG(LogDoubleIt, Display, TEXT("Playthrough: start seed=%d"), Seed);
 		PlaythroughSchedule(2.f);

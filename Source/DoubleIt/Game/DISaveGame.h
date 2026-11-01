@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
-#include "Core/DIAdaptive.h"
+#include "Core/DIMode.h"
 #include "DISaveGame.generated.h"
 
 UENUM()
@@ -44,11 +44,22 @@ class DOUBLEIT_API UDISaveGame : public USaveGame
 public:
 	static constexpr const TCHAR* SlotName = TEXT("DoubleIt");
 
+	/** Best score per mode key ("Classic", "Addition", ...). */
+	UPROPERTY()
+	TMap<FName, int64> Bests;
+
+	/** Pre-registry saves: moved into Bests by MigrateLegacy, then zeroed. */
 	UPROPERTY()
 	int64 BestDoubling = 0;
 
 	UPROPERTY()
 	int64 BestAddition = 0;
+
+	void MigrateLegacy()
+	{
+		if (BestDoubling > 0) { int64& B = Bests.FindOrAdd(DIModes::Classic); B = FMath::Max(B, BestDoubling); BestDoubling = 0; }
+		if (BestAddition > 0) { int64& B = Bests.FindOrAdd(DIModes::Addition); B = FMath::Max(B, BestAddition); BestAddition = 0; }
+	}
 
 	UPROPERTY()
 	bool bSound = true;

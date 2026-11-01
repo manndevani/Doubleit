@@ -41,7 +41,7 @@ bool FDILayoutSlotsTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDILayoutTapTest, "DoubleIt.Layout.TapRouting", DILayoutTestFlags)
 bool FDILayoutTapTest::RunTest(const FString&)
 {
-	FDIGame Game(EDIRuleSet::Doubling, 1);
+	FDIGame Game(DIModes::Get(DIModes::Classic), 1);
 	Game.SetRingForTest({ FDIPiece::Number(2), FDIPiece::Number(2), FDIPiece::Number(8) });
 
 	Game.SetCenterForTest(FDIPiece::Plus());
@@ -62,7 +62,7 @@ bool FDILayoutSymmetricTest::RunTest(const FString&)
 	auto Deg = [](float Rad) { return FMath::Fmod(FMath::RadiansToDegrees(Rad) + 720.f, 360.f); };
 
 	// Placement: the new piece lands exactly in the gap it was aimed at, neighbours part evenly.
-	FDIGame Game(EDIRuleSet::Doubling, 1);
+	FDIGame Game(DIModes::Get(DIModes::Classic), 1);
 	Game.SetRingForTest({ FDIPiece::Number(2), FDIPiece::Number(4), FDIPiece::Number(8), FDIPiece::Number(16) });
 	Game.SetCenterForTest(FDIPiece::Number(32));
 	const float Offset = FMath::DegreesToRadians(30.f);

@@ -88,6 +88,10 @@ average moves survived, longest chain, plus yield (fusions per plus placed), thi
 | Addition | later | Unlocked by reaching 1,000 points in Classic *(tune)*. |
 | Zen / Timed | later | Ideas only. |
 
+Each mode is a rule set + a config, registered by key (`Core/DIMode.h`, see ARCHITECTURE.md#where-numbers-live-keep-code-free-of-magic-numbers).
+Classic and Addition share every number except the reveal floor (32 vs 6). Per-mode tuning can be overridden in
+`Config/DefaultGame.ini` without a code change.
+
 ## Tutorial (`Core/DITutorial`, 6 scripted boards)
 
 Shown on first launch and from the pause menu ("how to play"). A wrong move replays the step after a short pause.

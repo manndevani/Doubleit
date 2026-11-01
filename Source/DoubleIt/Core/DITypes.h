@@ -10,12 +10,6 @@ enum class EDIPieceKind : uint8
 	Breeze
 };
 
-enum class EDIRuleSet : uint8
-{
-	Doubling,
-	Addition
-};
-
 struct FDIPiece
 {
 	EDIPieceKind Kind = EDIPieceKind::Number;

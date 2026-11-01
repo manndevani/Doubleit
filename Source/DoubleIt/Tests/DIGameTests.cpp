@@ -28,9 +28,9 @@ namespace
 		return FString::Printf(TEXT("[%s]"), *FString::Join(Parts, TEXT(",")));
 	}
 
-	FDIGame Setup(EDIRuleSet Rules, std::initializer_list<int64> Ring, const FDIPiece& Center)
+	FDIGame Setup(const FDIMode& Mode, std::initializer_list<int64> Ring, const FDIPiece& Center)
 	{
-		FDIGame Game(Rules, 1);
+		FDIGame Game(Mode, 1);
 		Game.SetRingForTest(Nums(Ring));
 		Game.SetCenterForTest(Center);
 		return Game;
@@ -40,7 +40,7 @@ namespace
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIFirstFusionTest, "DoubleIt.Core.FirstFusion", DITestFlags)
 bool FDIFirstFusionTest::RunTest(const FString&)
 {
-	FDIGame Game = Setup(EDIRuleSet::Doubling, { 2, 2, 8 }, FDIPiece::Plus());
+	FDIGame Game = Setup(DIModes::Get(DIModes::Classic), { 2, 2, 8 }, FDIPiece::Plus());
 	TestTrue(TEXT("placed"), Game.PlaceAt(1));
 	TestEqual(TEXT("ring"), RingStr(Game.GetRing()), TEXT("[4,8]"));
 	TestEqual(TEXT("score"), Game.GetScore(), int64(4));
@@ -50,7 +50,7 @@ bool FDIFirstFusionTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIDoublingChainTest, "DoubleIt.Core.DoublingChain", DITestFlags)
 bool FDIDoublingChainTest::RunTest(const FString&)
 {
-	FDIGame Game = Setup(EDIRuleSet::Doubling, { 8, 2, 2, 8, 1 }, FDIPiece::Plus());
+	FDIGame Game = Setup(DIModes::Get(DIModes::Classic), { 8, 2, 2, 8, 1 }, FDIPiece::Plus());
 	Game.PlaceAt(2);
 	TestEqual(TEXT("ring"), RingStr(Game.GetRing()), TEXT("[32,1]"));
 	TestEqual(TEXT("score"), Game.GetScore(), int64(4 * 1 + 32 * 2));
@@ -61,7 +61,7 @@ bool FDIDoublingChainTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIAdditionChainTest, "DoubleIt.Core.AdditionChain", DITestFlags)
 bool FDIAdditionChainTest::RunTest(const FString&)
 {
-	FDIGame Game = Setup(EDIRuleSet::Addition, { 5, 3, 3, 5, 1 }, FDIPiece::Plus());
+	FDIGame Game = Setup(DIModes::Get(DIModes::Addition), { 5, 3, 3, 5, 1 }, FDIPiece::Plus());
 	Game.PlaceAt(2);
 	TestEqual(TEXT("ring"), RingStr(Game.GetRing()), TEXT("[16,1]"));
 	return true;
@@ -70,7 +70,7 @@ bool FDIAdditionChainTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIWrapAroundTest, "DoubleIt.Core.WrapAround", DITestFlags)
 bool FDIWrapAroundTest::RunTest(const FString&)
 {
-	FDIGame Game = Setup(EDIRuleSet::Doubling, { 2, 4, 2 }, FDIPiece::Plus());
+	FDIGame Game = Setup(DIModes::Get(DIModes::Classic), { 2, 4, 2 }, FDIPiece::Plus());
 	Game.PlaceAt(0);
 	TestEqual(TEXT("ring"), RingStr(Game.GetRing()), TEXT("[4,4]"));
 	return true;
@@ -79,7 +79,7 @@ bool FDIWrapAroundTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIDormantPlusTest, "DoubleIt.Core.DormantPlusFiresLater", DITestFlags)
 bool FDIDormantPlusTest::RunTest(const FString&)
 {
-	FDIGame Game = Setup(EDIRuleSet::Doubling, { 2, 4 }, FDIPiece::Plus());
+	FDIGame Game = Setup(DIModes::Get(DIModes::Classic), { 2, 4 }, FDIPiece::Plus());
 	Game.PlaceAt(1);
 	TestEqual(TEXT("plus waits"), RingStr(Game.GetRing()), TEXT("[2,+,4]"));
 	Game.SetCenterForTest(FDIPiece::Number(4));
@@ -91,7 +91,7 @@ bool FDIDormantPlusTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIMinusTest, "DoubleIt.Core.MinusAndConvert", DITestFlags)
 bool FDIMinusTest::RunTest(const FString&)
 {
-	FDIGame Game = Setup(EDIRuleSet::Doubling, { 2, 4, 8 }, FDIPiece::Minus());
+	FDIGame Game = Setup(DIModes::Get(DIModes::Classic), { 2, 4, 8 }, FDIPiece::Minus());
 	TestFalse(TEXT("minus cannot be placed"), Game.PlaceAt(0));
 	TestTrue(TEXT("absorb"), Game.AbsorbAt(1));
 	TestEqual(TEXT("ring"), RingStr(Game.GetRing()), TEXT("[2,8]"));
@@ -105,7 +105,7 @@ bool FDIMinusTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIBreezeTest, "DoubleIt.Core.Breeze", DITestFlags)
 bool FDIBreezeTest::RunTest(const FString&)
 {
-	FDIGame Game = Setup(EDIRuleSet::Doubling, { 8, 1, 4, 2 }, FDIPiece::Breeze());
+	FDIGame Game = Setup(DIModes::Get(DIModes::Classic), { 8, 1, 4, 2 }, FDIPiece::Breeze());
 	Game.PlaceAt(0);
 	TestEqual(TEXT("lowest half gone"), RingStr(Game.GetRing()), TEXT("[8,4]"));
 	return true;
@@ -114,9 +114,9 @@ bool FDIBreezeTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIGameOverTest, "DoubleIt.Core.GameOver", DITestFlags)
 bool FDIGameOverTest::RunTest(const FString&)
 {
-	FDIGame Game(EDIRuleSet::Addition, 1);
+	FDIGame Game(DIModes::Get(DIModes::Addition), 1);
 	TArray<FDIPiece> Ring;
-	for (int32 i = 1; i <= FDIGame::MaxRingPieces; ++i)
+	for (int32 i = 1; i <= Game.GetMaxRingPieces(); ++i)
 	{
 		Ring.Add(FDIPiece::Number(i));
 	}
@@ -132,8 +132,8 @@ bool FDIGameOverTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDISpawnerTest, "DoubleIt.Core.SpawnerDeterministicAndFair", DITestFlags)
 bool FDISpawnerTest::RunTest(const FString&)
 {
-	FDISpawner A(EDIRuleSet::Doubling, 42);
-	FDISpawner B(EDIRuleSet::Doubling, 42);
+	FDISpawner A(DIModes::Get(DIModes::Classic).Rules.ToSharedRef(), 42);
+	FDISpawner B(DIModes::Get(DIModes::Classic).Rules.ToSharedRef(), 42);
 	int32 SincePlus = 0;
 	int32 MaxGap = 0;
 	for (int32 i = 0; i < 500; ++i)
@@ -161,7 +161,7 @@ bool FDISimulationTest::RunTest(const FString&)
 {
 	for (int32 Seed = 0; Seed < 50; ++Seed)
 	{
-		FDIGame Game(Seed % 2 ? EDIRuleSet::Addition : EDIRuleSet::Doubling, Seed);
+		FDIGame Game(Seed % 2 ? DIModes::Get(DIModes::Addition) : DIModes::Get(DIModes::Classic), Seed);
 		FRandomStream Bot(Seed);
 		int32 Guard = 0;
 		while (!Game.IsGameOver() && ++Guard < 5000)

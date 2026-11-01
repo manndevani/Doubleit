@@ -15,7 +15,7 @@ namespace
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIFusionEventsTest, "DoubleIt.Core.FusionEventsTrackIds", DIM2TestFlags)
 bool FDIFusionEventsTest::RunTest(const FString&)
 {
-	FDIGame Game(EDIRuleSet::Doubling, 1);
+	FDIGame Game(DIModes::Get(DIModes::Classic), 1);
 	Game.SetBoard({ FDIPiece::Number(8), FDIPiece::Number(2), FDIPiece::Number(2), FDIPiece::Number(8) }, FDIPiece::Plus());
 	const TArray<FDIPiece> Before = Game.GetRing();
 	const uint32 PlusId = Game.GetCenter().Id;
@@ -82,7 +82,7 @@ bool FDITutorialTest::RunTest(const FString&)
 		return FVector2D(DIRingLayout::RingRadius * FMath::Sin(Rad), DIRingLayout::RingRadius * FMath::Cos(Rad));
 	};
 
-	FDIGame Game(EDIRuleSet::Doubling, 3);
+	FDIGame Game(DIModes::Get(DIModes::Classic), 3);
 	FDITutorial Tut;
 	Tut.SetupStep(Game);
 
@@ -129,12 +129,13 @@ namespace
 	struct FDISimResult { int64 Moves = 0, Score = 0, Highest = 0; };
 
 	/** Average of Games greedy-bot runs (lifts the smallest number with a minus, else best immediate gain). */
-	FDISimResult SimulateGreedy(EDIRuleSet Rules, const FDISpawnTuning& Tuning, int32 Games)
+	FDISimResult SimulateGreedy(FDIMode Mode, const FDISpawnTuning& Tuning, int32 Games)
 	{
 		FDISimResult Total;
 		for (int32 Seed = 0; Seed < Games; ++Seed)
 		{
-			FDIGame Game(Rules, 1000 + Seed, Tuning);
+			Mode.Config.Spawn = Tuning;
+			FDIGame Game(Mode, 1000 + Seed);
 			FRandomStream Bot(Seed);
 			int32 Guard = 0;
 			while (!Game.IsGameOver() && ++Guard < 3000)
@@ -177,10 +178,9 @@ namespace
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIGreedyBalanceTest, "DoubleIt.Sim.GreedyBalance", DIM2TestFlags)
 bool FDIGreedyBalanceTest::RunTest(const FString&)
 {
-	for (EDIRuleSet Rules : { EDIRuleSet::Doubling, EDIRuleSet::Addition })
+	for (const TCHAR* Name : { DIModes::Classic, DIModes::Addition })
 	{
-		const FDISimResult R = SimulateGreedy(Rules, FDISpawnTuning(), 20);
-		const TCHAR* Name = Rules == EDIRuleSet::Doubling ? TEXT("Doubling") : TEXT("Addition");
+		const FDISimResult R = SimulateGreedy(DIModes::Get(Name), FDISpawnTuning(), 20);
 		AddInfo(FString::Printf(TEXT("STAT %s greedy bot: avg moves %lld, avg score %lld, avg highest %lld"), Name, R.Moves, R.Score, R.Highest));
 		TestTrue(FString::Printf(TEXT("%s runs last a while"), Name), R.Moves >= 40);
 	}
@@ -220,9 +220,9 @@ bool FDIAdaptiveTest::RunTest(const FString&)
 	TestTrue(TEXT("one run is a nudge"), DIAdaptive::Skill(OneBad) > 0.6f);
 
 	// The tuning really changes how long a run lasts, in the intended direction.
-	const FDISimResult EasyRun = SimulateGreedy(EDIRuleSet::Doubling, Easy, 20);
-	const FDISimResult BaseRun = SimulateGreedy(EDIRuleSet::Doubling, Base, 20);
-	const FDISimResult HardRun = SimulateGreedy(EDIRuleSet::Doubling, Hard, 20);
+	const FDISimResult EasyRun = SimulateGreedy(DIModes::Get(DIModes::Classic), Easy, 20);
+	const FDISimResult BaseRun = SimulateGreedy(DIModes::Get(DIModes::Classic), Base, 20);
+	const FDISimResult HardRun = SimulateGreedy(DIModes::Get(DIModes::Classic), Hard, 20);
 	AddInfo(FString::Printf(TEXT("STAT adaptive greedy moves: helped %lld, base %lld, pushed %lld"), EasyRun.Moves, BaseRun.Moves, HardRun.Moves));
 	TestTrue(TEXT("helped runs last longer"), EasyRun.Moves > BaseRun.Moves);
 	TestTrue(TEXT("pushed runs are not longer"), HardRun.Moves <= BaseRun.Moves);

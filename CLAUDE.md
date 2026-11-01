@@ -4,6 +4,9 @@
 - **Game rules live in pure C++** under `Source/DoubleIt/Core/` (no UObject, no rendering). Change rules there
   and cover them with a test in `Source/DoubleIt/Tests/`. The spec is `docs/GAME_DESIGN.md`: keep both in sync.
 - No Blueprints so far: UI is UMG built in C++ (`UI/DIHUDWidget`), the map is `/Engine/Maps/Entry`. Logic in BP is a bug.
+- **No magic numbers, no mode switches.** Mode-specific maths goes in an `IDIRuleSet`; rule numbers in `FDIModeConfig`
+  (`Core/DIMode.h`); feel/layout numbers in `UDIGameSettings`. Only true constants (mesh size, shader kind ids) stay
+  `constexpr`. Prefer known patterns (Strategy, Registry, data-driven config) over branching. See ARCHITECTURE.md.
 - Materials: use Custom (HLSL) nodes, unlit, opaque/masked where possible, and no per-tile dynamic material instances
   (use per-instance custom data).
 - Materials are generated from `Shaders/*.hlsl`: edit the HLSL, then run `./Scripts/generate_assets.ps1`. Never hand-edit `M_*`.

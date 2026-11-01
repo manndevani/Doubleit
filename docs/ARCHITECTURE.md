@@ -5,8 +5,9 @@
 ```
 Source/DoubleIt/
   Core/            pure C++ rules: no UObject, no rendering, deterministic for a seed, unit-tested
-    DITypes.h        FDIPiece (Kind, Value, Id), FDIFusionEvent (ids + RingAfter snapshot), EDIRuleSet
-    DIRules.*        fusion math per rule set (FirstFusion, ChainFusion)
+    DITypes.h        FDIPiece (Kind, Value, Id), FDIFusionEvent (ids + RingAfter snapshot)
+    DIMode.*         modes: IDIRuleSet (Strategy: fusion, spawn numbers, colour rank, score), FDIModeConfig
+                     (every rule number), DIModes registry (Classic, Addition; Register / Get / Keys)
     DISpawner.*      seeded spawner + FDISpawnTuning (plus/minus/breeze chances, growth step)
     DIGame.*         ring state machine: PlaceAt / AbsorbAt / ConvertCenterToPlus, events, PlacedRing
     DIRingLayout.*   ring geometry + hit testing with a ring offset; Reanchor (symmetric motion); ApplyTap
@@ -16,12 +17,13 @@ Source/DoubleIt/
   Game/            UE glue
     DoubleItGameMode.*            owns FDIGame, tutorial, save, audio, ring actor, HUD; tap/aim; move playback; learning
     DoubleItGameMode_Playthrough  non-shipping full-run bot (-DIPlaythrough)
+    DIGameSettings.*  UDeveloperSettings: playback, motion, layout numbers; MakeMode applies INI mode overrides
     DIRingActor.*    draws everything on the board with one instanced quad mesh (tiles, ripples, aim dots)
     DIPlayerController.*  touch press/drag = aim, release = place; mouse hover = aim, click = place; back/Esc = pause
     DIPawn.*         orthographic camera at the origin looking down -Z (+X = screen up)
     DIAudio.*        synthesized cues (USoundWaveProcedural) + haptics
     DIPlatform.*     night mode + vibrate (Android JNI via DoubleIt_UPL.xml, Windows registry on desktop)
-    DISaveGame.h     settings, bests, tutorial flag, per-mode FDIProfileRecord map
+    DISaveGame.h     settings, per-mode bests (`Bests` map; old fields migrated), tutorial flag, per-mode FDIProfileRecord map
     DITheme.h        Dusk Lagoon UI colours (light/dark)
   UI/DIHUDWidget.*   whole UI built in C++ UMG (score, best, pause panel, tutorial line, game over, best shimmer)
   Editor/DIGenerateAssetsCommandlet  builds M_Tile / M_Background from Shaders/*.hlsl
@@ -94,9 +96,10 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
 ## Adaptive pace and saved data
 
 - `ADoubleItGameMode::StartNewGame` loads the mode's profile (`Save->Profiles[ModeKey]`, "Classic" / "Addition") and
-  builds the run's `FDIGame` with `DIAdaptive::TuningFor(profile)`; automation runs use neutral tuning.
-- `NoteMove` collects the run summary (moves, pluses placed, first-step fusions, best chain, think time capped at 30 s).
-- `LearnFromRun` runs at game over, or when a 15+ move run is abandoned; it updates and saves the profile.
+  builds the run's `FDIGame` from `UDIGameSettings::MakeMode(key)` with `Spawn = DIAdaptive::TuningFor(profile, Spawn,
+  Adaptive)`; automation runs use the mode's base tuning.
+- `NoteMove` collects the run summary (moves, pluses placed, first-step fusions, best chain, think time capped at `Adaptive.MaxThinkSeconds`).
+- `LearnFromRun` runs at game over, or when a run of `Adaptive.MinAbandonedMoves` (15) moves or more is abandoned; it updates and saves the profile.
 - New modes get a new `ModeKey` and their own profile automatically.
 - Save file: UE `SaveGameToSlot("DoubleIt")`. On Android, Auto Backup (`android:allowBackup="true"`) restores it after reinstall.
   Rules and limits are in GAME_DESIGN.md#adaptive-pace and DECISIONS.md.
@@ -104,3 +107,16 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
 ## Target platform settings (Config/DefaultEngine.ini)
 
 Android arm64 only, minSdk 26, targetSdk 36, Vulkan + ES 3.2, portrait, ASTC textures. Packaged as an AAB for Play.
+
+## Where numbers live (keep code free of magic numbers)
+
+| What | Where | Change it by |
+|---|---|---|
+| Rules that differ by mode (fusion maths, spawned numbers, colour rank, score) | an `IDIRuleSet` class in `Core/DIMode.cpp` | writing a new rule set class |
+| Rule numbers (start ring, ring limit, breeze share, reveal floor, spawn chances, adaptive bounds) | `FDIModeConfig` defaults in `Core/DIMode.h` | `[DoubleIt.Mode.<Key>]` in `Config/DefaultGame.ini` (keys = field names) |
+| Feel and layout (playback delays, springs, pulse, ripples, aim dots, camera fit) | `UDIGameSettings` | Project Settings > Game > Double It (saved to `DefaultGame.ini`) |
+| Shader look (palette, glyphs, pebble shape) | `Shaders/*.hlsl` | edit, then `Scripts/generate_assets.ps1` |
+
+Adding a mode: subclass `IDIRuleSet`, `DIModes::Register({ Key, MakeShared<FMyRules>(), Config })`, then
+`StartNewGame(Key, Seed)`. Profile, best score and INI overrides follow the key automatically; nothing switches on a mode.
+`DoubleIt.Modes.CustomModePlays` does exactly this with a test-only mode.

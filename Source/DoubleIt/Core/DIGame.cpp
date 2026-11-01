@@ -1,11 +1,10 @@
 #include "DIGame.h"
-#include "DIRules.h"
 
-FDIGame::FDIGame(EDIRuleSet InRules, int32 Seed, const FDISpawnTuning& Tuning)
-	: Rules(InRules)
-	, Spawner(InRules, Seed, Tuning)
+FDIGame::FDIGame(const FDIMode& InMode, int32 Seed)
+	: Mode(InMode)
+	, Spawner(InMode.Rules.ToSharedRef(), Seed, InMode.Config.Spawn)
 {
-	for (int32 i = 0; i < 6; ++i)
+	for (int32 i = 0; i < Mode.Config.StartRingPieces; ++i)
 	{
 		FDIPiece Piece = Spawner.Next(0, Ring.Num());
 		while (!Piece.IsNumber())
@@ -120,8 +119,8 @@ bool FDIGame::TryFuseAt(int32 PlusIndex)
 
 		const int64 Outer = L.Value;
 		const int64 NewValue = Depth == 0
-			? DIRules::FirstFusion(Rules, Outer)
-			: DIRules::ChainFusion(Rules, Ring[CenterIndex].Value, Outer);
+			? Mode.Rules->FirstFusion(Outer)
+			: Mode.Rules->ChainFusion(Ring[CenterIndex].Value, Outer);
 
 		FDIFusionEvent Event;
 		Event.ConsumedIds[0] = L.Id;
@@ -132,7 +131,7 @@ bool FDIGame::TryFuseAt(int32 PlusIndex)
 		Ring[CenterIndex] = Tag(FDIPiece::Number(NewValue));
 		++Depth;
 
-		Score += NewValue * Depth;
+		Score += Mode.Rules->FusionScore(NewValue, Depth);
 		HighestValue = FMath::Max(HighestValue, NewValue);
 		Event.ChainDepth = Depth;
 		Event.ResultValue = NewValue;
@@ -165,7 +164,7 @@ void FDIGame::RemoveNeighbours(int32& CenterIndex)
 
 void FDIGame::ApplyBreeze()
 {
-	int32 ToRemove = Ring.Num() / 2;
+	int32 ToRemove = FMath::FloorToInt32(Ring.Num() * Mode.Config.BreezeClearFraction);
 	while (ToRemove-- > 0)
 	{
 		int32 Lowest = INDEX_NONE;
@@ -188,7 +187,7 @@ void FDIGame::FinishMove()
 {
 	++Moves;
 	bCenterAbsorbed = false;
-	if (Ring.Num() > MaxRingPieces)
+	if (Ring.Num() > Mode.Config.MaxRingPieces)
 	{
 		bGameOver = true;
 		return;

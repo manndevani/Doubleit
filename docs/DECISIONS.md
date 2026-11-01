@@ -28,3 +28,6 @@
 | 2026-11-01 | Springs at damping ratio ~0.75 (~3% overshoot) | Owner found the first bounce (~10%) too much; asked for subtle |
 | 2026-11-01 | Mobile MSAA off, `t.MaxFPS=60` | Shaders antialias their own edges, so MSAA only cost bandwidth; 60 fps is plenty for a calm puzzle and saves battery |
 | 2026-11-01 | Camera moves to centre the ring between the HUD bands; zoom out only, capped on big tablets | Fixed camera overlapped the HUD on tablets and foldables; background switched to absolute world position for this |
+| 2026-11-01 | Modes as Strategy (`IDIRuleSet`) + data (`FDIModeConfig`) + registry keyed by name; enum switches removed | Owner: keep logic dynamic and hard-code only what must be; a new mode is one class and one Register call |
+| 2026-11-01 | Feel/layout numbers in a `UDeveloperSettings`, rule overrides in `[DoubleIt.Mode.<Key>]` INI sections | Tunable without recompiling and visible in Project Settings; Core stays UObject-free, so rule configs are plain structs |
+| 2026-11-01 | Best scores keyed by mode (`Bests` map), old `BestDoubling` / `BestAddition` migrated on load | New modes need no new save fields; existing players keep their bests |

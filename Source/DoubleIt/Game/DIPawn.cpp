@@ -1,5 +1,6 @@
 #include "DIPawn.h"
 #include "DoubleIt.h"
+#include "DIGameSettings.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
@@ -19,7 +20,7 @@ ADIPawn::ADIPawn()
 	Camera->SetRelativeLocation(FVector(0, 0, 1000));
 	Camera->SetRelativeRotation(FRotator(-90, 0, 0));
 	Camera->SetProjectionMode(ECameraProjectionMode::Orthographic);
-	Camera->SetOrthoWidth(820.f);
+	Camera->SetOrthoWidth(UDIGameSettings::Get().PhoneWidthUnits);
 	Camera->bConstrainAspectRatio = false;
 	Camera->bOverrideAspectRatioAxisConstraint = true;
 	Camera->AspectRatioAxisConstraint = AspectRatio_MaintainXFOV;
@@ -62,25 +63,21 @@ void ADIPawn::FitToViewport(const FIntPoint& Size)
 	FittedSize = Size;
 	FittedUIScale = UWidgetLayoutLibrary::GetViewportScale(this);
 
-	// The board goes in the free band between the top HUD (score, best, tutorial lines) and the game-over lines at 80%
-	// height: centred in that band, and zoomed so the ring fits it. 820 world units across is the phone layout; we only
-	// ever zoom out from it (squat screens, foldables), and big tablets are capped so stones don't get huge.
-	constexpr float PhoneWidth = 820.f;
-	constexpr float RingExtent = 345.f;    // ring radius + half a tile + a little air, world units
-	constexpr float TopBandUnits = 500.f;  // score, best and two tutorial lines (+ air), UMG units from the top
-	constexpr float BottomBand = 0.8f;     // game-over lines start at 80% height
-	constexpr float MaxPixelsPerUnit = 1.6f;
+	// The board goes in the free band between the top HUD (score, best, tutorial lines) and the game-over lines: centred
+	// in that band, and zoomed so the ring fits it. We only ever zoom out from the phone width (squat screens,
+	// foldables), and big tablets are capped so stones don't get huge. Numbers: UDIGameSettings, Layout.
+	const UDIGameSettings& S = UDIGameSettings::Get();
 
 	const float W = float(Size.X);
 	const float H = float(Size.Y);
 	const float UIScale = FMath::Max(UWidgetLayoutLibrary::GetViewportScale(this), 0.01f);
-	const float BandTop = FMath::Min(TopBandUnits * UIScale, H * 0.45f);
-	const float BandBottom = FMath::Max(H * BottomBand - 12.f, BandTop + H * 0.3f);
+	const float BandTop = FMath::Min(S.TopBandUnits * UIScale, H * 0.45f);
+	const float BandBottom = FMath::Max(H * S.BottomBandFraction - 12.f, BandTop + H * 0.3f);
 	const float Room = (BandBottom - BandTop) * 0.5f;
 	const float CentreY = BandTop + Room; // pixels from the top
 
-	float OrthoWidth = FMath::Max(PhoneWidth, RingExtent * W / Room);
-	OrthoWidth = FMath::Max(OrthoWidth, W / MaxPixelsPerUnit);
+	float OrthoWidth = FMath::Max(S.PhoneWidthUnits, S.RingExtentUnits * W / Room);
+	OrthoWidth = FMath::Max(OrthoWidth, W / S.MaxPixelsPerUnit);
 	Camera->SetOrthoWidth(OrthoWidth);
 
 	// Move the camera up (board +Y = world +X) so the ring centre lands at CentreY on screen.
