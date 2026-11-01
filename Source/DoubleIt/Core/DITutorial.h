@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DITypes.h"
 
 class FDIGame;
 
@@ -46,6 +47,9 @@ public:
 	 * piece that is placed (stones for one that lifts); when several of one kind complete it, the middle one is shown.
 	 */
 	TOptional<FDITapTarget> FindTarget(const FDIGame& Game, float Offset) const;
+
+	/** The owned piece this step teaches the player to bring in with the HUD button (the breeze, last step). */
+	TOptional<EDIPieceKind> BringInKind() const;
 
 	/** Call after every action that changed the board. Moves to the next step on Advance. */
 	EDITutorialResult Evaluate(const FDIGame& Game);

@@ -62,11 +62,13 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [ ] Auto Backup restore verified on a phone (`adb shell bmgr backupnow com.doubleit.game`, uninstall, reinstall)
 - [ ] Android-only code (JNI, UPL) compiled and tested on a phone, which needs UE's Android platform support installed
 - [x] Save and restore the current run when the app is backgrounded (saved every move too)
+- [x] Breeze owned, not dealt: button top right, clears the half nearest the tap, 1 to start + 1 per first-ever number from 256
+- [x] Breeze shop UI behind `IDIStore` (fake store in development builds)
 
 ## M3: Support page & store
 - [ ] (?) Ad defaults confirmed (see MONETIZATION.md)
 - [ ] AdMob banner + UMP consent
-- [ ] Play Billing tips
+- [ ] Play Billing: breeze packs (`breeze_3`, `breeze_10`) behind `IDIStore`, plus tips; prices to decide
 - [ ] Store assets, privacy policy, closed test (12 testers / 14 days)
 - [ ] Play Games Services saved game for the profile (instant, cross-device; needs a Play Console app id)
 - [ ] Evaluate Block Store for the profile (reinstall persistence without sign-in; verify on a device first)

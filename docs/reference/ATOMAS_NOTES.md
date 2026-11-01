@@ -14,11 +14,14 @@
 - Red **+** (plus), blue **−** (minus), white **antimatter** (clears half), and the absorbed atom can turn into a plus.
 - Fusion: a particle burst, and the result appears at the plus position.
 - Tutorial: 7 steps, each with a one-line instruction at the top and a big green ✓ on success.
+- Antimatter is owned, not dealt: its count sits small at the top ("1 ●" on Home, "0 ●" in the tutorial). Tutorial 7/7
+  has you tap that counter: the white antimatter takes the centre and clears half the circle. Challenges pay one antimatter
+  (e.g. "Score 10,000 points in Classic"); more are sold in packs.
 
 ## What we keep / change
 | Keep | Change |
 |---|---|
 | Ring + center tap-to-place | Elements → numbers (doubling / addition) |
-| Plus / Minus / convert-to-plus | Antimatter → "Breeze" (removes the lowest half, which feels gentler) |
+| Plus / Minus / convert-to-plus | Antimatter → "Breeze": owned, never dealt; brought in with a button and clears the half nearest the tap |
 | Ring-fullness arc | Muted, soothing palette instead of saturated red |
-| One-line tutorial steps | Fewer menus at v1: no upgrades/challenges/currency |
+| One-line tutorial steps | Fewer menus at v1: no upgrades/challenges/currency (first-ever numbers stand in for challenges) |

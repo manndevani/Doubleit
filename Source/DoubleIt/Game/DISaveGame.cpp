@@ -33,9 +33,19 @@ namespace
 		Save.RunData.Reset();
 	}
 
+	/** 3 -> 4: owned breezes. Everyone starts with the new-player gift; numbers already made never pay out again. */
+	void OwnedPieces(UDISaveGame& Save)
+	{
+		Save.Owned = UDIGameSettings::Get().StartingPieces;
+		for (const TPair<FName, FDIProfileRecord>& Mode : Save.Profiles)
+		{
+			Save.RewardedUpTo.Add(Mode.Key, Mode.Value.HighestEver);
+		}
+	}
+
 	/** Step i upgrades version i to i + 1. Only ever append; never edit a shipped step. */
 	using FMigrationStep = void (*)(UDISaveGame&);
-	constexpr FMigrationStep Steps[] = { &BestsByMode, &AudioLevels, &SavedRun };
+	constexpr FMigrationStep Steps[] = { &BestsByMode, &AudioLevels, &SavedRun, &OwnedPieces };
 	static_assert(UE_ARRAY_COUNT(Steps) == UDISaveGame::CurrentVersion, "one migration step per version");
 }
 
@@ -59,4 +69,5 @@ void UDISaveGame::MarkNew()
 	SaveVersion = CurrentVersion;
 	EffectsVolume = UDIGameSettings::Get().DefaultEffectsVolume;
 	AmbienceVolume = UDIGameSettings::Get().DefaultAmbienceVolume;
+	Owned = UDIGameSettings::Get().StartingPieces;
 }

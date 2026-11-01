@@ -42,6 +42,9 @@ void UDIAudio::Listen(UDIGameEvents& Events)
 	Events.GameOver.AddUObject(this, &UDIAudio::Play, FName(TEXT("GameOver")), 0);
 	Events.TutorialAdvanced.AddUObject(this, &UDIAudio::Play, FName(TEXT("TutorialStep")), 0);
 	Events.TutorialNudge.AddUObject(this, &UDIAudio::Play, FName(TEXT("TutorialNudge")), 0);
+	Events.HeldChanged.AddWeakLambda(this, [this](bool bHolding) { Play(bHolding ? TEXT("BringIn") : TEXT("PutBack")); });
+	Events.PieceEarned.AddWeakLambda(this, [this](int64) { Play(TEXT("Earned")); });
+	Events.PiecesBought.AddWeakLambda(this, [this](int32) { Play(TEXT("Earned")); });
 	if (bSound)
 	{
 		StartAmbience();

@@ -15,6 +15,17 @@ struct FDIChord
 	UPROPERTY(Config, EditAnywhere, Category = "Harmony") TArray<int32> Tones;
 };
 
+/** A pack of owned pieces sold in the shop: the store product id and what it gives. Prices come from the store. */
+USTRUCT()
+struct FDIPiecePack
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, Category = "Shop") FName ProductId;
+	UPROPERTY(Config, EditAnywhere, Category = "Shop") FName Piece;
+	UPROPERTY(Config, EditAnywhere, Category = "Shop") int32 Count = 0;
+};
+
 /** One note of a sound cue: a step on the current chord (step 0 = its first tone), volume 0..1, delay from the cue start. */
 USTRUCT()
 struct FDICueNote
@@ -175,6 +186,22 @@ public:
 	/** How fast the hint fades in and out (1/s). */
 	UPROPERTY(Config, EditAnywhere, Category = "Tutorial")
 	float HintFadeRate = 5.f;
+
+	/** Owned pieces a new player starts with (by piece name). */
+	UPROPERTY(Config, EditAnywhere, Category = "Shop")
+	TMap<FName, int32> StartingPieces;
+
+	/** Packs in the shop, in order. Product ids must match the Play Console in-app products. */
+	UPROPERTY(Config, EditAnywhere, Category = "Shop")
+	TArray<FDIPiecePack> Packs;
+
+	/** The HUD line after earning or buying pieces stays this long (s). */
+	UPROPERTY(Config, EditAnywhere, Category = "Shop", meta = (Units = "s"))
+	float ToastSeconds = 2.6f;
+
+	/** The HUD breeze button breathes this much (share of its size) while the tutorial asks for it. */
+	UPROPERTY(Config, EditAnywhere, Category = "Shop")
+	float ButtonPulse = 0.12f;
 
 	/** Camera fit: world units across on a phone; we only ever zoom out from it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Layout")

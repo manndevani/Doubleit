@@ -23,6 +23,8 @@ void FDIGame::SetBoard(const TArray<FDIPiece>& InRing, const FDIPiece& InCenter)
 	SetCenterForTest(InCenter);
 	LastEvents.Reset();
 	bGameOver = false;
+	Waiting.Reset();
+	LastPlaced = EDIPieceKind::Number;
 }
 
 void FDIGame::SetRingForTest(const TArray<FDIPiece>& InRing)
@@ -51,7 +53,8 @@ bool FDIGame::PlaceAt(int32 Slot)
 			HighestValue = FMath::Max(HighestValue, Center.Value);
 		}
 	}
-	Type.OnPlaced(Ring, Mode.Config);
+	Type.OnPlaced(Ring, Slot, Mode.Config);
+	LastPlaced = Center.Kind;
 
 	PlacedRing = Ring;
 	ResolveAll();
@@ -82,6 +85,31 @@ bool FDIGame::ConvertCenterToPlus()
 	}
 	Center = Tag(FDIPiece{ LiftConvertsTo.GetValue(), 0, 0 });
 	bCenterAbsorbed = false;
+	return true;
+}
+
+bool FDIGame::BringIn(EDIPieceKind Kind)
+{
+	if (bGameOver || Waiting.IsSet() || !DIPieces::Get(Kind).IsOwned())
+	{
+		return false;
+	}
+	Waiting = FWaiting{ Center, bCenterAbsorbed, LiftConvertsTo };
+	Center = Tag(FDIPiece{ Kind, 0, 0 });
+	bCenterAbsorbed = false;
+	return true;
+}
+
+bool FDIGame::ReturnHeld()
+{
+	if (!Waiting.IsSet())
+	{
+		return false;
+	}
+	Center = Waiting->Center;
+	bCenterAbsorbed = Waiting->bAbsorbed;
+	LiftConvertsTo = Waiting->ConvertsTo;
+	Waiting.Reset();
 	return true;
 }
 
@@ -171,6 +199,11 @@ void FDIGame::FinishMove()
 		bGameOver = true;
 		return;
 	}
+	if (Waiting.IsSet())
+	{
+		ReturnHeld(); // the piece that waited behind the brought-in one is next
+		return;
+	}
 	Center = Tag(Spawner.Next(Moves, Ring.Num()));
 }
 
@@ -178,7 +211,7 @@ bool FDIGame::SerializeRun(FArchive& Ar)
 {
 	int32 Format = RunFormat;
 	Ar << Format;
-	if (Ar.IsError() || Format != RunFormat)
+	if (Ar.IsError() || Format < 1 || Format > RunFormat)
 	{
 		return false;
 	}
@@ -187,6 +220,19 @@ bool FDIGame::SerializeRun(FArchive& Ar)
 	uint8 ConvertsTo = bConverts ? uint8(LiftConvertsTo.GetValue()) : 0;
 	Ar << bConverts << ConvertsTo;
 	Spawner.Serialize(Ar);
+	if (Format >= 2)
+	{
+		bool bWaiting = Waiting.IsSet();
+		FWaiting W = bWaiting ? Waiting.GetValue() : FWaiting();
+		bool bWaitConverts = W.ConvertsTo.IsSet();
+		uint8 WaitConvertsTo = bWaitConverts ? uint8(W.ConvertsTo.GetValue()) : 0;
+		Ar << bWaiting << W.Center << W.bAbsorbed << bWaitConverts << WaitConvertsTo;
+		if (Ar.IsLoading())
+		{
+			W.ConvertsTo = bWaitConverts ? TOptional<EDIPieceKind>(EDIPieceKind(WaitConvertsTo)) : TOptional<EDIPieceKind>();
+			Waiting = bWaiting ? TOptional<FWaiting>(W) : TOptional<FWaiting>();
+		}
+	}
 	if (Ar.IsLoading())
 	{
 		LiftConvertsTo = bConverts ? TOptional<EDIPieceKind>(EDIPieceKind(ConvertsTo)) : TOptional<EDIPieceKind>();

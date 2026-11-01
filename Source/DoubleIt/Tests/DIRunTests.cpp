@@ -96,6 +96,20 @@ bool FDIRunResumeTest::RunTest(const FString&)
 	AddInfo(FString::Printf(TEXT("STAT run resume: %d of 20 runs saved mid-game and replayed identically"), Resumed));
 	TestTrue(TEXT("most runs were still going when saved"), Resumed >= 10);
 
+	// A breeze brought in but not used yet: the centre waiting behind it survives the save.
+	FDIGame Holding(Mode, 3);
+	const uint32 WaitingId = Holding.GetCenter().Id;
+	Holding.BringIn(EDIPieceKind::Breeze);
+	TArray<uint8> HeldBytes;
+	FMemoryWriter HeldWriter(HeldBytes);
+	Holding.SerializeRun(HeldWriter);
+	FDIGame HeldCopy(Mode, 4);
+	FMemoryReader HeldReader(HeldBytes);
+	TestTrue(TEXT("holding reads"), HeldCopy.SerializeRun(HeldReader));
+	TestTrue(TEXT("still holding the breeze"), HeldCopy.IsHolding() && HeldCopy.GetCenter().Kind == EDIPieceKind::Breeze);
+	HeldCopy.ReturnHeld();
+	TestEqual(TEXT("the waiting centre came along"), HeldCopy.GetCenter().Id, WaitingId);
+
 	// Garbage or a future format is refused, never half-loaded.
 	TArray<uint8> Junk = { 9, 9, 9, 9, 1, 2, 3 };
 	FMemoryReader JunkReader(Junk);

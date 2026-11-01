@@ -9,6 +9,7 @@
 
 class ADIRingActor;
 class UDIAudio;
+class UDIShop;
 class UDIHUDWidget;
 class UDISaveGame;
 
@@ -41,6 +42,21 @@ public:
 	void SetAmbienceVolume(float Volume, bool bPersist);
 	void CycleTheme();
 
+	/**
+	 * The HUD breeze button: brings the owned piece (the mode.s RewardPiece; the tutorial.s own in its last step) into
+	 * the centre, or puts it back unused. Spending happens when it is used (UDIShop).
+	 */
+	void ToggleBringIn();
+	/** The button can bring a piece in now (or put one back). */
+	bool OffersBringIn() const;
+	/** The tutorial is waiting for the button. */
+	bool WantsBringIn() const { return bInTutorial && Game && OffersBringIn() && !Game->IsHolding(); }
+	bool IsHolding() const { return Game && Game->IsHolding(); }
+	/** Owned count of the piece the button brings in (never shown in the tutorial, where it is free). */
+	int32 GetOwnedCount() const;
+	UDIShop* GetShop() const { return Shop; }
+	bool IsAutomationRun() const { return bAutomationRun; }
+
 	UFUNCTION(BlueprintPure, Category = "DoubleIt")
 	int64 GetScore() const { return Game ? Game->GetScore() : 0; }
 
@@ -72,6 +88,8 @@ private:
 	void PersistSettings();
 	void ApplyTheme();
 	void TutorialAfterMove();
+	/** The kind the breeze button brings in now, if any. */
+	TOptional<EDIPieceKind> BringInKind() const;
 
 	/**
 	 * Move playback: FDIGame resolves a move instantly; it is then shown in steps (piece lands, each chain collision
@@ -179,6 +197,8 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UDIAudio> Audio;
+	UPROPERTY()
+	TObjectPtr<UDIShop> Shop;
 
 	UPROPERTY()
 	TObjectPtr<UDIHUDWidget> HUDWidget;

@@ -20,12 +20,13 @@ FDIMode UDIGameSettings::MakeMode(FName Key)
 	Int(TEXT("MaxRingPieces"), C.MaxRingPieces);
 	Float(TEXT("BreezeClearFraction"), C.BreezeClearFraction);
 	GConfig->GetInt64(*Section, TEXT("RevealFrom"), C.RevealFrom, GGameIni);
+	GConfig->GetInt64(*Section, TEXT("RewardFrom"), C.RewardFrom, GGameIni);
 
 	FDISpawnTuning& S = C.Spawn;
 	Int(TEXT("MovesPerRangeStep"), S.MovesPerRangeStep);
 	for (FDISpawnRow& Row : S.Specials)
 	{
-		// Rows are keyed by piece type name: PlusChance, MinusFromMove, BreezeMinRing, PlusGuaranteeWindow, MinusNoRepeat...
+		// Rows are keyed by piece type name: PlusChance, MinusFromMove, MinusMinRing, PlusGuaranteeWindow, MinusNoRepeat...
 		const FString Name = DIPieces::Get(Row.Kind).Name().ToString();
 		Float(*(Name + TEXT("Chance")), Row.Chance);
 		Int(*(Name + TEXT("FromMove")), Row.FromMove);
@@ -67,10 +68,19 @@ UDIGameSettings::UDIGameSettings()
 	Cue(TEXT("GameOver"), { { 4, 0.25f, 0.f }, { 2, 0.25f, 0.42f }, { 0, 0.25f, 0.84f } }, 40);
 	Cue(TEXT("TutorialStep"), { { 2, 0.3f, 0.f }, { 4, 0.3f, 0.14f } });
 	Cue(TEXT("TutorialNudge"), { { -3, 0.12f, 0.f } }, 6); // soft and low: "not that one", never a buzzer
+	Cue(TEXT("BringIn"), { { 4, 0.14f, 0.f }, { 6, 0.12f, 0.08f } }, 8); // the breeze drifts into the centre
+	Cue(TEXT("PutBack"), { { 6, 0.1f, 0.f }, { 4, 0.1f, 0.08f } });
+	Cue(TEXT("Earned"), { { 5, 0.16f, 0.f }, { 7, 0.16f, 0.1f }, { 9, 0.18f, 0.2f }, { 11, 0.14f, 0.3f } }, 16);
 	Cue(TEXT("HapticsOn"), {}, 20);
 
 	// Five-tone chords of C major (C D E G B, A C E G B...), so the steps keep the old pentatonic spacing and any
 	// order of moves lands in harmony. I - vi - IV - V, all with soft added notes, nothing to resolve urgently.
+	StartingPieces = { { TEXT("Breeze"), 1 } };
+	Packs = {
+		{ TEXT("breeze_3"), TEXT("Breeze"), 3 },
+		{ TEXT("breeze_10"), TEXT("Breeze"), 10 },
+	};
+
 	Progression = {
 		{ TEXT("Cmaj9"), { 0, 2, 4, 7, 11 } },
 		{ TEXT("Am9"), { 0, 4, 7, 9, 11 } },

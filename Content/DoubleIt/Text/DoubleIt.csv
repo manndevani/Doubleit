@@ -14,6 +14,15 @@ HUD.On,"on",
 HUD.Off,"off",
 HUD.Effects,"effects",volume slider for game sounds
 HUD.Ambience,"sea",volume slider for the sea ambience
+HUD.Breezes,"breezes",pause menu entry that opens the shop
+HUD.BreezeEarned,"a breeze for your first {0}",{0} = the new highest number
+Shop.Title,"breezes",
+Shop.Body,"A breeze clears the half of the ring nearest where you place it. You earn one each time you make a number you have never made before, from {0} on.",{0} = first number that pays
+Shop.Have,"you have {0}",{0} = breezes owned
+Shop.Pack,"{0} breezes  ·  {1}",{0} = count; {1} = price from the store
+Shop.Closed,"the shop opens soon",shown while no store is connected
+Shop.Close,"close",
+Shop.Bought,"+{0} breezes",{0} = count bought
 Theme.System,"follow phone",
 Theme.Light,"light",
 Theme.Dark,"dark",
@@ -22,4 +31,4 @@ Tutorial.1,"A plus merges two equal neighbours into their double.",
 Tutorial.2,"Symmetry around a plus starts a chain. Find it.",
 Tutorial.3,"A minus lifts a piece out of the ring. Tap one.",
 Tutorial.4,"Tap the centre to turn the lifted piece into a plus.",
-Tutorial.5,"A full ring ends the run. A breeze clears the lowest half.",
+Tutorial.5,"A full ring ends the run. Tap the breeze at the top right, then tap the ring: it clears the half nearest your tap.",

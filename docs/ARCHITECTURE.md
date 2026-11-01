@@ -10,15 +10,17 @@ Source/DoubleIt/
     DITypes.h        FDIPiece (Kind, Value, Id), FDIFusionEvent (ids + RingAfter snapshot)
     DIMode.*         modes: IDIRuleSet (Strategy: fusion, spawn numbers, colour rank, score), FDIModeConfig
                      (every rule number), DIModes registry (Classic, Addition; Register / Get / Keys)
-    DIPieceType.*    piece types (Type Object): IsCatalyst, LiftsFromRing, LiftedConvertsTo, InsertsOnPlace, OnPlaced, LandCue;
-                     DIPieces registry (Number, Plus, Minus, Breeze)
+    DIPieceType.*    piece types (Type Object): IsCatalyst, LiftsFromRing, LiftedConvertsTo, IsOwned, InsertsOnPlace,
+                     OnPlaced(ring, slot), LandCue; DIPieces registry (Number, Plus, Minus, Breeze; Get / Find by name)
     DISpawner.*      seeded spawner + FDISpawnTuning (growth step + weighted special-piece table, FDISpawnRow)
-    DIGame.*         ring state machine: PlaceAt / AbsorbAt / ConvertCenterToPlus, events, PlacedRing
+    DIGame.*         ring state machine: PlaceAt / AbsorbAt / ConvertCenterToPlus / BringIn / ReturnHeld (an owned piece in
+                     the centre, the old centre waiting), events, PlacedRing, SerializeRun (RunFormat 2)
     DIRingLayout.*   ring geometry + hit testing with a ring offset; Reanchor (symmetric motion); ApplyTap
     DIAdaptive.*     player profile per mode, Learn / Skill / TuningFor (invisible adaptive pace)
     DISynth.*        chord/scale frequencies, glass-voice notes with a baked room, pad ambience loops (PCM)
     DISea.*          live sea that never loops: seeded waves (swell, break, foam) rendered block by block
-    DITutorial.*     6 scripted boards, Evaluate -> Continue / Advance / Retry
+    DITutorial.*     6 scripted boards, Judge / Evaluate -> Continue / Advance / Retry, FindTarget (hint), BringInKind
+    DIWallet.*       owned pieces by name + per-mode RewardedUpTo: Add / Spend / Reached (first-ever numbers pay)
   Game/            UE glue
     DoubleItGameMode.*            owns FDIGame, tutorial, save, audio, ring actor, HUD; tap/aim; move playback; learning
     DoubleItGameMode_Playthrough  non-shipping full-run bot (-DIPlaythrough)
@@ -27,13 +29,20 @@ Source/DoubleIt/
     DIPlayerController.*  touch press/drag = aim, release = place; mouse hover = aim, click = place; back/Esc = pause
     DIPawn.*         orthographic camera at the origin looking down -Z (+X = screen up)
     DIGameEvents.h   event hub (Observer, UWorldSubsystem): PiecePlaced, FusionStep, ChainSettled, NumberRevealed,
-                     NewBest, GameOver, TutorialAdvanced, TutorialNudge, RingFilled, PauseChanged, StateChanged
+                     NewBest, GameOver, TutorialAdvanced, TutorialNudge, RingFilled, PauseChanged, HeldChanged,
+                     PieceEarned, PiecesBought, StateChanged
     DIAudio.*        listens to events, plays named cues on the current chord (synth notes + haptics); streams the sea, loops the pads
+    DIShop.*         keeps FDIWallet in the save; earns on the settled board (StateChanged), spends on PiecePlaced of an
+                     owned piece; sells UDIGameSettings::Packs through IDIStore
+    DIStore.*        IDIStore (Strategy): Query / Buy. DIStores::Make: fake store (dev), closed store (shipping, until
+                     Google Play Billing is added behind the same interface)
     DIText.h         player text from the string table Content/DoubleIt/Text/DoubleIt.csv (DIText::Get)
     DIPlatform.*     night mode + vibrate (Android JNI via DoubleIt_UPL.xml, Windows registry on desktop)
-    DISaveGame.*     settings, volumes, per-mode bests, FDIProfileRecord map, tutorial flag, run in progress; SaveVersion + ordered migration steps
+    DISaveGame.*     settings, volumes, per-mode bests, FDIProfileRecord map, tutorial flag, run in progress, owned
+                     pieces + rewarded-up-to; SaveVersion (4) + ordered migration steps
     DITheme.h        Dusk Lagoon UI colours (light/dark)
-  UI/DIHUDWidget.*   whole UI built in C++ UMG (score, best, pause panel, tutorial line, game over, best shimmer)
+  UI/DIHUDWidget.*   whole UI built in C++ UMG (score, best, pause panel, tutorial line, game over, best shimmer,
+                     breeze button + count, shop panel with one UDIPackButton per pack, toast line)
   Editor/DIGenerateAssetsCommandlet  builds M_Tile / M_Background from Shaders/*.hlsl
   Tests/           automation tests (see TESTING.md)
   DoubleIt_UPL.xml  Android manifest/Java additions (VIBRATE, allowBackup, night mode + vibrate methods)
@@ -134,8 +143,8 @@ Android arm64 only, minSdk 26, targetSdk 36, Vulkan + ES 3.2, portrait, ASTC tex
 | What | Where | Change it by |
 |---|---|---|
 | Rules that differ by mode (fusion maths, spawned numbers, colour rank, score) | an `IDIRuleSet` class in `Core/DIMode.cpp` | writing a new rule set class |
-| Rule numbers (start ring, ring limit, breeze share, reveal floor, spawn chances, adaptive bounds) | `FDIModeConfig` defaults in `Core/DIMode.h` | `[DoubleIt.Mode.<Key>]` in `Config/DefaultGame.ini` (keys = field names) |
-| Feel and layout (playback delays, springs, pulse, ripples, aim dots, camera fit) | `UDIGameSettings` | Project Settings > Game > Double It (saved to `DefaultGame.ini`) |
+| Rule numbers (start ring, ring limit, breeze share, reveal floor, breeze reward threshold and piece, spawn chances, adaptive bounds) | `FDIModeConfig` defaults in `Core/DIMode.h` | `[DoubleIt.Mode.<Key>]` in `Config/DefaultGame.ini` (keys = field names) |
+| Feel and layout (playback delays, springs, pulse, ripples, aim dots, camera fit), starting pieces, shop packs | `UDIGameSettings` | Project Settings > Game > Double It (saved to `DefaultGame.ini`) |
 | Special pieces (what each kind does, its landing cue) | an `IDIPieceType` in `Core/DIPieceType.cpp` | a new type class + `DIPieces::Register` + a spawn row |
 | Spawn table (chance, from move, min ring, guarantee window, no repeat) | `FDISpawnTuning::Specials` | `<PieceName>Chance`, `<PieceName>FromMove`... in the mode's INI section |
 | Sounds and haptics (notes, delays, volumes, haptic ms) | `UDIGameSettings::Cues` (named cues) | Project Settings > Game > Double It > Audio |
@@ -154,7 +163,20 @@ that reacts to the game subscribes to `UDIGameEvents` (a world subsystem with ty
 Events fire when a moment is shown to the player, not when Core resolves it, so sound and HUD stay in step with playback.
 Fast-forwarded steps send no `FusionStep` / `ChainSettled`.
 `RingFilled(fraction)` is sent whenever the settled board is shown (the ambience warms with it) and `PauseChanged`
-when the pause menu opens or closes.
+when the pause menu opens or closes. `HeldChanged(bHolding)` follows the breeze button; `PieceEarned(value)` and
+`PiecesBought(count)` come from `UDIShop` (sound and the HUD toast listen).
+
+## Owned pieces (the breeze)
+
+```
+HUD breeze button -> GameMode::ToggleBringIn -> FDIGame::BringIn(kind) / ReturnHeld -> HeldChanged, BoardChanged
+tap a gap         -> FDIGame::PlaceAt: Breeze::OnPlaced(ring, slot) clears the nearest half; FinishMove restores the
+                     waiting centre -> PiecePlaced -> UDIShop spends one (not in the tutorial or automation)
+settled board     -> StateChanged -> UDIShop: FDIWallet::Reached(mode, highest value) -> save, PieceEarned
+shop pack button  -> UDIPackButton -> UDIShop::Buy -> IDIStore::Buy -> FDIWallet::Add -> save, PiecesBought
+```
+Which piece the button brings in is data: the mode's `RewardPiece` (the tutorial's `BringInKind` in its last step).
+Earning on the settled board, not on `FusionStep`, means a fast-forwarded chain still pays.
 
 ## Save versioning
 

@@ -24,6 +24,21 @@ public:
 	/** Center was lifted by a piece that allows it (minus): turn it into that piece's conversion (a plus). */
 	bool ConvertCenterToPlus();
 
+	/**
+	 * Brings a piece the player owns (IDIPieceType::IsOwned, the breeze) into the centre. The current centre waits and
+	 * comes back after the owned piece is used, or at once with ReturnHeld. False if one is already in, or game over.
+	 */
+	bool BringIn(EDIPieceKind Kind);
+
+	/** Puts a brought-in piece back unused and restores the centre that waited. */
+	bool ReturnHeld();
+
+	/** A brought-in piece is in the centre (not yet used). */
+	bool IsHolding() const { return Waiting.IsSet(); }
+
+	/** Kind of the piece the last PlaceAt placed (Number before any move). */
+	EDIPieceKind GetLastPlaced() const { return LastPlaced; }
+
 	const TArray<FDIPiece>& GetRing() const { return Ring; }
 	const FDIPiece& GetCenter() const { return Center; }
 	const FDIMode& GetMode() const { return Mode; }
@@ -43,7 +58,7 @@ public:
 	 * Returns false (and leaves the game unusable) if the data is corrupt or from another format.
 	 */
 	bool SerializeRun(FArchive& Ar);
-	static constexpr int32 RunFormat = 1;
+	static constexpr int32 RunFormat = 2; // 2: the centre waiting behind a brought-in piece
 
 	/** Scripted board (tutorial, tests). Assigns fresh ids and clears transient state. */
 	void SetBoard(const TArray<FDIPiece>& InRing, const FDIPiece& InCenter);
@@ -71,4 +86,14 @@ private:
 	bool bGameOver = false;
 	bool bCenterAbsorbed = false;
 	TOptional<EDIPieceKind> LiftConvertsTo; // what the lifting piece lets the lifted centre become
+
+	/** The centre set aside by BringIn, with its lift state, until the owned piece is used or returned. */
+	struct FWaiting
+	{
+		FDIPiece Center;
+		bool bAbsorbed = false;
+		TOptional<EDIPieceKind> ConvertsTo;
+	};
+	TOptional<FWaiting> Waiting;
+	EDIPieceKind LastPlaced = EDIPieceKind::Number;
 };

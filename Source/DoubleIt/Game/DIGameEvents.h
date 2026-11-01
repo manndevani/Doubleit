@@ -11,6 +11,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FDIFusionStepEvent, const FDIFusionEvent& /
 DECLARE_MULTICAST_DELEGATE_OneParam(FDIChainEvent, int32 /*Depth*/);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDIFillEvent, float /*Fraction*/);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDIPauseEvent, bool /*bPaused*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDIHeldEvent, bool /*bHolding*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDIValueEvent, int64 /*Value*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDICountEvent, int32 /*Count*/);
 
 /**
  * Event hub (Observer). The game mode announces what happened, as it is shown to the player; presenters (audio, HUD,
@@ -48,6 +51,12 @@ public:
 	/** The ring on show holds this share of its capacity (0..1); sent whenever the board is shown. */
 	FDIFillEvent RingFilled;
 	FDIPauseEvent PauseChanged;
+	/** An owned piece (the breeze) was brought into the centre (true) or put back unused (false). */
+	FDIHeldEvent HeldChanged;
+	/** A first-ever number (the value) earned an owned piece (FDIWallet::Reached). */
+	FDIValueEvent PieceEarned;
+	/** A shop purchase went through and added this many pieces. */
+	FDICountEvent PiecesBought;
 	/** Score, board, pause, theme or settings changed: anything showing state should refresh. */
 	FDIEvent StateChanged;
 };

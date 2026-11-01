@@ -96,9 +96,47 @@ bool FDIMinusTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIBreezeTest, "DoubleIt.Core.Breeze", DITestFlags)
 bool FDIBreezeTest::RunTest(const FString&)
 {
-	FDIGame Game = Setup(DIModes::Get(DIModes::Classic), { 8, 1, 4, 2 }, FDIPiece::Breeze());
-	Game.PlaceAt(0);
-	TestEqual(TEXT("lowest half gone"), RingStr(Game.GetRing()), TEXT("[8,4]"));
+	// Brought in by choice: the centre waits, and the breeze clears the half nearest the tap.
+	FDIGame Game = Setup(DIModes::Get(DIModes::Classic), { 1, 2, 4, 8, 16, 32, 64, 128 }, FDIPiece::Number(2));
+	const uint32 WaitingId = Game.GetCenter().Id;
+	TestFalse(TEXT("only owned pieces come in"), Game.BringIn(EDIPieceKind::Plus));
+	TestTrue(TEXT("brought in"), Game.BringIn(EDIPieceKind::Breeze));
+	TestFalse(TEXT("one at a time"), Game.BringIn(EDIPieceKind::Breeze));
+	TestTrue(TEXT("put back"), Game.ReturnHeld());
+	TestEqual(TEXT("the waiting centre is back"), Game.GetCenter().Id, WaitingId);
+	TestEqual(TEXT("putting back is not a move"), Game.GetMoves(), 0);
+
+	TestTrue(TEXT("brought in again"), Game.BringIn(EDIPieceKind::Breeze));
+	Game.PlaceAt(2); // the gap between 2 and 4: 4 and 2 go first, then 8 and 1
+	TestEqual(TEXT("nearest half cleared"), RingStr(Game.GetRing()), TEXT("[16,32,64,128]"));
+	TestEqual(TEXT("the waiting centre comes next"), Game.GetCenter().Id, WaitingId);
+	TestTrue(TEXT("last placed is the breeze"), Game.GetLastPlaced() == EDIPieceKind::Breeze);
+
+	// Wrapping round the ring, and pluses in the cleared half stay.
+	FDIGame Wrap = Setup(DIModes::Get(DIModes::Classic), { 1, 2, 4, 8, 16, 32 }, FDIPiece::Number(2));
+	TArray<FDIPiece> WithPlus = FDIPiece::Numbers({ 1, 2, 4, 8, 16 });
+	WithPlus.Add(FDIPiece::Plus());
+	Wrap.SetRingForTest(WithPlus);
+	Wrap.BringIn(EDIPieceKind::Breeze);
+	Wrap.PlaceAt(0); // nearest: 1 (after the gap), the plus (before it), then 2
+	TestEqual(TEXT("wraps, plus stays"), RingStr(Wrap.GetRing()), TEXT("[4,8,16,+]"));
+
+	// A lifted piece waiting behind the breeze keeps its convert option.
+	FDIGame Lift = Setup(DIModes::Get(DIModes::Classic), { 1, 2, 4, 8, 16, 32 }, FDIPiece::Minus());
+	Lift.AbsorbAt(5);
+	Lift.BringIn(EDIPieceKind::Breeze);
+	TestFalse(TEXT("no convert while the breeze is in"), Lift.CanConvertCenter());
+	Lift.PlaceAt(0);
+	TestTrue(TEXT("convert offered again after"), Lift.CanConvertCenter() && Lift.GetCenter().Value == 32);
+
+	// Never dealt.
+	FDISpawner Spawner(DIModes::Get(DIModes::Classic).Rules.ToSharedRef(), 7);
+	bool bDealt = false;
+	for (int32 i = 0; i < 5000; ++i)
+	{
+		bDealt |= Spawner.Next(200, 17).Kind == EDIPieceKind::Breeze;
+	}
+	TestFalse(TEXT("the spawner never deals a breeze"), bDealt);
 	return true;
 }
 

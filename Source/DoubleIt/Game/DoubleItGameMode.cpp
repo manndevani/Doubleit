@@ -9,6 +9,7 @@
 #include "DIPlayerController.h"
 #include "DIRingActor.h"
 #include "DISaveGame.h"
+#include "DIShop.h"
 #include "Core/DIAdaptive.h"
 #include "Core/DIPieceType.h"
 #include "Core/DIRingLayout.h"
@@ -72,6 +73,8 @@ void ADoubleItGameMode::BeginPlay()
 	Audio->bHaptics = Save->bHaptics;
 	Audio->SetVolumes(Save->EffectsVolume, Save->AmbienceVolume);
 	Audio->Listen(*Events);
+	Shop = NewObject<UDIShop>(this);
+	Shop->Init(*this, *Save, *Events);
 
 	RingActor = GetWorld()->SpawnActor<ADIRingActor>();
 
@@ -828,3 +831,39 @@ void ADoubleItGameMode::TakeScreenshotWhenReady()
 	FPlatformMisc::RequestExit(false, TEXT("DIShot"));
 }
 #endif
+
+TOptional<EDIPieceKind> ADoubleItGameMode::BringInKind() const
+{
+	if (!Game || Game->IsGameOver())
+	{
+		return {};
+	}
+	return bInTutorial ? Tutorial.BringInKind() : DIPieces::Find(Game->GetMode().Config.RewardPiece);
+}
+
+bool ADoubleItGameMode::OffersBringIn() const
+{
+	const TOptional<EDIPieceKind> Kind = BringInKind();
+	return Kind.IsSet() && (Game->IsHolding() || bInTutorial || GetOwnedCount() > 0);
+}
+
+int32 ADoubleItGameMode::GetOwnedCount() const
+{
+	return Game && Shop ? Shop->Count(Game->GetMode().Config.RewardPiece) : 0;
+}
+
+void ADoubleItGameMode::ToggleBringIn()
+{
+	FinishPlayback();
+	if (!Game || bBoardPaused || bInputLocked || !OffersBringIn())
+	{
+		return;
+	}
+	if (RingActor)
+	{
+		RingActor->ClearAim();
+	}
+	const bool bHolding = Game->IsHolding() ? !Game->ReturnHeld() : Game->BringIn(BringInKind().GetValue());
+	Events->HeldChanged.Broadcast(bHolding);
+	BoardChanged();
+}

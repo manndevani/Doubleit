@@ -24,32 +24,36 @@ namespace
 		virtual TOptional<EDIPieceKind> LiftedConvertsTo() const override { return EDIPieceKind::Plus; }
 	};
 
-	/** Clears the lowest numbers (a share of the ring from the mode config) and is not placed itself. */
+	/**
+	 * Owned, never dealt. Clears the numbers in the half of the ring nearest to where it is placed (a share of the ring
+	 * from the mode config, taken outward from the tap on both sides); pluses and minuses there stay. Not placed itself.
+	 */
 	class FDIBreezeType final : public IDIPieceType
 	{
 	public:
 		virtual FName Name() const override { return TEXT("Breeze"); }
+		virtual bool IsOwned() const override { return true; }
 		virtual bool InsertsOnPlace() const override { return false; }
 		virtual FName LandCue() const override { return TEXT("Breeze"); }
 
-		virtual void OnPlaced(TArray<FDIPiece>& Ring, const FDIModeConfig& Config) const override
+		virtual void OnPlaced(TArray<FDIPiece>& Ring, int32 Slot, const FDIModeConfig& Config) const override
 		{
-			int32 ToRemove = FMath::FloorToInt32(Ring.Num() * Config.BreezeClearFraction);
-			while (ToRemove-- > 0)
+			const int32 Num = Ring.Num();
+			const int32 Reach = FMath::FloorToInt32(Num * Config.BreezeClearFraction);
+			TArray<int32> Cleared;
+			for (int32 k = 0; Cleared.Num() < Reach; ++k)
 			{
-				int32 Lowest = INDEX_NONE;
-				for (int32 i = 0; i < Ring.Num(); ++i)
+				// Nearest first, alternating sides: the stone after the gap, the one before it, then one further out each.
+				const int32 Index = k % 2 == 0 ? Slot + k / 2 : Slot - 1 - k / 2;
+				Cleared.Add(((Index % Num) + Num) % Num);
+			}
+			Cleared.Sort([](int32 A, int32 B) { return A > B; });
+			for (const int32 Index : Cleared)
+			{
+				if (Ring[Index].IsNumber())
 				{
-					if (Ring[i].IsNumber() && (Lowest == INDEX_NONE || Ring[i].Value < Ring[Lowest].Value))
-					{
-						Lowest = i;
-					}
+					Ring.RemoveAt(Index);
 				}
-				if (Lowest == INDEX_NONE)
-				{
-					break;
-				}
-				Ring.RemoveAt(Lowest);
 			}
 		}
 	};
@@ -78,4 +82,16 @@ const IDIPieceType& DIPieces::Get(EDIPieceKind Kind)
 void DIPieces::Register(EDIPieceKind Kind, TSharedRef<const IDIPieceType> Type)
 {
 	PieceRegistry().Add(Kind, Type);
+}
+
+TOptional<EDIPieceKind> DIPieces::Find(FName Name)
+{
+	for (const TPair<EDIPieceKind, TSharedRef<const IDIPieceType>>& Type : PieceRegistry())
+	{
+		if (Type.Value->Name() == Name)
+		{
+			return Type.Key;
+		}
+	}
+	return {};
 }

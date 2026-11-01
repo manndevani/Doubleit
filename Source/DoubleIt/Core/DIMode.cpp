@@ -38,6 +38,7 @@ namespace
 
 			FDIModeConfig Addition;
 			Addition.RevealFrom = 6;
+			Addition.RewardFrom = 9; // as rare as 256 in Classic (the ninth rank)
 			Built.Add({ DIModes::Addition, MakeShared<FDIAdditionRules>(), Addition });
 			return Built;
 		}();

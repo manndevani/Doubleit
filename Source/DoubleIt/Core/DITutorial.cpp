@@ -20,7 +20,7 @@ void FDITutorial::SetupStep(FDIGame& Game) const
 		Game.SetBoard(FDIPiece::Numbers({ 4, 2, 16, 2, 8 }), FDIPiece::Minus());
 		Game.AbsorbAt(2);
 		break;
-	case 5: Game.SetBoard(FDIPiece::Numbers({ 1, 8, 2, 16, 1, 4, 2, 32, 1, 8, 2, 4, 1, 16, 2, 8 }), FDIPiece::Breeze()); break;
+	case 5: Game.SetBoard(FDIPiece::Numbers({ 1, 8, 2, 16, 1, 4, 2, 32, 1, 8, 2, 4, 1, 16, 2, 8 }), FDIPiece::Number(2)); break;
 	default: break;
 	}
 }
@@ -36,7 +36,7 @@ EDITutorialResult FDITutorial::Judge(const FDIGame& Game) const
 	case 2: bDone = Game.GetLastEvents().Num() >= 2; bWrong = !bDone; break;
 	case 3: bDone = Game.CanConvertCenter(); break;
 	case 4: bDone = Game.GetCenter().Kind == EDIPieceKind::Plus; bWrong = !bDone; break;
-	case 5: bDone = true; break;
+	case 5: bDone = Game.GetLastPlaced() == EDIPieceKind::Breeze; bWrong = !bDone; break;
 	default: break;
 	}
 
@@ -45,6 +45,11 @@ EDITutorialResult FDITutorial::Judge(const FDIGame& Game) const
 		return EDITutorialResult::Advance;
 	}
 	return bWrong ? EDITutorialResult::Retry : EDITutorialResult::Continue;
+}
+
+TOptional<EDIPieceKind> FDITutorial::BringInKind() const
+{
+	return Step == 5 ? EDIPieceKind::Breeze : TOptional<EDIPieceKind>();
 }
 
 EDITutorialResult FDITutorial::Evaluate(const FDIGame& Game)

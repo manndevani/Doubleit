@@ -38,8 +38,10 @@ struct FDIModeConfig
 {
 	int32 StartRingPieces = 6;
 	int32 MaxRingPieces = 18;      // game over when the ring holds more than this
-	float BreezeClearFraction = 0.5f; // share of the ring a breeze removes, lowest numbers first
+	float BreezeClearFraction = 0.5f; // share of the ring a breeze clears, nearest to where it is placed
 	int64 RevealFrom = 32;         // first-ever numbers from here up get the reveal chime
+	int64 RewardFrom = 256;        // first-ever numbers from here up each give one RewardPiece (FDIWallet)
+	FName RewardPiece = TEXT("Breeze");
 	FDISpawnTuning Spawn;
 	FDIAdaptiveTuning Adaptive;
 };

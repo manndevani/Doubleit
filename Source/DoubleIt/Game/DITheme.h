@@ -11,6 +11,7 @@ struct FDITheme
 	FLinearColor Panel;
 	FLinearColor Button;
 	FLinearColor ButtonPressed;
+	FLinearColor Breeze; // the HUD breeze button, like the pearl breeze piece
 
 	static FDITheme Get(bool bDark)
 	{
@@ -23,6 +24,7 @@ struct FDITheme
 			T.Panel = FLinearColor::FromSRGBColor(FColor(0x0C, 0x24, 0x33, 0xF0));
 			T.Button = FLinearColor::FromSRGBColor(FColor(0x1E, 0x4A, 0x5C));
 			T.ButtonPressed = FLinearColor::FromSRGBColor(FColor(0x2A, 0x60, 0x75));
+			T.Breeze = FLinearColor::FromSRGBColor(FColor(0xF2, 0xF4, 0xF8));
 		}
 		else
 		{
@@ -31,6 +33,7 @@ struct FDITheme
 			T.Panel = FLinearColor::FromSRGBColor(FColor(0xE3, 0xF3, 0xF4, 0xF0));
 			T.Button = FLinearColor::FromSRGBColor(FColor(0xCD, 0xE9, 0xEC));
 			T.ButtonPressed = FLinearColor::FromSRGBColor(FColor(0xB5, 0xDD, 0xE2));
+			T.Breeze = FLinearColor::FromSRGBColor(FColor(0xF2, 0xF4, 0xF8));
 		}
 		return T;
 	}

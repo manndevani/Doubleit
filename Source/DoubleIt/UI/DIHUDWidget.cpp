@@ -8,6 +8,9 @@
 #include "Components/SafeZone.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/SizeBox.h"
 #include "Components/VerticalBox.h"
 #include "Game/DIGameEvents.h"
 #include "Game/DIText.h"
@@ -15,6 +18,9 @@
 #include "Game/DISaveGame.h"
 #include "Game/DITheme.h"
 #include "Game/DoubleItGameMode.h"
+#include "Game/DIGameSettings.h"
+#include "Game/DIShop.h"
+#include "Core/DIGame.h"
 #include "Misc/Paths.h"
 
 namespace
@@ -24,6 +30,11 @@ namespace
 	constexpr float NudgeSwell = 0.07f;
 	constexpr float SliderStep = 0.05f;
 	constexpr float SliderBar = 10.f, SliderKnob = 44.f; // thick enough for a thumb
+	constexpr float BreezeDotSize = 36.f;
+	constexpr float BreezeHoldScale = 1.25f;  // the dot while its breeze is in the centre
+	constexpr float BreezePulseSpeed = 3.f;   // rad/s, while the tutorial asks for the button
+	constexpr float ToastFadeSeconds = 0.6f;
+	constexpr float ShopTextWidth = 820.f;
 	/** Fonts are staged as loose files (DirectoriesToAlwaysStageAsNonUFS) so Slate can load them on device. */
 	FSlateFontInfo NunitoFont(float Size, bool bLight = false)
 	{
@@ -126,6 +137,28 @@ void UDIHUDWidget::Build()
 	Place(Root, PauseButton, FVector2D(0.0, 0.0), FVector2D(48, 72), FVector2D(0.0, 0.0));
 	PauseButton->OnClicked.AddDynamic(this, &UDIHUDWidget::HandlePause);
 
+	// Breeze button, top right opposite pause: a pearl dot and how many you own. Tap: bring one in, or put it back.
+	BreezeButton = WidgetTree->ConstructWidget<UButton>();
+	UHorizontalBox* BreezeRow = WidgetTree->ConstructWidget<UHorizontalBox>();
+	BreezeButton->AddChild(BreezeRow);
+	USizeBox* DotBox = WidgetTree->ConstructWidget<USizeBox>();
+	DotBox->SetWidthOverride(BreezeDotSize);
+	DotBox->SetHeightOverride(BreezeDotSize);
+	BreezeDot = WidgetTree->ConstructWidget<UBorder>();
+	BreezeDot->SetVisibility(ESlateVisibility::HitTestInvisible);
+	DotBox->AddChild(BreezeDot);
+	BreezeRow->AddChildToHorizontalBox(DotBox)->SetVerticalAlignment(VAlign_Center);
+	BreezeCount = MakeText(44.f);
+	UHorizontalBoxSlot* CountSlot = BreezeRow->AddChildToHorizontalBox(BreezeCount);
+	CountSlot->SetVerticalAlignment(VAlign_Center);
+	CountSlot->SetPadding(FMargin(16, 0, 0, 0));
+	Place(Root, BreezeButton, FVector2D(1.0, 0.0), FVector2D(-48, 72), FVector2D(1.0, 0.0));
+	BreezeButton->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleBreeze);
+
+	ToastText = MakeText(30.f);
+	Place(Root, ToastText, FVector2D(0.5, 0.0), FVector2D(0, 344), FVector2D(0.5, 0.0));
+	ToastText->SetVisibility(ESlateVisibility::Collapsed);
+
 	PausePanel = WidgetTree->ConstructWidget<UBorder>();
 	PausePanel->SetHorizontalAlignment(HAlign_Center);
 	PausePanel->SetVerticalAlignment(VAlign_Center);
@@ -146,6 +179,8 @@ void UDIHUDWidget::Build()
 	Label->SetText(DIText::Get(TEXT("HUD.NewGame")));
 	MakeButton(Menu, Label)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleTutorial);
 	Label->SetText(DIText::Get(TEXT("HUD.HowToPlay")));
+	MakeButton(Menu, Label)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleShop);
+	Label->SetText(DIText::Get(TEXT("HUD.Breezes")));
 	MakeButton(Menu, SoundLabel)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleSound);
 	EffectsSlider = MakeVolume(Menu, TEXT("HUD.Effects"));
 	EffectsSlider->OnValueChanged.AddDynamic(this, &UDIHUDWidget::HandleEffects);
@@ -173,6 +208,53 @@ void UDIHUDWidget::Build()
 			}
 		}
 	}
+
+	// Shop: what a breeze does, how many you have, the packs the store sells (filled in RefreshShop), close.
+	ShopPanel = WidgetTree->ConstructWidget<UBorder>();
+	ShopPanel->SetHorizontalAlignment(HAlign_Center);
+	ShopPanel->SetVerticalAlignment(VAlign_Center);
+	UCanvasPanelSlot* ShopSlot = Root->AddChildToCanvas(ShopPanel);
+	ShopSlot->SetAnchors(FAnchors(0, 0, 1, 1));
+	ShopSlot->SetOffsets(FMargin(0));
+	UVerticalBox* ShopBox = WidgetTree->ConstructWidget<UVerticalBox>();
+	ShopPanel->SetContent(ShopBox);
+
+	UTextBlock* ShopTitle = MakeText(64.f);
+	ShopTitle->SetText(DIText::Get(TEXT("Shop.Title")));
+	ShopBox->AddChildToVerticalBox(ShopTitle)->SetPadding(FMargin(0, 0, 0, 24));
+	PanelTexts.Add(ShopTitle);
+	USizeBox* BodyBox = WidgetTree->ConstructWidget<USizeBox>();
+	BodyBox->SetWidthOverride(ShopTextWidth);
+	ShopBody = MakeText(30.f);
+	ShopBody->SetAutoWrapText(true);
+	BodyBox->AddChild(ShopBody);
+	ShopBox->AddChildToVerticalBox(BodyBox)->SetHorizontalAlignment(HAlign_Center);
+	PanelSoftTexts.Add(ShopBody);
+	ShopHave = MakeText(40.f);
+	ShopBox->AddChildToVerticalBox(ShopHave)->SetPadding(FMargin(0, 32, 0, 16));
+	PanelTexts.Add(ShopHave);
+	ShopPacks = WidgetTree->ConstructWidget<UVerticalBox>();
+	ShopBox->AddChildToVerticalBox(ShopPacks)->SetHorizontalAlignment(HAlign_Fill);
+	ShopClosed = MakeText(30.f);
+	ShopClosed->SetText(DIText::Get(TEXT("Shop.Closed")));
+	ShopBox->AddChildToVerticalBox(ShopClosed)->SetPadding(FMargin(0, 12));
+	PanelSoftTexts.Add(ShopClosed);
+	UButton* Close = MakeButton(ShopBox, Label);
+	Close->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleShopClose);
+	Label->SetText(DIText::Get(TEXT("Shop.Close")));
+	if (UVerticalBoxSlot* CloseSlot = Cast<UVerticalBoxSlot>(Close->Slot))
+	{
+		CloseSlot->SetHorizontalAlignment(HAlign_Fill);
+		CloseSlot->SetPadding(FMargin(0, 24, 0, 0));
+	}
+}
+
+void UDIPackButton::HandleClicked()
+{
+	if (UDIShop* S = Shop.Get())
+	{
+		S->Buy(ProductId);
+	}
 }
 
 void UDIHUDWidget::Bind(ADoubleItGameMode* InGameMode)
@@ -183,7 +265,22 @@ void UDIHUDWidget::Bind(ADoubleItGameMode* InGameMode)
 		Events->StateChanged.AddUObject(this, &UDIHUDWidget::Refresh);
 		Events->NewBest.AddUObject(this, &UDIHUDWidget::CelebrateBest);
 		Events->TutorialNudge.AddUObject(this, &UDIHUDWidget::Nudge);
+		Events->PieceEarned.AddWeakLambda(this, [this](int64 Value)
+		{
+			Toast(FText::Format(DIText::Get(TEXT("HUD.BreezeEarned")), DIText::Number(Value)));
+		});
+		Events->PiecesBought.AddWeakLambda(this, [this](int32 Count)
+		{
+			Toast(FText::Format(DIText::Get(TEXT("Shop.Bought")), FText::AsNumber(Count)));
+		});
 	}
+}
+
+void UDIHUDWidget::Toast(const FText& Text)
+{
+	ToastText->SetText(Text);
+	ToastText->SetVisibility(ESlateVisibility::HitTestInvisible);
+	ToastLeft = UDIGameSettings::Get().ToastSeconds;
 }
 
 void UDIHUDWidget::CelebrateBest()
@@ -203,6 +300,22 @@ void UDIHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	{
 		NudgeLeft = FMath::Max(NudgeLeft - InDeltaTime, 0.f);
 		TutorialText->SetRenderScale(FVector2D(1.f + NudgeSwell * FMath::Sin((1.f - NudgeLeft / NudgeSeconds) * PI)));
+	}
+	if (ToastLeft > 0.f && ToastText)
+	{
+		ToastLeft = FMath::Max(ToastLeft - InDeltaTime, 0.f);
+		ToastText->SetRenderOpacity(FMath::Min(ToastLeft / ToastFadeSeconds, 1.f));
+		if (ToastLeft <= 0.f)
+		{
+			ToastText->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+	if (const ADoubleItGameMode* GM = GameMode.Get(); GM && BreezeDot)
+	{
+		// The dot grows while its breeze is in the centre, and breathes while the tutorial asks for it.
+		PulseTime = GM->WantsBringIn() ? PulseTime + InDeltaTime : 0.f;
+		const float Pulse = UDIGameSettings::Get().ButtonPulse * 0.5f * (1.f - FMath::Cos(PulseTime * BreezePulseSpeed));
+		BreezeDot->SetRenderScale(FVector2D((GM->IsHolding() ? BreezeHoldScale : 1.f) + Pulse));
 	}
 	if (CelebrateLeft <= 0.f || !Score)
 	{
@@ -251,8 +364,21 @@ void UDIHUDWidget::ApplyTheme(const FDITheme& Theme)
 	Ghost.SetPressedPadding(FMargin(28, 12));
 	PauseButton->SetStyle(Ghost);
 	PauseGlyph->SetColorAndOpacity(FSlateColor(Theme.SoftInk));
+	BreezeButton->SetStyle(Ghost);
+	BreezeDot->SetBrush(FSlateRoundedBoxBrush(Theme.Breeze, BreezeDotSize * 0.5f, Theme.SoftInk, 2.f));
+	BreezeCount->SetColorAndOpacity(FSlateColor(Theme.SoftInk));
+	ToastText->SetColorAndOpacity(FSlateColor(Theme.SoftInk));
 
 	PausePanel->SetBrushColor(Theme.Panel);
+	ShopPanel->SetBrushColor(Theme.Panel);
+	for (UTextBlock* Text : PanelTexts)
+	{
+		Text->SetColorAndOpacity(FSlateColor(Theme.Ink));
+	}
+	for (UTextBlock* Text : PanelSoftTexts)
+	{
+		Text->SetColorAndOpacity(FSlateColor(Theme.SoftInk));
+	}
 
 	FSliderStyle Bar;
 	Bar.SetNormalBarImage(FSlateRoundedBoxBrush(Theme.Button, SliderBar * 0.5f));
@@ -299,8 +425,19 @@ void UDIHUDWidget::Refresh()
 	GameOverHint->SetVisibility(Over);
 
 	const bool bPaused = GM->IsBoardPaused();
-	PausePanel->SetVisibility(bPaused ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	bShopOpen &= bPaused;
+	PausePanel->SetVisibility(bPaused && !bShopOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	ShopPanel->SetVisibility(bShopOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	PauseButton->SetVisibility(bPaused ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+
+	// The tutorial shows the button only in the step that teaches it, free (no count).
+	const bool bBreeze = !bPaused && (bTutorial ? GM->OffersBringIn() : !GM->IsGameOver());
+	BreezeButton->SetVisibility(bBreeze ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	BreezeCount->SetText(bTutorial ? FText::GetEmpty() : FText::AsNumber(GM->GetOwnedCount()));
+	if (bShopOpen)
+	{
+		RefreshShop(*GM);
+	}
 
 	if (const UDISaveGame* Save = GM->GetSave())
 	{
@@ -340,4 +477,99 @@ USlider* UDIHUDWidget::MakeVolume(UVerticalBox* Menu, const TCHAR* LabelKey)
 	Slider->MouseUsesStep = true;
 	Menu->AddChildToVerticalBox(Slider);
 	return Slider;
+}
+
+void UDIHUDWidget::HandleBreeze()
+{
+	ADoubleItGameMode* GM = GameMode.Get();
+	if (!GM)
+	{
+		return;
+	}
+	// None left (and none in the centre): the button opens the shop instead.
+	if (!GM->OffersBringIn() && !GM->IsInTutorial() && !GM->IsGameOver())
+	{
+		OpenShop();
+		return;
+	}
+	GM->ToggleBringIn();
+}
+
+void UDIHUDWidget::HandleShop() { OpenShop(); }
+
+void UDIHUDWidget::OpenShop()
+{
+	if (ADoubleItGameMode* GM = GameMode.Get())
+	{
+		bShopFromPause = GM->IsBoardPaused();
+		bShopOpen = true;
+		GM->SetBoardPaused(true);
+		Refresh();
+	}
+}
+
+void UDIHUDWidget::HandleShopClose()
+{
+	bShopOpen = false;
+	if (ADoubleItGameMode* GM = GameMode.Get())
+	{
+		if (bShopFromPause)
+		{
+			Refresh(); // back to the pause menu it came from
+		}
+		else
+		{
+			GM->SetBoardPaused(false);
+		}
+	}
+}
+
+void UDIHUDWidget::RefreshShop(const ADoubleItGameMode& GM)
+{
+	const FDIGame* Game = GM.GetGame();
+	ShopBody->SetText(FText::Format(DIText::Get(TEXT("Shop.Body")), DIText::Number(Game ? Game->GetMode().Config.RewardFrom : 0)));
+	ShopHave->SetText(FText::Format(DIText::Get(TEXT("Shop.Have")), FText::AsNumber(GM.GetOwnedCount())));
+
+	static const TArray<FDIStoreProduct> None;
+	UDIShop* Shop = GM.GetShop();
+	const TArray<FDIStoreProduct>& Products = Shop ? Shop->GetProducts() : None;
+	ShopClosed->SetVisibility(Products.IsEmpty() ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	if (PackButtons.Num() == Products.Num())
+	{
+		return;
+	}
+
+	// The store answered with a different list: rebuild one button per pack it sells.
+	for (UWidget* Old : ShopPacks->GetAllChildren())
+	{
+		if (UButton* OldButton = Cast<UButton>(Old))
+		{
+			MenuLabels.Remove(Cast<UTextBlock>(OldButton->GetContent()));
+			MenuButtons.Remove(OldButton);
+		}
+	}
+	ShopPacks->ClearChildren();
+	PackButtons.Reset();
+	for (const FDIStoreProduct& Product : Products)
+	{
+		const FDIPiecePack* Pack = UDIGameSettings::Get().Packs.FindByPredicate([&](const FDIPiecePack& P) { return P.ProductId == Product.Id; });
+		if (!Pack)
+		{
+			continue;
+		}
+		TObjectPtr<UTextBlock> Label;
+		UButton* Button = MakeButton(ShopPacks, Label);
+		Label->SetText(FText::Format(DIText::Get(TEXT("Shop.Pack")), FText::AsNumber(Pack->Count), Product.Price));
+		if (UVerticalBoxSlot* PackSlot = Cast<UVerticalBoxSlot>(Button->Slot))
+		{
+			PackSlot->SetHorizontalAlignment(HAlign_Fill);
+			PackSlot->SetPadding(FMargin(0, 12));
+		}
+		UDIPackButton* Proxy = NewObject<UDIPackButton>(this);
+		Proxy->ProductId = Product.Id;
+		Proxy->Shop = Shop;
+		Button->OnClicked.AddDynamic(Proxy, &UDIPackButton::HandleClicked);
+		PackButtons.Add(Proxy);
+	}
+	ApplyTheme(FDITheme::Get(bLastDark)); // style the new buttons
 }

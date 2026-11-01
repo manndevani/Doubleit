@@ -20,8 +20,9 @@
 | Test | Covers |
 |---|---|
 | `DoubleIt.Core.FirstFusion`, `DoublingChain`, `AdditionChain`, `WrapAround`, `DormantPlusFiresLater` | fusion rules and chains (GAME_DESIGN.md#fusion) |
-| `DoubleIt.Core.MinusAndConvert`, `Breeze`, `GameOver` | special pieces and the end condition |
-| `DoubleIt.Core.SpawnerDeterministicAndFair` | seed determinism, plus guarantee, minus/breeze gating |
+| `DoubleIt.Core.MinusAndConvert`, `Breeze`, `GameOver` | special pieces and the end condition; the breeze is brought in and put back, clears the half nearest the tap (wrapping, pluses stay), the waiting centre (and its convert option) returns, and the spawner never deals it |
+| `DoubleIt.Core.WalletRewards` | owned pieces: start count, first-ever numbers from `RewardFrom` pay once each, per mode, spending never goes below zero |
+| `DoubleIt.Core.SpawnerDeterministicAndFair` | seed determinism, plus guarantee, minus gating |
 | `DoubleIt.Core.FusionEventsTrackIds` | event ids the renderer follows |
 | `DoubleIt.Core.Synth` | pentatonic and chord frequencies; note PCM (no clipping, decays, stereo width, no clicks at either end); the pad loop has the right length and no seam; the live sea continues seamlessly across blocks, never clips, rises and falls with waves (logs `STAT sea rms`) and differs per seed |
 | `DoubleIt.Core.TutorialHappyPathAndRetry` | all 6 tutorial boards; wrong moves (a wrong gap, placing the lifted piece) are judged Retry on a copy without moving the tutorial or touching the real board |
@@ -31,10 +32,10 @@
 | `DoubleIt.Layout.ReanchorIsSymmetric` | placed piece lands in the aimed gap, fusion result lands where the plus was, offset hit testing |
 | `DoubleIt.Sim.GreedyBalance`, `RandomPlayTerminates` | balance stats (`STAT` lines) and that random play always ends |
 | `DoubleIt.Modes.Registry`, `CustomModePlays`, `ConfigDrivesRules` | built-in modes, fallback key, a test-only mode registered and played with no game code changes, config fields (start ring, ring limit, breeze share, adaptive bounds) drive the rules |
-| `DoubleIt.Save.Migrations` | a pre-versioning save migrates (bests move to the per-mode map, higher wins; v2 volume sliders get their defaults; v3 starts with no run to resume), re-running is a no-op, fresh saves need nothing, newer saves are left alone (expected warning) |
-| `DoubleIt.Core.RunResumes` | 20 seeded runs (with a tuned spawn table) are saved mid-game, loaded into a game built from another seed, and must play on identically, ring ids included, until game over (logs `STAT run resume`); garbage or another format is refused |
+| `DoubleIt.Save.Migrations` | a pre-versioning save migrates (bests move to the per-mode map, higher wins; v2 volume sliders get their defaults; v3 starts with no run to resume; v4 starts with the new-player breezes and never pays for numbers already made), re-running is a no-op, fresh saves need nothing, newer saves are left alone (expected warning) |
+| `DoubleIt.Core.RunResumes` | 20 seeded runs (with a tuned spawn table) are saved mid-game, loaded into a game built from another seed, and must play on identically, ring ids included, until game over (logs `STAT run resume`); a breeze held in the centre and the piece waiting behind it survive the save; garbage or an unknown format is refused |
 
-Latest: 25 passed (1 with an expected warning). Playthrough: PASS, 0 mismatches, settle ~1.6 s average including chain playback (until every spring is at rest).
+Latest: 26 passed (1 with an expected warning). Playthrough: PASS, 0 mismatches, settle ~1.6 s average including chain playback (until every spring is at rest).
 
 ## Rules
 

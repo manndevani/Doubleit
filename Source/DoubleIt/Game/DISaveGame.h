@@ -45,7 +45,7 @@ public:
 	static constexpr const TCHAR* SlotName = TEXT("DoubleIt");
 
 	/** Bump when the layout changes, and add the matching step in DISaveGame.cpp. */
-	static constexpr int32 CurrentVersion = 3;
+	static constexpr int32 CurrentVersion = 4;
 
 	/**
 	 * Version this data was written with. Defaults to 0 on purpose: a save from before versioning has no such field,
@@ -97,6 +97,13 @@ public:
 
 	UPROPERTY()
 	bool bTutorialDone = false;
+
+	/** Pieces the player owns (FDIWallet::Owned, by piece name, e.g. "Breeze") and, per mode, the highest number already
+	    rewarded (FDIWallet::RewardedUpTo). Kept by UDIShop. */
+	UPROPERTY()
+	TMap<FName, int32> Owned;
+	UPROPERTY()
+	TMap<FName, int64> RewardedUpTo;
 
 	/** How this player plays each mode (key: mode id, e.g. "Classic"); drives the invisible adaptive pace. */
 	UPROPERTY()

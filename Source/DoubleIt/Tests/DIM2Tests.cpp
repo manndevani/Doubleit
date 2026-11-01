@@ -197,9 +197,16 @@ bool FDITutorialTest::RunTest(const FString&)
 	DIRingLayout::ApplyTap(Game, FVector2D::ZeroVector);
 	TestTrue(TEXT("convert advances"), Tut.Evaluate(Game) == EDITutorialResult::Advance);
 
-	// 5: breeze
+	// 5: breeze, brought in with the HUD button (a ring tap with the number is refused)
 	Tut.SetupStep(Game);
 	const int32 Before = Game.GetRing().Num();
+	{
+		FDIGame Trial = Game;
+		DIRingLayout::ApplyTap(Trial, At(10));
+		TestTrue(TEXT("placing the number instead is refused"), Tut.Judge(Trial) == EDITutorialResult::Retry);
+	}
+	TestTrue(TEXT("the step teaches the breeze"), Tut.BringInKind() == EDIPieceKind::Breeze);
+	Game.BringIn(Tut.BringInKind().GetValue());
 	DIRingLayout::ApplyTap(Game, At(10));
 	TestEqual(TEXT("breeze halves"), Game.GetRing().Num(), Before - Before / 2);
 	TestTrue(TEXT("last step advances"), Tut.Evaluate(Game) == EDITutorialResult::Advance);
@@ -326,6 +333,11 @@ bool FDITutorialHintTest::RunTest(const FString&)
 		{
 			const int32 Step = Tut.GetStep();
 			Tut.SetupStep(Game);
+			if (Tut.BringInKind())
+			{
+				TestFalse(TEXT("no ring hint before the breeze is in"), Tut.FindTarget(Game, Offset).IsSet());
+				Game.BringIn(Tut.BringInKind().GetValue()); // what the pulsing HUD button does
+			}
 			const TOptional<FDITapTarget> Target = Tut.FindTarget(Game, Offset);
 			if (!TestTrue(FString::Printf(TEXT("step %d has a hint"), Step), Target.IsSet()))
 			{

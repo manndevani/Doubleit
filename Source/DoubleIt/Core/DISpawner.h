@@ -23,7 +23,6 @@ struct FDISpawnTuning
 	TArray<FDISpawnRow> Specials = {
 		{ EDIPieceKind::Plus, 0.17f, 0, 0, 5, false },
 		{ EDIPieceKind::Minus, 0.05f, 10, 0, 0, true },
-		{ EDIPieceKind::Breeze, 0.015f, 30, 12, 0, false },
 	};
 
 	FDISpawnRow* Find(EDIPieceKind Kind) { return Specials.FindByPredicate([Kind](const FDISpawnRow& R) { return R.Kind == Kind; }); }

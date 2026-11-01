@@ -13,10 +13,23 @@ class USlider;
 class UTextBlock;
 class UVerticalBox;
 struct FDITheme;
+class UDIShop;
+
+/** One shop pack button: remembers its product, so every button can share one click handler shape. */
+UCLASS()
+class UDIPackButton : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	FName ProductId;
+	TWeakObjectPtr<UDIShop> Shop;
+	UFUNCTION() void HandleClicked();
+};
 
 /**
  * Whole in-game UI, built in C++ (no Widget Blueprint): score, best, pause button, tutorial line,
- * game-over line and the pause/settings panel. Layout units assume a 1080-wide reference (UMG DPI default).
+ * game-over line, the pause/settings panel, the breeze button (top right) and the shop panel. Layout units assume a 1080-wide reference (UMG DPI default).
  */
 UCLASS()
 class DOUBLEIT_API UDIHUDWidget : public UUserWidget
@@ -35,6 +48,9 @@ public:
 
 	/** The tutorial refused a tap: the instruction swells once, pointing back at what to do. */
 	void Nudge();
+
+	/** A short line under the best score that fades out (pieces earned or bought). */
+	void Toast(const FText& Text);
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
@@ -58,11 +74,20 @@ private:
 	UFUNCTION() void HandleAmbience(float Value);
 	UFUNCTION() void HandleEffectsReleased();
 	UFUNCTION() void HandleAmbienceReleased();
+	UFUNCTION() void HandleBreeze();
+	UFUNCTION() void HandleShop();
+	UFUNCTION() void HandleShopClose();
+	void OpenShop();
+	void RefreshShop(const ADoubleItGameMode& GM);
 
 	TWeakObjectPtr<ADoubleItGameMode> GameMode;
 	FLinearColor ScoreInk = FLinearColor::White;
 	float CelebrateLeft = 0.f;
 	float NudgeLeft = 0.f;
+	float ToastLeft = 0.f;
+	float PulseTime = 0.f;
+	bool bShopOpen = false;
+	bool bShopFromPause = false;
 
 	UPROPERTY() TObjectPtr<UCanvasPanel> Root;
 	UPROPERTY() TObjectPtr<UTextBlock> Score;
@@ -82,6 +107,18 @@ private:
 	UPROPERTY() TObjectPtr<USlider> EffectsSlider;
 	UPROPERTY() TObjectPtr<USlider> AmbienceSlider;
 	UPROPERTY() TArray<TObjectPtr<UTextBlock>> SliderLabels;
+	UPROPERTY() TObjectPtr<UButton> BreezeButton;
+	UPROPERTY() TObjectPtr<UBorder> BreezeDot;
+	UPROPERTY() TObjectPtr<UTextBlock> BreezeCount;
+	UPROPERTY() TObjectPtr<UTextBlock> ToastText;
+	UPROPERTY() TObjectPtr<UBorder> ShopPanel;
+	UPROPERTY() TObjectPtr<UTextBlock> ShopBody;
+	UPROPERTY() TObjectPtr<UTextBlock> ShopHave;
+	UPROPERTY() TObjectPtr<UTextBlock> ShopClosed;
+	UPROPERTY() TObjectPtr<UVerticalBox> ShopPacks;
+	UPROPERTY() TArray<TObjectPtr<UDIPackButton>> PackButtons;
+	UPROPERTY() TArray<TObjectPtr<UTextBlock>> PanelTexts;     // shop title and count, themed as ink
+	UPROPERTY() TArray<TObjectPtr<UTextBlock>> PanelSoftTexts; // shop explanation and notes, themed as soft ink
 
 	bool bLastDark = false;
 	bool bThemeApplied = false;

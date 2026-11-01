@@ -7,7 +7,8 @@ struct FDIModeConfig;
 /**
  * What a kind of piece does (Type Object). FDIGame, the spawner, the layout and the presenters ask the type instead of
  * checking for a specific kind. A new special piece = a new EDIPieceKind value (also its glyph id in DI_Tile.hlsl),
- * a type class here, a DIPieces::Register call and a spawn row in FDISpawnTuning. Spec: docs/GAME_DESIGN.md#pieces
+ * a type class here, a DIPieces::Register call and a spawn row in FDISpawnTuning (or IsOwned, for one the player
+ * brings in). Spec: docs/GAME_DESIGN.md#pieces
  */
 class DOUBLEIT_API IDIPieceType
 {
@@ -26,11 +27,14 @@ public:
 	/** A piece lifted by this one may be turned into this kind instead (minus -> plus). None = not offered. */
 	virtual TOptional<EDIPieceKind> LiftedConvertsTo() const { return {}; }
 
+	/** The player owns these and brings one into the centre by choice (the breeze); the spawner never deals them. */
+	virtual bool IsOwned() const { return false; }
+
 	/** Placing inserts the piece into the ring; false = it only applies OnPlaced (the breeze). */
 	virtual bool InsertsOnPlace() const { return true; }
 
-	/** Effect on the ring when placed (after inserting, if it inserts). */
-	virtual void OnPlaced(TArray<FDIPiece>& Ring, const FDIModeConfig& Config) const {}
+	/** Effect on the ring when placed at Slot (the gap before Ring[Slot]; after inserting, if it inserts). */
+	virtual void OnPlaced(TArray<FDIPiece>& Ring, int32 Slot, const FDIModeConfig& Config) const {}
 
 	/** Sound cue when this piece lands (see UDIGameSettings::Cues). */
 	virtual FName LandCue() const { return TEXT("Place"); }
@@ -45,4 +49,7 @@ namespace DIPieces
 	DOUBLEIT_API void Register(EDIPieceKind Kind, TSharedRef<const IDIPieceType> Type);
 
 	inline const IDIPieceType& Of(const FDIPiece& Piece) { return Get(Piece.Kind); }
+
+	/** The kind whose type is called Name (IDIPieceType::Name), if any. */
+	DOUBLEIT_API TOptional<EDIPieceKind> Find(FName Name);
 }
