@@ -19,6 +19,9 @@
 | **Minus (−)** | dark dot with a coral rim | Tap any ring piece to take it out. That piece becomes the new center; you can place it, or tap the center to turn it into a Plus. |
 | **Breeze** | white glow | Placed anywhere: it clears the lowest half of the number tiles (`floor(ringSize/2)`). Pluses stay. It is the calm version of Atomas' Antimatter. |
 
+Each kind's behaviour is an `IDIPieceType` (`Core/DIPieceType.h`); the game asks the type (is it a catalyst, does it lift,
+what does placing do), so a new special piece does not touch the game logic. The breeze share is per mode (`BreezeClearFraction`).
+
 ## Fusion
 
 Fusion starts at a Plus whose left (L) and right (R) neighbours are equal numbers `A`:
@@ -65,6 +68,8 @@ The spawner is deterministic for a given seed, so a seed always replays the same
 - **Minus:** 5% chance after move 10, never twice in a row.
 - **Breeze:** 1.5% chance after move 30, and only while the ring holds at least 12 pieces.
 - The values above are the neutral tuning; adaptive pace shifts the plus chance and `40` per player (below).
+- These rules are one ordered table (`FDISpawnTuning::Specials`, one row per special piece) rolled against a single
+  roll per spawn; rows can be added or tuned per mode in `Config/DefaultGame.ini` (`PlusChance`, `MinusFromMove`, ...).
 
 ## Adaptive pace (`Core/DIAdaptive`, invisible, no setting)
 

@@ -8,15 +8,6 @@ namespace
 {
 	constexpr EAutomationTestFlags DITestFlags = EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter;
 
-	TArray<FDIPiece> Nums(std::initializer_list<int64> Values)
-	{
-		TArray<FDIPiece> Out;
-		for (int64 V : Values)
-		{
-			Out.Add(FDIPiece::Number(V));
-		}
-		return Out;
-	}
 
 	FString RingStr(const TArray<FDIPiece>& Ring)
 	{
@@ -31,7 +22,7 @@ namespace
 	FDIGame Setup(const FDIMode& Mode, std::initializer_list<int64> Ring, const FDIPiece& Center)
 	{
 		FDIGame Game(Mode, 1);
-		Game.SetRingForTest(Nums(Ring));
+		Game.SetRingForTest(FDIPiece::Numbers(Ring));
 		Game.SetCenterForTest(Center);
 		return Game;
 	}

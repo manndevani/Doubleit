@@ -6,6 +6,7 @@
 #include "DoubleIt.h"
 #include "DIPlayerController.h"
 #include "DIRingActor.h"
+#include "Core/DIPieceType.h"
 #include "Core/DIRingLayout.h"
 #include "Engine/World.h"
 #include "Misc/Paths.h"
@@ -98,7 +99,7 @@ FVector2D ADoubleItGameMode::PlaythroughChooseTap() const
 	const FDIGame& G = *Game;
 	const int32 Num = G.GetRing().Num();
 
-	if (G.GetCenter().Kind == EDIPieceKind::Minus)
+	if (DIPieces::Of(G.GetCenter()).LiftsFromRing())
 	{
 		// Lift the smallest number: frees space and often sets up a better placement.
 		int32 Pick = 0;

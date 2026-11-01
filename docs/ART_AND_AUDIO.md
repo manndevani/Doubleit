@@ -59,6 +59,10 @@ All motion is polar (angle + radius), so nothing cuts across the inside of the r
 
 ## Audio and haptics (all generated, no assets)
 
+Every cue below is data: a named list of notes (pentatonic step, volume, delay) plus a haptic length, in
+`UDIGameSettings::Cues` (Project Settings > Game > Double It > Audio). Audio plays them in response to game events;
+placed pieces name their own landing cue.
+
 - `Core/DISynth`: kalimba-like plucks (soft attack, decay, inharmonic partials) on a C-major pentatonic scale.
 - Place: soft low note whose pitch follows where the piece lands (8 notes around the ring), so every move is musical.
 - Chain: one note per collision, each higher (step = depth + 1), played as the collision lands (~220 ms apart);

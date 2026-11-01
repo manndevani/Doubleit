@@ -26,6 +26,7 @@ foreach ($t in $r.tests) {
         $t.entries | Where-Object { $_.event.type -eq 'Error' } | ForEach-Object { Write-Host "   $($_.event.message)" }
     }
 }
-Write-Host "Tests: $($r.succeeded) passed, $($r.failed) failed"
-if ($r.failed -gt 0 -or $r.succeeded -eq 0) { exit 1 }
+$passed = $r.succeeded + $r.succeededWithWarnings
+Write-Host "Tests: $passed passed ($($r.succeededWithWarnings) with expected warnings), $($r.failed) failed"
+if ($r.failed -gt 0 -or $passed -eq 0) { exit 1 }
 exit 0

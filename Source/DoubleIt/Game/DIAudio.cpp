@@ -1,5 +1,8 @@
 #include "DIAudio.h"
+#include "DIGameEvents.h"
+#include "DIGameSettings.h"
 #include "DIPlatform.h"
+#include "Core/DIPieceType.h"
 #include "Core/DISynth.h"
 #include "Components/AudioComponent.h"
 #include "Engine/World.h"
@@ -7,86 +10,61 @@
 #include "Sound/SoundWaveProcedural.h"
 #include "TimerManager.h"
 
-void UDIAudio::PlayPlaceAt(float Angle)
+void UDIAudio::Listen(UDIGameEvents& Events)
 {
-	// Eight low pentatonic notes around the ring: clockwise from the top climbs gently.
-	const float Turn = FMath::Fmod(Angle + 4.f * UE_TWO_PI, UE_TWO_PI) / UE_TWO_PI;
-	PlayNote(-6 + FMath::Min(FMath::FloorToInt32(Turn * 8.f), 7), 0.2f);
-	if (bHaptics)
+	Events.PiecePlaced.AddUObject(this, &UDIAudio::OnPiecePlaced);
+	Events.FusionStep.AddUObject(this, &UDIAudio::OnFusionStep);
+	Events.ChainSettled.AddUObject(this, &UDIAudio::OnChainSettled);
+	Events.PieceLifted.AddUObject(this, &UDIAudio::Play, FName(TEXT("Lift")), 0);
+	Events.NumberRevealed.AddUObject(this, &UDIAudio::Play, FName(TEXT("Reveal")), 0);
+	Events.NewBest.AddUObject(this, &UDIAudio::Play, FName(TEXT("NewBest")), 0);
+	Events.GameOver.AddUObject(this, &UDIAudio::Play, FName(TEXT("GameOver")), 0);
+	Events.TutorialAdvanced.AddUObject(this, &UDIAudio::Play, FName(TEXT("TutorialStep")), 0);
+}
+
+void UDIAudio::OnPiecePlaced(const FDIPiece& Piece, float Angle)
+{
+	const FName Cue = DIPieces::Of(Piece).LandCue();
+	const FDISoundCue* Data = UDIGameSettings::Get().Cues.Find(Cue);
+	int32 Level = 0;
+	if (Data && Data->bLevelFromAngle)
 	{
-		DIPlatform::Vibrate(8);
+		const int32 Zones = FMath::Max(UDIGameSettings::Get().PlaceZones, 1);
+		const float Turn = FMath::Fmod(Angle + 4.f * UE_TWO_PI, UE_TWO_PI) / UE_TWO_PI;
+		Level = FMath::Min(FMath::FloorToInt32(Turn * Zones), Zones - 1);
+	}
+	Play(Cue, Level);
+}
+
+void UDIAudio::OnFusionStep(const FDIFusionEvent& Step, float Angle)
+{
+	Play(TEXT("ChainStep"), Step.ChainDepth);
+}
+
+void UDIAudio::OnChainSettled(int32 Depth)
+{
+	if (Depth >= UDIGameSettings::Get().ChainSettleFrom)
+	{
+		Play(TEXT("ChainSettle"));
 	}
 }
 
-void UDIAudio::PlayChainStep(int32 ChainDepth)
+void UDIAudio::Play(FName Cue, int32 Level)
 {
-	PlayNote(ChainDepth + 1, 0.34f);
-	if (bHaptics)
+	const FDISoundCue* Data = UDIGameSettings::Get().Cues.Find(Cue);
+	if (!Data)
 	{
-		DIPlatform::Vibrate(14 + 6 * FMath::Min(ChainDepth, 5));
+		return;
 	}
-}
-
-void UDIAudio::PlayChainSettle()
-{
-	PlayNote(-3, 0.14f, 0.05f);
-}
-
-void UDIAudio::PlayBreeze()
-{
-	for (int32 i = 0; i < 5; ++i)
+	for (const FDICueNote& Note : Data->Notes)
 	{
-		PlayNote(7 - 2 * i, 0.16f, i * 0.06f);
+		PlayNote(Note.Step + Level, Note.Volume, Note.Delay);
 	}
-	if (bHaptics)
+	const int32 Haptic = Data->HapticMs + Data->HapticPerLevel * FMath::Min(Level, Data->HapticLevelCap);
+	if (bHaptics && Haptic > 0)
 	{
-		DIPlatform::Vibrate(16);
+		DIPlatform::Vibrate(Haptic);
 	}
-}
-
-void UDIAudio::PlayReveal(float Delay)
-{
-	PlayNote(5, 0.26f, Delay);
-	PlayNote(7, 0.26f, Delay + 0.09f);
-	PlayNote(9, 0.3f, Delay + 0.18f);
-}
-
-void UDIAudio::PlayNewBest()
-{
-	PlayNote(2, 0.18f);
-	PlayNote(4, 0.18f, 0.03f);
-	PlayNote(7, 0.2f, 0.06f);
-	if (bHaptics)
-	{
-		DIPlatform::Vibrate(24);
-	}
-}
-
-void UDIAudio::PlayLift()
-{
-	PlayNote(3, 0.18f);
-	PlayNote(1, 0.16f, 0.07f);
-	if (bHaptics)
-	{
-		DIPlatform::Vibrate(8);
-	}
-}
-
-void UDIAudio::PlayGameOver()
-{
-	PlayNote(4, 0.25f, 0.f);
-	PlayNote(2, 0.25f, 0.3f);
-	PlayNote(0, 0.25f, 0.6f);
-	if (bHaptics)
-	{
-		DIPlatform::Vibrate(40);
-	}
-}
-
-void UDIAudio::PlayTutorialStep()
-{
-	PlayNote(2, 0.3f, 0.f);
-	PlayNote(4, 0.3f, 0.1f);
 }
 
 void UDIAudio::PlayNote(int32 Step, float Volume, float Delay)

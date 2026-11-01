@@ -4,7 +4,14 @@
 #include "UObject/Object.h"
 #include "DIAudio.generated.h"
 
-/** Plays synthesized notes (Core/DISynth) and haptics. Outer must be an actor in the game world. */
+class UDIGameEvents;
+struct FDIPiece;
+struct FDIFusionEvent;
+
+/**
+ * Plays synthesized notes (Core/DISynth) and haptics. Listens to UDIGameEvents and plays the matching cue from
+ * UDIGameSettings::Cues; nothing here knows the game rules. Outer must be an actor in the game world.
+ */
 UCLASS()
 class DOUBLEIT_API UDIAudio : public UObject
 {
@@ -14,25 +21,19 @@ public:
 	bool bSound = true;
 	bool bHaptics = true;
 
-	/** Soft note whose pitch follows where the piece landed (angle on the ring), so ordinary moves sound musical. */
-	void PlayPlaceAt(float Angle);
-	/** One collision of a chain: each step is a higher note and a firmer haptic tick. */
-	void PlayChainStep(int32 ChainDepth);
-	/** Low, quiet note that settles a chain of 2+. */
-	void PlayChainSettle();
-	/** Breeze: a quick high-to-low wind-chime cascade. */
-	void PlayBreeze();
-	/** A number made for the first time ever: a bright rising three-note chime. */
-	void PlayReveal(float Delay);
-	/** Passing your best score mid-run: a soft major chord. */
-	void PlayNewBest();
-	void PlayLift();
-	void PlayGameOver();
-	void PlayTutorialStep();
+	/** Subscribes to the game's events. */
+	void Listen(UDIGameEvents& Events);
+
+	/** Plays a cue by name at a level (chain depth, ring zone). Unknown names are ignored. */
+	void Play(FName Cue, int32 Level = 0);
 
 	virtual UWorld* GetWorld() const override { return GetOuter() ? GetOuter()->GetWorld() : nullptr; }
 
 private:
+	void OnPiecePlaced(const FDIPiece& Piece, float Angle);
+	void OnFusionStep(const FDIFusionEvent& Step, float Angle);
+	void OnChainSettled(int32 Depth);
+
 	void PlayNote(int32 Step, float Volume, float Delay = 0.f);
 	void PlayNow(int32 Step, float Volume);
 

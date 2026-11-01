@@ -5,6 +5,34 @@
 #include "Core/DIMode.h"
 #include "DIGameSettings.generated.h"
 
+/** One note of a sound cue: pentatonic step (DISynth), volume 0..1, delay from the cue start. */
+USTRUCT()
+struct FDICueNote
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, Category = "Cue") int32 Step = 0;
+	UPROPERTY(Config, EditAnywhere, Category = "Cue") float Volume = 0.2f;
+	UPROPERTY(Config, EditAnywhere, Category = "Cue", meta = (Units = "s")) float Delay = 0.f;
+};
+
+/**
+ * A sound + haptic cue. Played with a level (chain depth, ring zone): every note is raised by the level, and the
+ * haptic lasts HapticMs + HapticPerLevel * min(level, HapticLevelCap) ms.
+ */
+USTRUCT()
+struct FDISoundCue
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, Category = "Cue") TArray<FDICueNote> Notes;
+	UPROPERTY(Config, EditAnywhere, Category = "Cue") int32 HapticMs = 0;
+	UPROPERTY(Config, EditAnywhere, Category = "Cue") int32 HapticPerLevel = 0;
+	UPROPERTY(Config, EditAnywhere, Category = "Cue") int32 HapticLevelCap = 0;
+	/** Level comes from where the piece landed on the ring (one of PlaceZones), so moves sound musical. */
+	UPROPERTY(Config, EditAnywhere, Category = "Cue") bool bLevelFromAngle = false;
+};
+
 /**
  * Feel and layout numbers, editable in Project Settings > Game > Double It and saved to Config/DefaultGame.ini.
  * Rule numbers live in each mode's FDIModeConfig (Core/DIMode.h); MakeMode applies per-mode overrides from the
@@ -20,6 +48,8 @@ public:
 
 	/** The registered mode for Key with its DefaultGame.ini overrides applied. */
 	static FDIMode MakeMode(FName Key);
+
+	UDIGameSettings();
 
 	UPROPERTY(Config, EditAnywhere, Category = "Run")
 	FName DefaultMode = DIModes::Classic;
@@ -60,6 +90,43 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Motion")
 	float AimDotSpacing = 26.f;
 
+	/** Impact ripples grow to this many tile sizes: Min..Max by chain strength, Reveal for a first-ever number. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float RippleSizeMin = 1.8f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float RippleSizeMax = 2.6f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float RevealRippleSize = 3.4f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float RippleOpacity = 0.7f;
+
+	/** Impacts stronger than this (0..1; chains of 3+) shake the board by ShakePixelsMin..Max. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float ShakeFrom = 0.6f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float ShakePixelsMin = 2.5f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float ShakePixelsMax = 3.5f;
+
+	/** Consumed pieces shrink to this share of their size as they slide in and fade. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float ConsumedShrink = 0.6f;
+
+	/** The aim guide's last dot (the landing gap) is this much larger; dots fade from Near to Far opacity. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float AimTipScale = 1.8f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float AimOpacityNear = 0.3f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	float AimOpacityFar = 0.85f;
+
 	/** Camera fit: world units across on a phone; we only ever zoom out from it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Layout")
 	float PhoneWidthUnits = 820.f;
@@ -79,6 +146,18 @@ public:
 	/** Caps zoom on big tablets so stones don't get huge. */
 	UPROPERTY(Config, EditAnywhere, Category = "Layout")
 	float MaxPixelsPerUnit = 1.6f;
+
+	/** Sound and haptic cues by name. Pieces name their landing cue (IDIPieceType::LandCue); events name the rest. */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	TMap<FName, FDISoundCue> Cues;
+
+	/** Ring zones for landing notes: clockwise from the top climbs one step per zone. */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio", meta = (ClampMin = 1))
+	int32 PlaceZones = 8;
+
+	/** Chains this long or longer end with the ChainSettle cue. */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	int32 ChainSettleFrom = 2;
 
 	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 };

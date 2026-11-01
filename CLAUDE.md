@@ -7,6 +7,8 @@
 - **No magic numbers, no mode switches.** Mode-specific maths goes in an `IDIRuleSet`; rule numbers in `FDIModeConfig`
   (`Core/DIMode.h`); feel/layout numbers in `UDIGameSettings`. Only true constants (mesh size, shader kind ids) stay
   `constexpr`. Prefer known patterns (Strategy, Registry, data-driven config) over branching. See ARCHITECTURE.md.
+- Player text only in `Content/DoubleIt/Text/DoubleIt.csv` (`DIText::Get`). New reactions to the game subscribe to
+  `UDIGameEvents`; don't add calls into the game mode. Save layout changes: bump `SaveVersion` and append a migration step.
 - Materials: use Custom (HLSL) nodes, unlit, opaque/masked where possible, and no per-tile dynamic material instances
   (use per-instance custom data).
 - Materials are generated from `Shaders/*.hlsl`: edit the HLSL, then run `./Scripts/generate_assets.ps1`. Never hand-edit `M_*`.

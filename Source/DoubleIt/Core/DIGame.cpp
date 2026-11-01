@@ -1,4 +1,5 @@
 #include "DIGame.h"
+#include "DIPieceType.h"
 
 FDIGame::FDIGame(const FDIMode& InMode, int32 Seed)
 	: Mode(InMode)
@@ -35,17 +36,14 @@ void FDIGame::SetRingForTest(const TArray<FDIPiece>& InRing)
 
 bool FDIGame::PlaceAt(int32 Slot)
 {
-	if (bGameOver || Center.Kind == EDIPieceKind::Minus || Slot < 0 || Slot > Ring.Num())
+	const IDIPieceType& Type = DIPieces::Of(Center);
+	if (bGameOver || Type.LiftsFromRing() || Slot < 0 || Slot > Ring.Num())
 	{
 		return false;
 	}
 
 	LastEvents.Reset();
-	if (Center.Kind == EDIPieceKind::Breeze)
-	{
-		ApplyBreeze();
-	}
-	else
+	if (Type.InsertsOnPlace())
 	{
 		Ring.Insert(Center, Slot);
 		if (Center.IsNumber())
@@ -53,6 +51,7 @@ bool FDIGame::PlaceAt(int32 Slot)
 			HighestValue = FMath::Max(HighestValue, Center.Value);
 		}
 	}
+	Type.OnPlaced(Ring, Mode.Config);
 
 	PlacedRing = Ring;
 	ResolveAll();
@@ -62,15 +61,16 @@ bool FDIGame::PlaceAt(int32 Slot)
 
 bool FDIGame::AbsorbAt(int32 Index)
 {
-	if (bGameOver || Center.Kind != EDIPieceKind::Minus || !Ring.IsValidIndex(Index))
+	if (bGameOver || !DIPieces::Of(Center).LiftsFromRing() || !Ring.IsValidIndex(Index))
 	{
 		return false;
 	}
+	LiftConvertsTo = DIPieces::Of(Center).LiftedConvertsTo();
 	Center = Ring[Index];
 	Ring.RemoveAt(Index);
 	PlacedRing = Ring;
 	LastEvents.Reset();
-	bCenterAbsorbed = true;
+	bCenterAbsorbed = LiftConvertsTo.IsSet();
 	return true;
 }
 
@@ -80,7 +80,7 @@ bool FDIGame::ConvertCenterToPlus()
 	{
 		return false;
 	}
-	Center = Tag(FDIPiece::Plus());
+	Center = Tag(FDIPiece{ LiftConvertsTo.GetValue(), 0, 0 });
 	bCenterAbsorbed = false;
 	return true;
 }
@@ -93,7 +93,7 @@ void FDIGame::ResolveAll()
 		bChanged = false;
 		for (int32 i = 0; i < Ring.Num(); ++i)
 		{
-			if (Ring[i].Kind == EDIPieceKind::Plus && TryFuseAt(i))
+			if (DIPieces::Of(Ring[i]).IsCatalyst() && TryFuseAt(i))
 			{
 				bChanged = true;
 				break;
@@ -159,27 +159,6 @@ void FDIGame::RemoveNeighbours(int32& CenterIndex)
 	if (Lo < CenterIndex)
 	{
 		--CenterIndex;
-	}
-}
-
-void FDIGame::ApplyBreeze()
-{
-	int32 ToRemove = FMath::FloorToInt32(Ring.Num() * Mode.Config.BreezeClearFraction);
-	while (ToRemove-- > 0)
-	{
-		int32 Lowest = INDEX_NONE;
-		for (int32 i = 0; i < Ring.Num(); ++i)
-		{
-			if (Ring[i].IsNumber() && (Lowest == INDEX_NONE || Ring[i].Value < Ring[Lowest].Value))
-			{
-				Lowest = i;
-			}
-		}
-		if (Lowest == INDEX_NONE)
-		{
-			break;
-		}
-		Ring.RemoveAt(Lowest);
 	}
 }
 

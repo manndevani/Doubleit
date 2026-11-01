@@ -1,4 +1,5 @@
 #include "DIRingLayout.h"
+#include "DIPieceType.h"
 #include "DIGame.h"
 
 namespace
@@ -82,7 +83,7 @@ float DIRingLayout::Reanchor(const TArray<FDIPiece>& Before, float BeforeOffset,
 bool DIRingLayout::ApplyTap(FDIGame& Game, const FVector2D& P, float Offset)
 {
 	const int32 Count = Game.GetRing().Num();
-	if (Game.GetCenter().Kind == EDIPieceKind::Minus)
+	if (DIPieces::Of(Game.GetCenter()).LiftsFromRing())
 	{
 		return !IsCenter(P) && Game.AbsorbAt(TileFromPoint(P, Count, Offset));
 	}

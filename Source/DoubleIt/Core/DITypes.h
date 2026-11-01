@@ -21,6 +21,17 @@ struct FDIPiece
 	static FDIPiece Minus() { return FDIPiece{ EDIPieceKind::Minus, 0, 0 }; }
 	static FDIPiece Breeze() { return FDIPiece{ EDIPieceKind::Breeze, 0, 0 }; }
 
+	/** A ring of plain numbers (scripted boards, tests). */
+	static TArray<FDIPiece> Numbers(std::initializer_list<int64> Values)
+	{
+		TArray<FDIPiece> Out;
+		for (int64 V : Values)
+		{
+			Out.Add(Number(V));
+		}
+		return Out;
+	}
+
 	bool IsNumber() const { return Kind == EDIPieceKind::Number; }
 	bool operator==(const FDIPiece& Other) const { return Kind == Other.Kind && Value == Other.Value; }
 };

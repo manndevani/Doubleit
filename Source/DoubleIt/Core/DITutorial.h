@@ -20,7 +20,8 @@ public:
 	void Reset(int32 First = 0) { Step = FMath::Clamp(First, 0, NumSteps - 1); }
 	int32 GetStep() const { return Step; }
 	bool IsFinished() const { return Step >= NumSteps; }
-	FString GetInstruction() const;
+	/** String-table key of this step's instruction (Tutorial.<step>), or empty when done. Text: Game/DIText.h. */
+	FString GetInstructionKey() const;
 
 	/** Puts the step's scripted board into Game. */
 	void SetupStep(FDIGame& Game) const;

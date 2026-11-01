@@ -31,3 +31,8 @@
 | 2026-11-01 | Modes as Strategy (`IDIRuleSet`) + data (`FDIModeConfig`) + registry keyed by name; enum switches removed | Owner: keep logic dynamic and hard-code only what must be; a new mode is one class and one Register call |
 | 2026-11-01 | Feel/layout numbers in a `UDeveloperSettings`, rule overrides in `[DoubleIt.Mode.<Key>]` INI sections | Tunable without recompiling and visible in Project Settings; Core stays UObject-free, so rule configs are plain structs |
 | 2026-11-01 | Best scores keyed by mode (`Bests` map), old `BestDoubling` / `BestAddition` migrated on load | New modes need no new save fields; existing players keep their bests |
+| 2026-11-01 | Event hub as a `UWorldSubsystem` with typed native delegates, not Lyra's Gameplay Message Subsystem | Single-player, a handful of listeners: compile-checked events and no plugin; the ring view stays driven directly (controller -> view) |
+| 2026-11-01 | Special pieces as Type Objects (`IDIPieceType`) + one weighted spawn table | A new piece no longer touches FDIGame, layout or spawner; the table keeps the old roll order, so seeds replay identically |
+| 2026-11-01 | Save `SaveVersion` (default 0) + ordered migration steps, additive changes only | Old saves have no version field and load as 0; database-style steps are the common advice for USaveGame |
+| 2026-11-01 | Player text in a CSV string table via `LOCTABLE_FROMFILE_GAME`, staged NonUFS | Ready for translation in the Localization Dashboard without assets; literal path so the gatherer finds it |
+| 2026-11-01 | Sound cues as data (`UDIGameSettings::Cues`) | Sounds tunable without code; events name cues, pieces name their landing cue |

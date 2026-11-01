@@ -10,29 +10,34 @@ FDISpawner::FDISpawner(TSharedRef<const IDIRuleSet> InRules, int32 Seed, const F
 
 FDIPiece FDISpawner::Next(int32 Moves, int32 RingSize)
 {
-	FDIPiece Result;
+	// One roll per spawn; each row is picked if forced by its guarantee, or allowed and under its cumulative chance.
 	const float Roll = Stream.GetFraction();
-
-	if (SpawnsSincePlus >= Tuning.PlusGuaranteeWindow || Roll < Tuning.PlusChance)
+	FDIPiece Result;
+	bool bPicked = false;
+	float Cumulative = 0.f;
+	for (const FDISpawnRow& Row : Tuning.Specials)
 	{
-		Result = FDIPiece::Plus();
+		Cumulative += Row.Chance;
+		const bool bForced = Row.GuaranteeWindow > 0 && SpawnsSince.FindRef(Row.Kind) >= Row.GuaranteeWindow;
+		const bool bAllowed = Moves >= Row.FromMove && RingSize >= Row.MinRing && !(Row.bNoRepeat && LastKind == Row.Kind);
+		if (bForced || (bAllowed && Roll < Cumulative))
+		{
+			Result = FDIPiece{ Row.Kind, 0, 0 };
+			bPicked = true;
+			break;
+		}
 	}
-	else if (Moves >= Tuning.MinusFromMove && !bLastWasMinus && Roll < Tuning.PlusChance + Tuning.MinusChance)
-	{
-		Result = FDIPiece::Minus();
-	}
-	else if (Moves >= Tuning.BreezeFromMove && RingSize >= Tuning.BreezeMinRing
-		&& Roll < Tuning.PlusChance + Tuning.MinusChance + Tuning.BreezeChance)
-	{
-		Result = FDIPiece::Breeze();
-	}
-	else
+	if (!bPicked)
 	{
 		Result = NextNumber(Moves);
 	}
 
-	SpawnsSincePlus = Result.Kind == EDIPieceKind::Plus ? 0 : SpawnsSincePlus + 1;
-	bLastWasMinus = Result.Kind == EDIPieceKind::Minus;
+	for (const FDISpawnRow& Row : Tuning.Specials)
+	{
+		int32& Since = SpawnsSince.FindOrAdd(Row.Kind);
+		Since = Row.Kind == Result.Kind ? 0 : Since + 1;
+	}
+	LastKind = Result.Kind;
 	return Result;
 }
 

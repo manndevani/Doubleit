@@ -39,21 +39,30 @@ float DIAdaptive::Skill(const FDIPlayerProfile& Profile, const FDIAdaptiveTuning
 FDISpawnTuning DIAdaptive::TuningFor(const FDIPlayerProfile& Profile, const FDISpawnTuning& Base, const FDIAdaptiveTuning& A)
 {
 	FDISpawnTuning Tuning = Base;
+	FDISpawnRow* Plus = Tuning.Find(EDIPieceKind::Plus);
+	const float BasePlus = Base.ChanceOf(EDIPieceKind::Plus);
+	float PlusChance = BasePlus;
 	const float Lean = Skill(Profile, A) - 0.5f; // -0.5 .. 0.5
 	if (Lean < 0.f)
 	{
 		const float Help = -Lean * 2.f; // 0 .. 1
-		Tuning.PlusChance = Base.PlusChance + A.HelpPlusChance * Help;
+		PlusChance = BasePlus + A.HelpPlusChance * Help;
 		Tuning.MovesPerRangeStep = Base.MovesPerRangeStep + FMath::RoundToInt32(A.HelpGrowthMoves * Help);
-		Tuning.PlusGuaranteeWindow = Help > A.HelpWindowFrom ? Base.PlusGuaranteeWindow - 1 : Base.PlusGuaranteeWindow;
+		if (Plus && Help > A.HelpWindowFrom)
+		{
+			Plus->GuaranteeWindow = FMath::Max(Plus->GuaranteeWindow - 1, 1);
+		}
 	}
 	else
 	{
 		const float Push = Lean * 2.f;
-		Tuning.PlusChance = Base.PlusChance - A.PushPlusChance * Push;
+		PlusChance = BasePlus - A.PushPlusChance * Push;
 		Tuning.MovesPerRangeStep = Base.MovesPerRangeStep - FMath::RoundToInt32(A.PushGrowthMoves * Push);
 	}
-	Tuning.PlusChance = FMath::Clamp(Tuning.PlusChance, A.MinPlusChance, A.MaxPlusChance);
+	if (Plus)
+	{
+		Plus->Chance = FMath::Clamp(PlusChance, A.MinPlusChance, A.MaxPlusChance);
+	}
 	Tuning.MovesPerRangeStep = FMath::Clamp(Tuning.MovesPerRangeStep, A.MinGrowthMoves, A.MaxGrowthMoves);
 	return Tuning;
 }

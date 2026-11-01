@@ -8,7 +8,9 @@ Source/DoubleIt/
     DITypes.h        FDIPiece (Kind, Value, Id), FDIFusionEvent (ids + RingAfter snapshot)
     DIMode.*         modes: IDIRuleSet (Strategy: fusion, spawn numbers, colour rank, score), FDIModeConfig
                      (every rule number), DIModes registry (Classic, Addition; Register / Get / Keys)
-    DISpawner.*      seeded spawner + FDISpawnTuning (plus/minus/breeze chances, growth step)
+    DIPieceType.*    piece types (Type Object): IsCatalyst, LiftsFromRing, LiftedConvertsTo, InsertsOnPlace, OnPlaced, LandCue;
+                     DIPieces registry (Number, Plus, Minus, Breeze)
+    DISpawner.*      seeded spawner + FDISpawnTuning (growth step + weighted special-piece table, FDISpawnRow)
     DIGame.*         ring state machine: PlaceAt / AbsorbAt / ConvertCenterToPlus, events, PlacedRing
     DIRingLayout.*   ring geometry + hit testing with a ring offset; Reanchor (symmetric motion); ApplyTap
     DIAdaptive.*     player profile per mode, Learn / Skill / TuningFor (invisible adaptive pace)
@@ -21,9 +23,12 @@ Source/DoubleIt/
     DIRingActor.*    draws everything on the board with one instanced quad mesh (tiles, ripples, aim dots)
     DIPlayerController.*  touch press/drag = aim, release = place; mouse hover = aim, click = place; back/Esc = pause
     DIPawn.*         orthographic camera at the origin looking down -Z (+X = screen up)
-    DIAudio.*        synthesized cues (USoundWaveProcedural) + haptics
+    DIGameEvents.h   event hub (Observer, UWorldSubsystem): PiecePlaced, FusionStep, ChainSettled, NumberRevealed,
+                     NewBest, GameOver, TutorialAdvanced, StateChanged
+    DIAudio.*        listens to events, plays named cues from UDIGameSettings::Cues (synth notes + haptics)
+    DIText.h         player text from the string table Content/DoubleIt/Text/DoubleIt.csv (DIText::Get)
     DIPlatform.*     night mode + vibrate (Android JNI via DoubleIt_UPL.xml, Windows registry on desktop)
-    DISaveGame.h     settings, per-mode bests (`Bests` map; old fields migrated), tutorial flag, per-mode FDIProfileRecord map
+    DISaveGame.*     settings, per-mode bests and FDIProfileRecord map, tutorial flag; SaveVersion + ordered migration steps
     DITheme.h        Dusk Lagoon UI colours (light/dark)
   UI/DIHUDWidget.*   whole UI built in C++ UMG (score, best, pause panel, tutorial line, game over, best shimmer)
   Editor/DIGenerateAssetsCommandlet  builds M_Tile / M_Background from Shaders/*.hlsl
@@ -60,8 +65,9 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
                  -> StartPlayback builds steps: Land (PlacedRing) -> one step per fusion event -> Settled (final ring + centre)
                     each step re-anchored from the previous one; RingOffset = final offset immediately
                  -> timer: land now, first collision +160 ms, next collisions +220 ms, settle +140 ms
-                    collision step: RingActor::ShowBoard(ring, event) + Impact(ripple, shake 3+) + Audio::PlayChainStep
-                    settled step: BoardChanged (HUD, bests, learning), game over / chain settle / reveal / new best cues
+                    collision step: RingActor::ShowBoard(ring, event) + Impact(ripple, shake 3+) + Events.FusionStep
+                    settled step: BoardChanged (bests, learning, Events.StateChanged), Events.GameOver / ChainSettled /
+                    NumberRevealed / NewBest; audio and HUD react as listeners
 ```
 
 - A tap during playback calls `FinishPlayback` first (jumps to the settled board), so input is never lost or misrouted.
@@ -115,8 +121,28 @@ Android arm64 only, minSdk 26, targetSdk 36, Vulkan + ES 3.2, portrait, ASTC tex
 | Rules that differ by mode (fusion maths, spawned numbers, colour rank, score) | an `IDIRuleSet` class in `Core/DIMode.cpp` | writing a new rule set class |
 | Rule numbers (start ring, ring limit, breeze share, reveal floor, spawn chances, adaptive bounds) | `FDIModeConfig` defaults in `Core/DIMode.h` | `[DoubleIt.Mode.<Key>]` in `Config/DefaultGame.ini` (keys = field names) |
 | Feel and layout (playback delays, springs, pulse, ripples, aim dots, camera fit) | `UDIGameSettings` | Project Settings > Game > Double It (saved to `DefaultGame.ini`) |
+| Special pieces (what each kind does, its landing cue) | an `IDIPieceType` in `Core/DIPieceType.cpp` | a new type class + `DIPieces::Register` + a spawn row |
+| Spawn table (chance, from move, min ring, guarantee window, no repeat) | `FDISpawnTuning::Specials` | `<PieceName>Chance`, `<PieceName>FromMove`... in the mode's INI section |
+| Sounds and haptics (notes, delays, volumes, haptic ms) | `UDIGameSettings::Cues` (named cues) | Project Settings > Game > Double It > Audio |
+| Player-facing text | `Content/DoubleIt/Text/DoubleIt.csv` string table | add a row, use `DIText::Get(key)`; translate via the Localization Dashboard |
 | Shader look (palette, glyphs, pebble shape) | `Shaders/*.hlsl` | edit, then `Scripts/generate_assets.ps1` |
 
 Adding a mode: subclass `IDIRuleSet`, `DIModes::Register({ Key, MakeShared<FMyRules>(), Config })`, then
 `StartNewGame(Key, Seed)`. Profile, best score and INI overrides follow the key automatically; nothing switches on a mode.
 `DoubleIt.Modes.CustomModePlays` does exactly this with a test-only mode.
+
+## Events (Observer)
+
+The game mode is the controller: it owns the run and drives the board view (`ADIRingActor`) directly. Everything else
+that reacts to the game subscribes to `UDIGameEvents` (a world subsystem with typed native delegates), so a new feature
+(achievements, analytics, leaderboards, another screen) is a new listener and needs no change to the game mode.
+Events fire when a moment is shown to the player, not when Core resolves it, so sound and HUD stay in step with playback.
+Fast-forwarded steps send no `FusionStep` / `ChainSettled`.
+
+## Save versioning
+
+`UDISaveGame::SaveVersion` defaults to 0 on purpose: a save from before versioning has no such field, loads as 0 and
+runs every migration step. `Migrate()` runs `Steps[v]` (v -> v+1) up to `CurrentVersion`, then the game re-saves.
+New saves are stamped with `MarkNew()`. A save from a newer build is left untouched (warning in the log).
+To change the layout: add fields (never remove or rename a shipped one), bump `CurrentVersion`, append one step in
+`DISaveGame.cpp` (a `static_assert` checks one step per version), and extend `DoubleIt.Save.Migrations`.

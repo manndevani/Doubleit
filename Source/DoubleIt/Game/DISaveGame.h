@@ -44,22 +44,32 @@ class DOUBLEIT_API UDISaveGame : public USaveGame
 public:
 	static constexpr const TCHAR* SlotName = TEXT("DoubleIt");
 
+	/** Bump when the layout changes, and add the matching step in DISaveGame.cpp. */
+	static constexpr int32 CurrentVersion = 1;
+
+	/**
+	 * Version this data was written with. Defaults to 0 on purpose: a save from before versioning has no such field,
+	 * so it loads as 0 and gets every migration. New saves are stamped by MarkNew().
+	 */
+	UPROPERTY()
+	int32 SaveVersion = 0;
+
+	/** Runs the migration steps from SaveVersion up to CurrentVersion, in order. Returns true if anything ran. */
+	bool Migrate();
+
+	/** A save created fresh needs no migrations. */
+	void MarkNew() { SaveVersion = CurrentVersion; }
+
 	/** Best score per mode key ("Classic", "Addition", ...). */
 	UPROPERTY()
 	TMap<FName, int64> Bests;
 
-	/** Pre-registry saves: moved into Bests by MigrateLegacy, then zeroed. */
+	/** Version 0 fields: moved into Bests by the 0 -> 1 step, then zeroed. Kept so old saves still load. */
 	UPROPERTY()
 	int64 BestDoubling = 0;
 
 	UPROPERTY()
 	int64 BestAddition = 0;
-
-	void MigrateLegacy()
-	{
-		if (BestDoubling > 0) { int64& B = Bests.FindOrAdd(DIModes::Classic); B = FMath::Max(B, BestDoubling); BestDoubling = 0; }
-		if (BestAddition > 0) { int64& B = Bests.FindOrAdd(DIModes::Addition); B = FMath::Max(B, BestAddition); BestAddition = 0; }
-	}
 
 	UPROPERTY()
 	bool bSound = true;

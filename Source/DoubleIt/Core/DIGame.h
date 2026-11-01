@@ -21,7 +21,7 @@ public:
 	/** Center is Minus: remove Ring[Index] and make it the new center. */
 	bool AbsorbAt(int32 Index);
 
-	/** Center came from a Minus: turn it into a Plus. */
+	/** Center was lifted by a piece that allows it (minus): turn it into that piece's conversion (a plus). */
 	bool ConvertCenterToPlus();
 
 	const TArray<FDIPiece>& GetRing() const { return Ring; }
@@ -47,7 +47,6 @@ private:
 	FDIPiece Tag(FDIPiece Piece) { Piece.Id = NextId++; return Piece; }
 	void ResolveAll();
 	bool TryFuseAt(int32 PlusIndex);
-	void ApplyBreeze();
 	void FinishMove();
 	void RemoveNeighbours(int32& CenterIndex);
 
@@ -63,4 +62,5 @@ private:
 	uint32 NextId = 1;
 	bool bGameOver = false;
 	bool bCenterAbsorbed = false;
+	TOptional<EDIPieceKind> LiftConvertsTo; // what the lifting piece lets the lifted centre become
 };

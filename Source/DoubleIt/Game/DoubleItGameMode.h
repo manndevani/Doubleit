@@ -12,8 +12,6 @@ class UDIAudio;
 class UDIHUDWidget;
 class UDISaveGame;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDIOnBoardChanged);
-
 /** Owns the current run, tutorial, settings and the objects that present them (ring actor, HUD, audio). */
 UCLASS()
 class DOUBLEIT_API ADoubleItGameMode : public AGameModeBase
@@ -56,13 +54,10 @@ public:
 	float GetRingOffset() const { return RingOffset; }
 	bool IsInTutorial() const { return bInTutorial; }
 	bool IsDarkTheme() const;
-	FString GetTutorialText() const { return Tutorial.GetInstruction(); }
-	FString GetTutorialProgress() const;
+	FText GetTutorialText() const;
+	FText GetTutorialProgress() const;
 	const UDISaveGame* GetSave() const { return Save; }
 	const FDIGame* GetGame() const { return Game.Get(); }
-
-	UPROPERTY(BlueprintAssignable, Category = "DoubleIt")
-	FDIOnBoardChanged OnBoardChanged;
 
 protected:
 	virtual void BeginPlay() override;
@@ -162,6 +157,9 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UDISaveGame> Save;
+
+	UPROPERTY()
+	TObjectPtr<class UDIGameEvents> Events;
 
 	UPROPERTY()
 	TObjectPtr<UDIAudio> Audio;

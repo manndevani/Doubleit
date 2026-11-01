@@ -8,6 +8,8 @@
 #include "Components/SafeZone.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Game/DIGameEvents.h"
+#include "Game/DIText.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Game/DISaveGame.h"
 #include "Game/DITheme.h"
@@ -38,15 +40,17 @@ namespace
 		return Slot;
 	}
 
-	const TCHAR* ThemeName(EDIThemeMode Mode)
+	FText ThemeName(EDIThemeMode Mode)
 	{
 		switch (Mode)
 		{
-		case EDIThemeMode::Light: return TEXT("light");
-		case EDIThemeMode::Dark: return TEXT("dark");
-		default: return TEXT("follow phone");
+		case EDIThemeMode::Light: return DIText::Get(TEXT("Theme.Light"));
+		case EDIThemeMode::Dark: return DIText::Get(TEXT("Theme.Dark"));
+		default: return DIText::Get(TEXT("Theme.System"));
 		}
 	}
+
+	FText OnOff(bool bOn) { return DIText::Get(bOn ? TEXT("HUD.On") : TEXT("HUD.Off")); }
 }
 
 TSharedRef<SWidget> UDIHUDWidget::RebuildWidget()
@@ -106,14 +110,14 @@ void UDIHUDWidget::Build()
 	TutorialText->SetJustification(ETextJustify::Center);
 
 	GameOverTitle = MakeText(48.f);
-	GameOverTitle->SetText(FText::FromString(TEXT("a calm finish")));
+	GameOverTitle->SetText(DIText::Get(TEXT("HUD.GameOverTitle")));
 	Place(Root, GameOverTitle, FVector2D(0.5, 0.80), FVector2D::ZeroVector);
 	GameOverHint = MakeText(30.f);
-	GameOverHint->SetText(FText::FromString(TEXT("tap to begin again")));
+	GameOverHint->SetText(DIText::Get(TEXT("HUD.GameOverHint")));
 	Place(Root, GameOverHint, FVector2D(0.5, 0.80), FVector2D(0, 80));
 
 	PauseButton = MakeButton(nullptr, PauseGlyph, 56.f);
-	PauseGlyph->SetText(FText::FromString(TEXT("II")));
+	PauseGlyph->SetText(FText::AsCultureInvariant(TEXT("II"))); // a glyph, not words
 	Place(Root, PauseButton, FVector2D(0.0, 0.0), FVector2D(48, 72), FVector2D(0.0, 0.0));
 	PauseButton->OnClicked.AddDynamic(this, &UDIHUDWidget::HandlePause);
 
@@ -127,16 +131,16 @@ void UDIHUDWidget::Build()
 	UVerticalBox* Menu = WidgetTree->ConstructWidget<UVerticalBox>();
 	PausePanel->SetContent(Menu);
 	PauseTitle = MakeText(64.f);
-	PauseTitle->SetText(FText::FromString(TEXT("paused")));
+	PauseTitle->SetText(DIText::Get(TEXT("HUD.Paused")));
 	Menu->AddChildToVerticalBox(PauseTitle)->SetPadding(FMargin(0, 0, 0, 48));
 
 	TObjectPtr<UTextBlock> Label;
 	MakeButton(Menu, Label)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleResume);
-	Label->SetText(FText::FromString(TEXT("resume")));
+	Label->SetText(DIText::Get(TEXT("HUD.Resume")));
 	MakeButton(Menu, Label)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleRestart);
-	Label->SetText(FText::FromString(TEXT("new game")));
+	Label->SetText(DIText::Get(TEXT("HUD.NewGame")));
 	MakeButton(Menu, Label)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleTutorial);
-	Label->SetText(FText::FromString(TEXT("how to play")));
+	Label->SetText(DIText::Get(TEXT("HUD.HowToPlay")));
 	MakeButton(Menu, SoundLabel)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleSound);
 	MakeButton(Menu, HapticsLabel)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleHaptics);
 	MakeButton(Menu, ThemeLabel)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleTheme);
@@ -151,6 +155,16 @@ void UDIHUDWidget::Build()
 				BoxSlot->SetPadding(FMargin(0, 12));
 			}
 		}
+	}
+}
+
+void UDIHUDWidget::Bind(ADoubleItGameMode* InGameMode)
+{
+	GameMode = InGameMode;
+	if (UDIGameEvents* Events = UDIGameEvents::Get(InGameMode))
+	{
+		Events->StateChanged.AddUObject(this, &UDIHUDWidget::Refresh);
+		Events->NewBest.AddUObject(this, &UDIHUDWidget::CelebrateBest);
 	}
 }
 
@@ -230,9 +244,9 @@ void UDIHUDWidget::Refresh()
 	}
 
 	const bool bTutorial = GM->IsInTutorial();
-	Score->SetText(FText::FromString(bTutorial ? GM->GetTutorialProgress() : LexToString(GM->GetScore())));
-	Best->SetText(FText::FromString(bTutorial ? FString() : FString::Printf(TEXT("best %lld"), GM->GetBest())));
-	TutorialText->SetText(FText::FromString(bTutorial ? GM->GetTutorialText() : FString()));
+	Score->SetText(bTutorial ? GM->GetTutorialProgress() : DIText::Number(GM->GetScore()));
+	Best->SetText(bTutorial ? FText::GetEmpty() : FText::Format(DIText::Get(TEXT("HUD.Best")), DIText::Number(GM->GetBest())));
+	TutorialText->SetText(bTutorial ? GM->GetTutorialText() : FText::GetEmpty());
 
 	const ESlateVisibility Over = GM->IsGameOver() && !bTutorial ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed;
 	GameOverTitle->SetVisibility(Over);
@@ -244,9 +258,9 @@ void UDIHUDWidget::Refresh()
 
 	if (const UDISaveGame* Save = GM->GetSave())
 	{
-		SoundLabel->SetText(FText::FromString(FString::Printf(TEXT("sound: %s"), Save->bSound ? TEXT("on") : TEXT("off"))));
-		HapticsLabel->SetText(FText::FromString(FString::Printf(TEXT("vibration: %s"), Save->bHaptics ? TEXT("on") : TEXT("off"))));
-		ThemeLabel->SetText(FText::FromString(FString::Printf(TEXT("theme: %s"), ThemeName(Save->ThemeMode))));
+		SoundLabel->SetText(FText::Format(DIText::Get(TEXT("HUD.Sound")), OnOff(Save->bSound)));
+		HapticsLabel->SetText(FText::Format(DIText::Get(TEXT("HUD.Vibration")), OnOff(Save->bHaptics)));
+		ThemeLabel->SetText(FText::Format(DIText::Get(TEXT("HUD.Theme")), ThemeName(Save->ThemeMode)));
 	}
 }
 

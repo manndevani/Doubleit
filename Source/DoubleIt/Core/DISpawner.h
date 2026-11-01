@@ -5,17 +5,30 @@
 
 class IDIRuleSet;
 
-/** Spawn tuning. Spec: docs/GAME_DESIGN.md#spawning */
+/** One special piece in the spawn table. Rows are rolled in order against one shared roll (cumulative chance). */
+struct FDISpawnRow
+{
+	EDIPieceKind Kind = EDIPieceKind::Plus;
+	float Chance = 0.f;
+	int32 FromMove = 0;        // not before this many moves
+	int32 MinRing = 0;         // not while the ring holds fewer pieces
+	int32 GuaranteeWindow = 0; // forced if none in the last N spawns (0 = never forced)
+	bool bNoRepeat = false;    // never twice in a row
+};
+
+/** Spawn tuning: number growth + the special-piece table. Spec: docs/GAME_DESIGN.md#spawning */
 struct FDISpawnTuning
 {
-	int32 MovesPerRangeStep = 40;
-	int32 PlusGuaranteeWindow = 5;   // a Plus is forced if none in the last N spawns
-	float PlusChance = 0.17f;
-	float MinusChance = 0.05f;
-	int32 MinusFromMove = 10;
-	float BreezeChance = 0.015f;
-	int32 BreezeFromMove = 30;
-	int32 BreezeMinRing = 12;
+	int32 MovesPerRangeStep = 40; // numbers climb one level every N moves
+	TArray<FDISpawnRow> Specials = {
+		{ EDIPieceKind::Plus, 0.17f, 0, 0, 5, false },
+		{ EDIPieceKind::Minus, 0.05f, 10, 0, 0, true },
+		{ EDIPieceKind::Breeze, 0.015f, 30, 12, 0, false },
+	};
+
+	FDISpawnRow* Find(EDIPieceKind Kind) { return Specials.FindByPredicate([Kind](const FDISpawnRow& R) { return R.Kind == Kind; }); }
+	const FDISpawnRow* Find(EDIPieceKind Kind) const { return Specials.FindByPredicate([Kind](const FDISpawnRow& R) { return R.Kind == Kind; }); }
+	float ChanceOf(EDIPieceKind Kind) const { const FDISpawnRow* R = Find(Kind); return R ? R->Chance : 0.f; }
 };
 
 class DOUBLEIT_API FDISpawner
@@ -32,6 +45,6 @@ private:
 	TSharedRef<const IDIRuleSet> Rules;
 	FRandomStream Stream;
 	FDISpawnTuning Tuning;
-	int32 SpawnsSincePlus = 0;
-	bool bLastWasMinus = false;
+	TMap<EDIPieceKind, int32> SpawnsSince; // per special kind, for guarantee windows
+	EDIPieceKind LastKind = EDIPieceKind::Number;
 };

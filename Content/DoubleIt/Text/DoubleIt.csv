@@ -1,0 +1,23 @@
+Key,SourceString,Comment
+HUD.Best,"best {0}",{0} = best score
+HUD.TutorialProgress,"{0} / {1}",tutorial step of total
+HUD.GameOverTitle,"a calm finish",
+HUD.GameOverHint,"tap to begin again",
+HUD.Paused,"paused",
+HUD.Resume,"resume",
+HUD.NewGame,"new game",
+HUD.HowToPlay,"how to play",
+HUD.Sound,"sound: {0}",{0} = HUD.On / HUD.Off
+HUD.Vibration,"vibration: {0}",{0} = HUD.On / HUD.Off
+HUD.Theme,"theme: {0}",{0} = a Theme.* entry
+HUD.On,"on",
+HUD.Off,"off",
+Theme.System,"follow phone",
+Theme.Light,"light",
+Theme.Dark,"dark",
+Tutorial.0,"Tap a gap in the ring to place the piece in the middle.",
+Tutorial.1,"A plus merges two equal neighbours into their double.",
+Tutorial.2,"Symmetry around a plus starts a chain. Find it.",
+Tutorial.3,"A minus lifts a piece out of the ring. Tap one.",
+Tutorial.4,"Tap the centre to turn the lifted piece into a plus.",
+Tutorial.5,"A full ring ends the run. A breeze clears the lowest half.",

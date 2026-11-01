@@ -23,7 +23,8 @@ class DOUBLEIT_API UDIHUDWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void Bind(ADoubleItGameMode* InGameMode) { GameMode = InGameMode; }
+	/** Reads state from the game mode and refreshes on its events (UDIGameEvents). */
+	void Bind(ADoubleItGameMode* InGameMode);
 
 	/** Pulls everything from the game mode (score, labels, visibility, theme). */
 	void Refresh();

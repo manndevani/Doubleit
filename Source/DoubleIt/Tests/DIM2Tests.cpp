@@ -193,7 +193,7 @@ bool FDIAdaptiveTest::RunTest(const FString&)
 	const FDISpawnTuning Base;
 	FDIPlayerProfile Fresh;
 	TestEqual(TEXT("no data is neutral"), DIAdaptive::Skill(Fresh), 0.5f, 0.001f);
-	TestEqual(TEXT("neutral keeps the plus chance"), DIAdaptive::TuningFor(Fresh).PlusChance, Base.PlusChance, 0.001f);
+	TestEqual(TEXT("neutral keeps the plus chance"), DIAdaptive::TuningFor(Fresh).ChanceOf(EDIPieceKind::Plus), Base.ChanceOf(EDIPieceKind::Plus), 0.001f);
 
 	FDIPlayerProfile Struggling;
 	FDIPlayerProfile Strong;
@@ -209,9 +209,9 @@ bool FDIAdaptiveTest::RunTest(const FString&)
 
 	const FDISpawnTuning Easy = DIAdaptive::TuningFor(Struggling);
 	const FDISpawnTuning Hard = DIAdaptive::TuningFor(Strong);
-	TestTrue(TEXT("help: more pluses"), Easy.PlusChance > Base.PlusChance && Easy.PlusChance <= 0.22f);
+	TestTrue(TEXT("help: more pluses"), Easy.ChanceOf(EDIPieceKind::Plus) > Base.ChanceOf(EDIPieceKind::Plus) && Easy.ChanceOf(EDIPieceKind::Plus) <= 0.22f);
 	TestTrue(TEXT("help: slower growth"), Easy.MovesPerRangeStep > Base.MovesPerRangeStep && Easy.MovesPerRangeStep <= 50);
-	TestTrue(TEXT("push: fewer pluses"), Hard.PlusChance < Base.PlusChance && Hard.PlusChance >= 0.14f);
+	TestTrue(TEXT("push: fewer pluses"), Hard.ChanceOf(EDIPieceKind::Plus) < Base.ChanceOf(EDIPieceKind::Plus) && Hard.ChanceOf(EDIPieceKind::Plus) >= 0.14f);
 	TestTrue(TEXT("push: faster growth"), Hard.MovesPerRangeStep < Base.MovesPerRangeStep && Hard.MovesPerRangeStep >= 34);
 
 	// One bad run after a strong history only nudges the estimate.

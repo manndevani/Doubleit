@@ -13,6 +13,13 @@ namespace
 	constexpr float PlaneMeshSize = 100.f; // /Engine/BasicShapes/Plane is 100x100
 	constexpr float AimKind = 4.f;        // M_Tile kinds (Shaders/DI_Tile.hlsl)
 	constexpr float RippleKind = 5.f;
+	constexpr float LayerCenter = 2.f, LayerRing = 1.f, LayerDying = 0.5f, LayerRipple = 0.7f, LayerAim = 0.8f; // translucency order
+	constexpr float GoldenRatioFrac = 0.6180339887f; // spreads ids into unlike stone seeds
+	constexpr float AimClearCentre = 18.f, AimClearTile = 12.f; // gaps before the centre piece and a target tile
+	// Settle tolerances: below these nothing visibly moves (~1 px), so Tick can stop.
+	constexpr float SettleAngle = 0.003f, SettleAngleVel = 0.03f, SettleLength = 0.8f, SettleLengthVel = 6.f, SettleAlpha = 0.01f;
+	constexpr float ShakeStop = 0.1f, FadeGone = 0.02f;
+	constexpr float RippleStartTiles = 0.9f; // a ripple starts just inside its tile's edge
 
 	const UDIGameSettings& Feel() { return UDIGameSettings::Get(); }
 }
@@ -83,11 +90,12 @@ void ADIRingActor::Impact(float Angle, float Strength, bool bReveal)
 {
 	FRipple& R = Ripples.AddDefaulted_GetRef();
 	R.Pos = FVector2D(DIRingLayout::RingRadius * FMath::Sin(Angle), DIRingLayout::RingRadius * FMath::Cos(Angle));
-	R.MaxSize = DIRingLayout::TileSize * (bReveal ? 3.4f : FMath::Lerp(1.8f, 2.6f, Strength));
+	R.MaxSize = DIRingLayout::TileSize * (bReveal ? Feel().RevealRippleSize : FMath::Lerp(Feel().RippleSizeMin, Feel().RippleSizeMax, Strength));
 	R.bReveal = bReveal;
-	if (Strength > 0.6f)
+	if (Strength > Feel().ShakeFrom)
 	{
-		ShakeAmp = FMath::Max(ShakeAmp, FMath::Lerp(2.5f, 3.5f, (Strength - 0.6f) / 0.4f)); // ~2-4 px: felt, not seen
+		ShakeAmp = FMath::Max(ShakeAmp, FMath::Lerp(Feel().ShakePixelsMin, Feel().ShakePixelsMax,
+			(Strength - Feel().ShakeFrom) / FMath::Max(1.f - Feel().ShakeFrom, 1e-3f))); // felt, not seen
 	}
 	bAnimating = true;
 }
@@ -172,7 +180,7 @@ void ADIRingActor::ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Cente
 			V.bDying = true;
 			V.bCenter = false;
 			V.TargetAlpha = 0.f;
-			V.TargetSize *= 0.6f;
+			V.TargetSize *= Feel().ConsumedShrink;
 			if (ConsumedBy.Contains(V.Piece.Id))
 			{
 				if (const FTarget* Into = FinalTarget(V.Piece.Id))
@@ -199,7 +207,7 @@ void ADIRingActor::ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Cente
 		V.TargetSize = T.Size;
 		V.bCenter = T.bCenter;
 		V.Size = Results.Contains(Pair.Key) ? T.Size * Feel().PulseScale : 0.f;
-		V.Seed = FMath::Frac(Pair.Key * 0.6180339887f); // golden-ratio spread: neighbouring ids get unlike stones
+		V.Seed = FMath::Frac(Pair.Key * GoldenRatioFrac);
 	}
 
 	Background->SetCustomPrimitiveDataFloat(0, float(Ring.Num()) / FMath::Max(Mode.Config.MaxRingPieces, 1));
@@ -233,13 +241,13 @@ void ADIRingActor::Tick(float DeltaSeconds)
 			V.Size = FMath::Max(V.Size + V.SizeVel * H, 0.f);
 		}
 		V.Alpha = FMath::Lerp(V.Alpha, V.TargetAlpha, Fade);
-		bAnimating |= FMath::Abs(FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle)) > 0.003f || FMath::Abs(V.AngleVel) > 0.03f // under ~1 px
-			|| !FMath::IsNearlyEqual(V.Radius, V.TargetRadius, 0.8f) || FMath::Abs(V.RadiusVel) > 6.f
-			|| !FMath::IsNearlyEqual(V.Size, V.TargetSize, 0.8f) || FMath::Abs(V.SizeVel) > 6.f
-			|| !FMath::IsNearlyEqual(V.Alpha, V.TargetAlpha, 0.01f);
+		bAnimating |= FMath::Abs(FMath::FindDeltaAngleRadians(V.Angle, V.TargetAngle)) > SettleAngle || FMath::Abs(V.AngleVel) > SettleAngleVel
+			|| !FMath::IsNearlyEqual(V.Radius, V.TargetRadius, SettleLength) || FMath::Abs(V.RadiusVel) > SettleLengthVel
+			|| !FMath::IsNearlyEqual(V.Size, V.TargetSize, SettleLength) || FMath::Abs(V.SizeVel) > SettleLengthVel
+			|| !FMath::IsNearlyEqual(V.Alpha, V.TargetAlpha, SettleAlpha);
 	}
 	AimAlpha = FMath::Lerp(AimAlpha, AimTargetAlpha, 1.f - FMath::Exp(-14.f * DeltaSeconds));
-	bAnimating |= !FMath::IsNearlyEqual(AimAlpha, AimTargetAlpha, 0.01f);
+	bAnimating |= !FMath::IsNearlyEqual(AimAlpha, AimTargetAlpha, SettleAlpha);
 
 	for (FRipple& R : Ripples)
 	{
@@ -247,9 +255,9 @@ void ADIRingActor::Tick(float DeltaSeconds)
 	}
 	Ripples.RemoveAll([](const FRipple& R) { return R.Age >= Feel().RippleSeconds; });
 	ShakeAmp *= FMath::Exp(-14.f * DeltaSeconds);
-	ShakeOffset = ShakeAmp > 0.1f ? FVector2D(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f)) * ShakeAmp : FVector2D::ZeroVector;
-	bAnimating |= Ripples.Num() > 0 || ShakeAmp > 0.1f;
-	Visuals.RemoveAll([](const FTileVisual& V) { return V.bDying && V.Alpha < 0.02f; });
+	ShakeOffset = ShakeAmp > ShakeStop ? FVector2D(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f)) * ShakeAmp : FVector2D::ZeroVector;
+	bAnimating |= Ripples.Num() > 0 || ShakeAmp > ShakeStop;
+	Visuals.RemoveAll([](const FTileVisual& V) { return V.bDying && V.Alpha < FadeGone; });
 	PushInstances();
 }
 
@@ -269,7 +277,7 @@ void ADIRingActor::PushInstances()
 	for (const FTileVisual& V : Visuals)
 	{
 		// Centre above ring above dying pieces, so translucency sorts predictably.
-		const float Z = V.bCenter ? 2.f : (V.bDying ? 0.5f : 1.f);
+		const float Z = V.bCenter ? LayerCenter : (V.bDying ? LayerDying : LayerRing);
 		const FDIPiece& P = V.Piece;
 		float Rank = 0.f;
 		if (P.IsNumber() && Mode.IsValid())
@@ -284,23 +292,23 @@ void ADIRingActor::PushInstances()
 	{
 		const float T = R.Age / Feel().RippleSeconds;
 		const float Ease = 1.f - FMath::Square(1.f - T);
-		Add(R.Pos, 0.7f, FMath::Lerp(DIRingLayout::TileSize * 0.9f, R.MaxSize, Ease),
-			FVector4f(R.bReveal ? 1.f : 0.f, RippleKind, bLightTheme ? 1.f : 0.f, 0.7f * FMath::Square(1.f - T)));
+		Add(R.Pos, LayerRipple, FMath::Lerp(DIRingLayout::TileSize * RippleStartTiles, R.MaxSize, Ease),
+			FVector4f(R.bReveal ? 1.f : 0.f, RippleKind, bLightTheme ? 1.f : 0.f, Feel().RippleOpacity * FMath::Square(1.f - T)));
 	}
 
 	// Aim guide: dots along the spoke from the centre piece out to the gap (or the tile a minus would lift).
-	if (AimAlpha > 0.01f)
+	if (AimAlpha > SettleAlpha)
 	{
 		const FVector2D Dir(FMath::Sin(AimAngle), FMath::Cos(AimAngle));
-		const float Start = DIRingLayout::CenterSize * 0.5f + 18.f;
-		const float End = bAimAtTile ? DIRingLayout::RingRadius - DIRingLayout::TileSize * 0.5f - 12.f : DIRingLayout::RingRadius;
+		const float Start = DIRingLayout::CenterSize * 0.5f + AimClearCentre;
+		const float End = bAimAtTile ? DIRingLayout::RingRadius - DIRingLayout::TileSize * 0.5f - AimClearTile : DIRingLayout::RingRadius;
 		const int32 Dots = FMath::Max(2, FMath::FloorToInt32((End - Start) / Feel().AimDotSpacing) + 1);
 		for (int32 d = 0; d < Dots; ++d)
 		{
 			const float T = float(d) / (Dots - 1);
 			const bool bTip = !bAimAtTile && d == Dots - 1; // a slightly larger dot marks the landing gap
-			Add(Dir * FMath::Lerp(Start, End, T), 0.8f, bTip ? Feel().AimDotSize * 1.8f : Feel().AimDotSize,
-				FVector4f(bAimAtTile ? 1.f : 0.f, AimKind, bLightTheme ? 1.f : 0.f, AimAlpha * FMath::Lerp(0.3f, 0.85f, T)));
+			Add(Dir * FMath::Lerp(Start, End, T), LayerAim, bTip ? Feel().AimDotSize * Feel().AimTipScale : Feel().AimDotSize,
+				FVector4f(bAimAtTile ? 1.f : 0.f, AimKind, bLightTheme ? 1.f : 0.f, AimAlpha * FMath::Lerp(Feel().AimOpacityNear, Feel().AimOpacityFar, T)));
 		}
 	}
 

@@ -2,12 +2,15 @@
 #include "DoubleIt.h"
 #include "DIAudio.h"
 #include "DIGameSettings.h"
+#include "DIGameEvents.h"
+#include "DIText.h"
 #include "DIPawn.h"
 #include "DIPlatform.h"
 #include "DIPlayerController.h"
 #include "DIRingActor.h"
 #include "DISaveGame.h"
 #include "Core/DIAdaptive.h"
+#include "Core/DIPieceType.h"
 #include "Core/DIRingLayout.h"
 #include "Engine/World.h"
 #include "GameFramework/HUD.h"
@@ -49,17 +52,23 @@ void ADoubleItGameMode::Tick(float DeltaSeconds)
 void ADoubleItGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+	Events = UDIGameEvents::Get(this);
 
 	Save = Cast<UDISaveGame>(UGameplayStatics::LoadGameFromSlot(UDISaveGame::SlotName, 0));
 	if (!Save)
 	{
 		Save = Cast<UDISaveGame>(UGameplayStatics::CreateSaveGameObject(UDISaveGame::StaticClass()));
+		Save->MarkNew();
 	}
-	Save->MigrateLegacy();
+	else if (Save->Migrate())
+	{
+		UGameplayStatics::SaveGameToSlot(Save, UDISaveGame::SlotName, 0);
+	}
 
 	Audio = NewObject<UDIAudio>(this);
 	Audio->bSound = Save->bSound;
 	Audio->bHaptics = Save->bHaptics;
+	Audio->Listen(*Events);
 
 	RingActor = GetWorld()->SpawnActor<ADIRingActor>();
 
@@ -131,7 +140,7 @@ void ADoubleItGameMode::StartNewGame(FName ModeKey, int32 Seed)
 	}
 	const FDISpawnTuning& Tuning = Mode.Config.Spawn;
 	UE_LOG(LogDoubleIt, Log, TEXT("Run tuning: skill %.2f, plus %.3f, growth every %d moves (%d runs learned)"),
-		DIAdaptive::Skill(Profile, Adapt), Tuning.PlusChance, Tuning.MovesPerRangeStep, Profile.Runs);
+		DIAdaptive::Skill(Profile, Adapt), Tuning.ChanceOf(EDIPieceKind::Plus), Tuning.MovesPerRangeStep, Profile.Runs);
 	Game = MakeUnique<FDIGame>(Mode, Seed);
 
 	RingOffset = 0.f;
@@ -177,7 +186,7 @@ void ADoubleItGameMode::HandleAim(const TOptional<FVector2D>& BoardPos)
 		return;
 	}
 	const int32 Num = Game ? Game->GetRing().Num() : 0;
-	const bool bMinus = Game && Game->GetCenter().Kind == EDIPieceKind::Minus;
+	const bool bMinus = Game && DIPieces::Of(Game->GetCenter()).LiftsFromRing();
 	if (!BoardPos || !Game || bBoardPaused || bInputLocked || Game->IsGameOver() || DIRingLayout::IsCenter(*BoardPos)
 		|| (bMinus && Num == 0))
 	{
@@ -237,7 +246,7 @@ void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 	{
 		// Minus lift or convert: no placement, just re-anchor and show.
 		RingOffset = DIRingLayout::Reanchor(Before, BeforeOffset, Game->GetRing());
-		Audio->PlayLift();
+		Events->PieceLifted.Broadcast();
 		BoardChanged();
 	}
 	if (bInTutorial)
@@ -271,15 +280,8 @@ void ADoubleItGameMode::StartPlayback(const TArray<FDIPiece>& Before, float Befo
 	RingOffset = PlaySteps.Last().Offset; // hit testing already uses the settled ring
 
 	// Landing feedback now; the rest plays on a timer.
-	if (Placed.Kind == EDIPieceKind::Breeze)
-	{
-		Audio->PlayBreeze();
-	}
-	else
-	{
-		const int32 Index = Land.Ring.IndexOfByPredicate([&](const FDIPiece& P) { return P.Id == Placed.Id; });
-		Audio->PlayPlaceAt(DIRingLayout::TileAngle(FMath::Max(Index, 0), Land.Ring.Num(), Land.Offset));
-	}
+	const int32 Index = Land.Ring.IndexOfByPredicate([&](const FDIPiece& P) { return P.Id == Placed.Id; });
+	Events->PiecePlaced.Broadcast(Placed, DIRingLayout::TileAngle(FMath::Max(Index, 0), Land.Ring.Num(), Land.Offset));
 	PlayIndex = 0;
 	ShowStep(0, true);
 	PlayIndex = 1;
@@ -342,25 +344,21 @@ void ADoubleItGameMode::ShowStep(int32 Index, bool bQuiet)
 		const int32 Chain = PlayEvents.Num() > 0 ? PlayEvents.Last().ChainDepth : 0;
 		if (Game->IsGameOver())
 		{
-			Audio->PlayGameOver();
+			Events->GameOver.Broadcast();
 		}
-		else if (!bQuiet && Chain >= 2)
+		else if (!bQuiet && Chain > 0)
 		{
-			Audio->PlayChainSettle();
+			Events->ChainSettled.Broadcast(Chain);
 		}
 		if (bPlayRevealed)
 		{
-			Audio->PlayReveal(0.05f);
+			Events->NumberRevealed.Broadcast();
 			bPlayRevealed = false;
 		}
 		if (!bInTutorial && !bBestCelebrated && RunStartBest > 0 && Game->GetScore() > RunStartBest)
 		{
 			bBestCelebrated = true;
-			Audio->PlayNewBest();
-			if (HUDWidget)
-			{
-				HUDWidget->CelebrateBest();
-			}
+			Events->NewBest.Broadcast();
 		}
 		return;
 	}
@@ -381,18 +379,18 @@ void ADoubleItGameMode::ShowStep(int32 Index, bool bQuiet)
 		bPlayRevealed = true;
 	}
 	const int32 Index2 = Step.Ring.IndexOfByPredicate([&](const FDIPiece& P) { return P.Id == Event->ResultId; });
-	RingActor->Impact(DIRingLayout::TileAngle(FMath::Max(Index2, 0), Step.Ring.Num(), Step.Offset),
-		FMath::Clamp((Event->ChainDepth - 1) / 3.f, 0.f, 1.f), bReveal);
+	const float Angle = DIRingLayout::TileAngle(FMath::Max(Index2, 0), Step.Ring.Num(), Step.Offset);
+	RingActor->Impact(Angle, FMath::Clamp((Event->ChainDepth - 1) / 3.f, 0.f, 1.f), bReveal);
 	if (!bQuiet)
 	{
-		Audio->PlayChainStep(Event->ChainDepth);
+		Events->FusionStep.Broadcast(*Event, Angle);
 	}
 }
 
 void ADoubleItGameMode::NoteMove(const FDIPiece& Placed, double ThinkSeconds)
 {
 	RunStats.Moves = Game->GetMoves();
-	RunStats.PlusesPlaced += Placed.Kind == EDIPieceKind::Plus ? 1 : 0;
+	RunStats.PlusesPlaced += DIPieces::Of(Placed).IsCatalyst() ? 1 : 0;
 	for (const FDIFusionEvent& E : Game->GetLastEvents())
 	{
 		RunStats.Fusions += E.ChainDepth == 1 ? 1 : 0;
@@ -443,7 +441,7 @@ void ADoubleItGameMode::TutorialAfterMove()
 	const bool bAdvance = Result == EDITutorialResult::Advance;
 	if (bAdvance)
 	{
-		Audio->PlayTutorialStep();
+		Events->TutorialAdvanced.Broadcast();
 	}
 	GetWorldTimerManager().SetTimer(TutorialTimer, FTimerDelegate::CreateWeakLambda(this, [this, bAdvance]()
 	{
@@ -462,18 +460,22 @@ void ADoubleItGameMode::TutorialAfterMove()
 	}), PlaybackSeconds() + (bAdvance ? 0.9f : 0.6f), false);
 }
 
-FString ADoubleItGameMode::GetTutorialProgress() const
+FText ADoubleItGameMode::GetTutorialText() const
 {
-	return FString::Printf(TEXT("%d / %d"), FMath::Min(Tutorial.GetStep() + 1, FDITutorial::NumSteps), FDITutorial::NumSteps);
+	const FString Key = Tutorial.GetInstructionKey();
+	return Key.IsEmpty() ? FText::GetEmpty() : DIText::Get(Key);
+}
+
+FText ADoubleItGameMode::GetTutorialProgress() const
+{
+	return FText::Format(DIText::Get(TEXT("HUD.TutorialProgress")),
+		FMath::Min(Tutorial.GetStep() + 1, FDITutorial::NumSteps), FDITutorial::NumSteps);
 }
 
 void ADoubleItGameMode::SetBoardPaused(bool bPaused)
 {
 	bBoardPaused = bPaused;
-	if (HUDWidget)
-	{
-		HUDWidget->Refresh();
-	}
+	Events->StateChanged.Broadcast();
 }
 
 void ADoubleItGameMode::ToggleSound()
@@ -489,7 +491,7 @@ void ADoubleItGameMode::ToggleHaptics()
 	Audio->bHaptics = Save->bHaptics;
 	if (Save->bHaptics)
 	{
-		DIPlatform::Vibrate(20);
+		Audio->Play(TEXT("HapticsOn")); // a tick so the player feels what they turned on
 	}
 	PersistSettings();
 }
@@ -516,10 +518,7 @@ void ADoubleItGameMode::ApplyTheme()
 	{
 		RingActor->SetDark(IsDarkTheme());
 	}
-	if (HUDWidget)
-	{
-		HUDWidget->Refresh();
-	}
+	Events->StateChanged.Broadcast();
 }
 
 void ADoubleItGameMode::OnAppForeground()
@@ -548,11 +547,7 @@ void ADoubleItGameMode::BoardChanged()
 		RecordBest();
 		LearnFromRun();
 	}
-	if (HUDWidget)
-	{
-		HUDWidget->Refresh();
-	}
-	OnBoardChanged.Broadcast();
+	Events->StateChanged.Broadcast();
 }
 
 void ADoubleItGameMode::RecordBest()
@@ -568,10 +563,7 @@ void ADoubleItGameMode::RecordBest()
 void ADoubleItGameMode::PersistSettings()
 {
 	UGameplayStatics::SaveGameToSlot(Save, UDISaveGame::SlotName, 0);
-	if (HUDWidget)
-	{
-		HUDWidget->Refresh();
-	}
+	Events->StateChanged.Broadcast();
 }
 
 #if !UE_BUILD_SHIPPING

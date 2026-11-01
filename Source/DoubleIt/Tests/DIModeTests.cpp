@@ -20,15 +20,6 @@ namespace
 		virtual int64 FusionScore(int64 Result, int32 Depth) const override { return 1; }
 	};
 
-	TArray<FDIPiece> Nums(std::initializer_list<int64> Values)
-	{
-		TArray<FDIPiece> Out;
-		for (int64 V : Values)
-		{
-			Out.Add(FDIPiece::Number(V));
-		}
-		return Out;
-	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIModeRegistryTest, "DoubleIt.Modes.Registry", DIModeTestFlags)
@@ -56,13 +47,13 @@ bool FDIModeCustomTest::RunTest(const FString&)
 	TestEqual(TEXT("start ring from config"), Fresh.GetRing().Num(), 3);
 
 	FDIGame Game(DIModes::Get(TEXT("TestTripling")), 7);
-	Game.SetRingForTest(Nums({ 5, 5, 1 }));
+	Game.SetRingForTest(FDIPiece::Numbers({ 5, 5, 1 }));
 	Game.SetCenterForTest(FDIPiece::Plus());
 	Game.PlaceAt(1);
 	TestEqual(TEXT("rule set fuses"), Game.GetRing()[0].Value, int64(15));
 	TestEqual(TEXT("rule set scores"), Game.GetScore(), int64(1));
 
-	Game.SetRingForTest(Nums({ 1, 2, 4, 8 }));
+	Game.SetRingForTest(FDIPiece::Numbers({ 1, 2, 4, 8 }));
 	Game.SetCenterForTest(FDIPiece::Number(16));
 	Game.PlaceAt(0);
 	TestTrue(TEXT("max ring from config"), Game.IsGameOver());
@@ -75,7 +66,7 @@ bool FDIModeConfigTest::RunTest(const FString&)
 	FDIMode Mode = DIModes::Get(DIModes::Classic);
 	Mode.Config.BreezeClearFraction = 0.25f;
 	FDIGame Game(Mode, 1);
-	Game.SetRingForTest(Nums({ 64, 1, 32, 2, 16, 4, 8, 128 }));
+	Game.SetRingForTest(FDIPiece::Numbers({ 64, 1, 32, 2, 16, 4, 8, 128 }));
 	Game.SetCenterForTest(FDIPiece::Breeze());
 	Game.PlaceAt(0);
 	TestEqual(TEXT("breeze clears a quarter"), Game.GetRing().Num(), 6);
@@ -87,7 +78,7 @@ bool FDIModeConfigTest::RunTest(const FString&)
 	{
 		DIAdaptive::Learn(Struggling, { 20, 1, 6, 1, 3.f, 8 }, Bounds);
 	}
-	TestTrue(TEXT("adaptive bounds from config"), DIAdaptive::TuningFor(Struggling, FDISpawnTuning(), Bounds).PlusChance <= 0.18f + 1e-4f);
+	TestTrue(TEXT("adaptive bounds from config"), DIAdaptive::TuningFor(Struggling, FDISpawnTuning(), Bounds).ChanceOf(EDIPieceKind::Plus) <= 0.18f + 1e-4f);
 	return true;
 }
 
