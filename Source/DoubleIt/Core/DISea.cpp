@@ -1,4 +1,5 @@
 #include "DISea.h"
+#include "DISynth.h"
 
 namespace
 {
@@ -19,10 +20,6 @@ namespace
 		return X * (27.f + X * X) / (27.f + 9.f * X * X);
 	}
 
-	int16 ToPcm(float X)
-	{
-		return int16(FMath::Clamp(X, -1.f, 1.f) * 32767.f);
-	}
 }
 
 FDISea::FDISea(int32 SampleRate, int32 Seed, const FSettings& Settings)
@@ -113,8 +110,8 @@ void FDISea::Render(TArray<int16>& Out, int32 Frames)
 				+ S.FoamLevel * High * FMath::Min(Foam[c], 1.f) * Flutter * 3.f;
 		}
 		// Soft limiter: overlapping waves round off instead of clipping.
-		Out.Add(ToPcm(SoftLimit(Mix[0] * S.Level)));
-		Out.Add(ToPcm(SoftLimit(Mix[1] * S.Level)));
+		Out.Add(DISynth::ToPcm(SoftLimit(Mix[0] * S.Level)));
+		Out.Add(DISynth::ToPcm(SoftLimit(Mix[1] * S.Level)));
 
 		Now += Dt;
 	}

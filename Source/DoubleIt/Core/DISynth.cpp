@@ -7,10 +7,6 @@ namespace
 	constexpr float Minus60Db = 6.9078f; // ln(1000)
 	const TArray<int32> Pentatonic = { 0, 2, 4, 7, 9 };
 
-	int16 ToPcm(float X)
-	{
-		return int16(FMath::Clamp(X, -1.f, 1.f) * 32767.f);
-	}
 
 	/**
 	 * A small Schroeder room (four combs into two all-passes) per channel. Left and right use different delays,
@@ -118,8 +114,8 @@ TArray<int16> DISynth::Note(const FVoice& Voice, float Frequency, float Volume)
 		L *= Attack * Norm * Volume;
 		R *= Attack * Norm * Volume;
 		const float Fade = FMath::Min(1.f, (Count - i) / (0.05f * SampleRate)); // no click at the cut
-		Out[i * 2] = ToPcm((Dry * L + Voice.RoomMix * Left.Process(L)) * Fade);
-		Out[i * 2 + 1] = ToPcm((Dry * R + Voice.RoomMix * Right.Process(R)) * Fade);
+		Out[i * 2] = DISynth::ToPcm((Dry * L + Voice.RoomMix * Left.Process(L)) * Fade);
+		Out[i * 2 + 1] = DISynth::ToPcm((Dry * R + Voice.RoomMix * Right.Process(R)) * Fade);
 	}
 	return Out;
 }
@@ -145,8 +141,8 @@ TArray<int16> DISynth::Pad(const FAmbience& A, const TArray<float>& Hz, float Le
 			R += S * (0.5f + 0.5f * Pan);
 		}
 		const float Norm = Level / FMath::Max(1, Hz.Num());
-		Out[i * 2] = ToPcm(L * Norm);
-		Out[i * 2 + 1] = ToPcm(R * Norm);
+		Out[i * 2] = DISynth::ToPcm(L * Norm);
+		Out[i * 2 + 1] = DISynth::ToPcm(R * Norm);
 	}
 	return Out;
 }

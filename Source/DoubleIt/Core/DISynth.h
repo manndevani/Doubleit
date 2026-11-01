@@ -11,6 +11,9 @@ namespace DISynth
 	constexpr int32 SampleRate = 32000;   // notes have little above 8 kHz; saves memory over 44.1k
 	constexpr int32 AmbienceRate = 22050; // the bed is all low, soft content
 
+	/** -1..1 to 16-bit PCM, clamped. */
+	inline int16 ToPcm(float X) { return int16(FMath::Clamp(X, -1.f, 1.f) * 32767.f); }
+
 	/** One overtone of a voice: frequency ratio to the fundamental, level, and how fast it dies (1/s). */
 	struct FPartial
 	{
