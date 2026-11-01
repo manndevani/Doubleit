@@ -89,6 +89,8 @@ private:
 	void FinishPlayback();
 	float StepDelay(int32 Index) const;
 	float PlaybackSeconds() const;
+	/** The first collision is due but the placed pebble has not reached the ring yet. */
+	bool WaitingToLand() const;
 
 	/** Adaptive pace: learn from finished runs, tune the next run's spawner. */
 	FName ModeKey() const;
@@ -151,6 +153,9 @@ public:
 	TArray<FPlayStep> PlaySteps;
 	TArray<FDIFusionEvent> PlayEvents;
 	int32 PlayIndex = 0;
+	int32 PlayPlacedId = INDEX_NONE; // the first collision waits for this pebble to land
+	double PlayLandDeadline = 0.0;
+	bool bPlayLanded = false;
 	FTimerHandle PlaybackTimer;
 	bool bPlayRevealed = false;
 

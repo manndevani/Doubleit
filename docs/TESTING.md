@@ -34,7 +34,7 @@
 | `DoubleIt.Save.Migrations` | a pre-versioning save migrates (bests move to the per-mode map, higher wins; v2 volume sliders get their defaults; v3 starts with no run to resume), re-running is a no-op, fresh saves need nothing, newer saves are left alone (expected warning) |
 | `DoubleIt.Core.RunResumes` | 20 seeded runs (with a tuned spawn table) are saved mid-game, loaded into a game built from another seed, and must play on identically, ring ids included, until game over (logs `STAT run resume`); garbage or another format is refused |
 
-Latest: 25 passed (1 with an expected warning). Playthrough: PASS, 0 mismatches, settle ~0.7 s average including chain playback.
+Latest: 25 passed (1 with an expected warning). Playthrough: PASS, 0 mismatches, settle ~1.6 s average including chain playback (until every spring is at rest).
 
 ## Rules
 

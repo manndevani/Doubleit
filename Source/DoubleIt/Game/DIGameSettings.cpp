@@ -59,13 +59,13 @@ UDIGameSettings::UDIGameSettings()
 	FDISoundCue& Chain = Cue(TEXT("ChainStep"), { { 1, 0.34f, 0.f } }, 14); // each collision a step higher
 	Chain.HapticPerLevel = 6;
 	Chain.HapticLevelCap = 5;
-	Cue(TEXT("ChainSettle"), { { -3, 0.14f, 0.05f } });
-	Cue(TEXT("Breeze"), { { 7, 0.16f, 0.f }, { 5, 0.16f, 0.06f }, { 3, 0.16f, 0.12f }, { 1, 0.16f, 0.18f }, { -1, 0.16f, 0.24f } }, 16);
-	Cue(TEXT("Reveal"), { { 5, 0.26f, 0.05f }, { 7, 0.26f, 0.14f }, { 9, 0.3f, 0.23f } });
-	Cue(TEXT("NewBest"), { { 2, 0.18f, 0.f }, { 4, 0.18f, 0.03f }, { 7, 0.2f, 0.06f } }, 24);
-	Cue(TEXT("Lift"), { { 3, 0.18f, 0.f }, { 1, 0.16f, 0.07f } }, 8);
-	Cue(TEXT("GameOver"), { { 4, 0.25f, 0.f }, { 2, 0.25f, 0.3f }, { 0, 0.25f, 0.6f } }, 40);
-	Cue(TEXT("TutorialStep"), { { 2, 0.3f, 0.f }, { 4, 0.3f, 0.1f } });
+	Cue(TEXT("ChainSettle"), { { -3, 0.14f, 0.08f } });
+	Cue(TEXT("Breeze"), { { 7, 0.16f, 0.f }, { 5, 0.16f, 0.09f }, { 3, 0.16f, 0.18f }, { 1, 0.16f, 0.27f }, { -1, 0.16f, 0.36f } }, 16);
+	Cue(TEXT("Reveal"), { { 5, 0.26f, 0.07f }, { 7, 0.26f, 0.2f }, { 9, 0.3f, 0.33f } });
+	Cue(TEXT("NewBest"), { { 2, 0.18f, 0.f }, { 4, 0.18f, 0.05f }, { 7, 0.2f, 0.1f } }, 24);
+	Cue(TEXT("Lift"), { { 3, 0.18f, 0.f }, { 1, 0.16f, 0.11f } }, 8);
+	Cue(TEXT("GameOver"), { { 4, 0.25f, 0.f }, { 2, 0.25f, 0.42f }, { 0, 0.25f, 0.84f } }, 40);
+	Cue(TEXT("TutorialStep"), { { 2, 0.3f, 0.f }, { 4, 0.3f, 0.14f } });
 	Cue(TEXT("TutorialNudge"), { { -3, 0.12f, 0.f } }, 6); // soft and low: "not that one", never a buzzer
 	Cue(TEXT("HapticsOn"), {}, 20);
 

@@ -308,6 +308,9 @@ void ADoubleItGameMode::StartPlayback(const TArray<FDIPiece>& Before, float Befo
 	PlayIndex = 0;
 	ShowStep(0, true);
 	PlayIndex = 1;
+	PlayPlacedId = Placed.Id;
+	PlayLandDeadline = FPlatformTime::Seconds() + UDIGameSettings::Get().LandWaitMax;
+	bPlayLanded = false;
 	GetWorldTimerManager().SetTimer(PlaybackTimer, this, &ADoubleItGameMode::PlayStep, StepDelay(PlayIndex), false);
 }
 
@@ -315,6 +318,15 @@ void ADoubleItGameMode::PlayStep()
 {
 	if (!IsPlayingMove())
 	{
+		return;
+	}
+	if (WaitingToLand())
+	{
+		// The first collision starts once the pebble is on the ring, after a short beat.
+		const UDIGameSettings& S = UDIGameSettings::Get();
+		const bool bLanded = !RingActor || RingActor->HasLanded(PlayPlacedId, S.LandTolerance) || FPlatformTime::Seconds() >= PlayLandDeadline;
+		bPlayLanded = bLanded;
+		GetWorldTimerManager().SetTimer(PlaybackTimer, this, &ADoubleItGameMode::PlayStep, bLanded ? S.FirstCollisionDelay : S.LandCheckSeconds, false);
 		return;
 	}
 	const int32 Index = PlayIndex++;
@@ -343,13 +355,25 @@ float ADoubleItGameMode::StepDelay(int32 Index) const
 	{
 		return S.SettleDelay;
 	}
-	return Index == 1 ? S.FirstCollisionDelay : S.ChainStepDelay;
+	return Index == 1 ? S.LandCheckSeconds : S.ChainStepDelay;
+}
+
+bool ADoubleItGameMode::WaitingToLand() const
+{
+	return PlayIndex == 1 && !bPlayLanded && PlaySteps.IsValidIndex(1) && PlaySteps[1].EventIndex != INDEX_NONE;
 }
 
 float ADoubleItGameMode::PlaybackSeconds() const
 {
 	float Total = 0.f;
-	for (int32 i = 1; i < PlaySteps.Num(); ++i)
+	int32 From = 1;
+	const UDIGameSettings& S = UDIGameSettings::Get();
+	if (PlaySteps.IsValidIndex(1) && PlaySteps[1].EventIndex != INDEX_NONE)
+	{
+		Total += S.LandWaitMax + S.FirstCollisionDelay; // the longest the landing can take
+		From = 2;
+	}
+	for (int32 i = From; i < PlaySteps.Num(); ++i)
 	{
 		Total += StepDelay(i);
 	}

@@ -120,6 +120,12 @@ void ADIRingActor::BeginPlay()
 	PushGlow();
 }
 
+bool ADIRingActor::HasLanded(int32 PieceId, float Tolerance) const
+{
+	const FTileVisual* V = Visuals.FindByPredicate([PieceId](const FTileVisual& T) { return T.Piece.Id == PieceId && !T.bDying; });
+	return !V || V->Radius >= V->TargetRadius - Tolerance;
+}
+
 void ADIRingActor::SetDark(bool bDark)
 {
 	Background->SetCustomPrimitiveDataFloat(1, bDark ? 1.f : 0.f);

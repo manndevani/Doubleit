@@ -64,35 +64,48 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Run")
 	FName DefaultMode = DIModes::Classic;
 
-	/** Move playback: the piece lands, then one collision per step, then the next centre appears. */
+	/**
+	 * Move playback: the piece travels out and lands, then one collision per step, then the next centre appears.
+	 * The first collision waits until the placed pebble has reached the ring (within LandTolerance, checked every
+	 * LandCheckSeconds, at most LandWaitMax), then a beat of FirstCollisionDelay.
+	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Playback", meta = (Units = "s"))
-	float FirstCollisionDelay = 0.16f;
+	float FirstCollisionDelay = 0.14f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Playback")
+	float LandTolerance = 4.f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Playback", meta = (Units = "s"))
-	float ChainStepDelay = 0.22f;
+	float LandCheckSeconds = 0.02f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Playback", meta = (Units = "s"))
-	float SettleDelay = 0.14f;
+	float LandWaitMax = 0.6f;
 
-	/** Springs: stiffness 230 settles in ~0.45 s; damping 23 is a ratio of ~0.75 (~3% overshoot). */
+	UPROPERTY(Config, EditAnywhere, Category = "Playback", meta = (Units = "s"))
+	float ChainStepDelay = 0.34f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Playback", meta = (Units = "s"))
+	float SettleDelay = 0.2f;
+
+	/** Springs: stiffness 160 settles in ~0.55 s; damping 19 is a ratio of ~0.75 (~3% overshoot). */
 	UPROPERTY(Config, EditAnywhere, Category = "Motion")
-	float SpringStiffness = 230.f;
+	float SpringStiffness = 160.f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Motion")
-	float SpringDamping = 23.f;
+	float SpringDamping = 19.f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = 1))
 	int32 SpringSubsteps = 2;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Motion")
-	float FadeRate = 7.f;
+	float FadeRate = 5.f;
 
 	/** A fusion result starts at this size and springs back to 1. */
 	UPROPERTY(Config, EditAnywhere, Category = "Motion")
 	float PulseScale = 1.22f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (Units = "s"))
-	float RippleSeconds = 0.55f;
+	float RippleSeconds = 0.8f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Motion")
 	float AimDotSize = 9.f;
@@ -260,10 +273,10 @@ public:
 
 	/** The wobble after an impact: frequency (rad/s) and how fast it dies (1/s). */
 	UPROPERTY(Config, EditAnywhere, Category = "Body")
-	float WobbleFreq = 19.f;
+	float WobbleFreq = 14.f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Body")
-	float WobbleDecay = 6.f;
+	float WobbleDecay = 5.f;
 
 	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 };

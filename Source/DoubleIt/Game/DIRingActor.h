@@ -36,6 +36,8 @@ public:
 	void Impact(float Angle, float Strength, bool bReveal);
 	void SetDark(bool bDark);
 	bool IsAnimating() const { return bAnimating; }
+	/** True once the piece with this id has travelled out to (within Tolerance of) its spot on the ring, or is not shown. */
+	bool HasLanded(int32 PieceId, float Tolerance) const;
 
 	/** Radial dotted guide from the centre to Angle: a gap between two tiles, or the tile a minus would lift. */
 	void SetAim(float Angle, bool bAtTile);

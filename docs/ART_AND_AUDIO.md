@@ -53,14 +53,15 @@ All motion is polar (angle + radius), so nothing cuts across the inside of the r
 - The ring has no fixed top: after each step it re-anchors so pieces move as little as possible overall. A gap opens
   evenly on both sides of a placed piece, and a fusion collapses onto the plus from left and right at once.
 - Pieces are tracked by id: when the ring reflows they slide along the ring arc (shortest way round) to their new angle.
-- Moves play back in steps: the piece lands, each chain collision follows ~220 ms apart, then the next centre appears.
-  Each collision: result pulses in (1.22×), a thin ripple ring spreads (0.55 s), chains of 3+ add a 2–4 px shake.
+- Moves play back in steps: the piece lands, the first collision starts a beat (0.14 s) after the pebble reaches
+  the ring (it waits for the pebble, at most 0.6 s), each next one ~340 ms apart, then the next centre appears.
+  Each collision: result pulses in (1.22×), a thin ripple ring spreads (0.8 s), chains of 3+ add a 2–4 px shake.
 - Motion uses lightly under-damped springs (damping ratio ~0.75, ~3% overshoot): a small, soft settle, not a bounce.
 - Placing travels straight out along the target spoke; a minus lift travels straight in along the piece's own spoke.
 - Fusion: consumed pieces slide along the arc into the merge point and fade, and the result pulses in at 1.22× its size and settles.
 - New centre pieces grow from nothing; the background drifts on a ~60 s cycle.
 - Aim guide: while a finger is down (or the mouse hovers) a dotted spoke runs from the centre to the landing gap, with a larger dot
-  at the gap. The piece is placed when the finger lifts. Settle after a move averages ~0.7 s including chain playback.
+  at the gap. The piece is placed when the finger lifts. Settle after a move averages ~1.6 s including chain playback.
 
 ## Status glow (`Shaders/DI_Background.hlsl`)
 
@@ -80,7 +81,7 @@ A soft radial glow sits behind the board and shows how the run is going, as a ti
   ring re-anchoring all read as soft things moving through water.
 - Landing on the ring squashes the stone along its spoke (by arrival speed, at most 14%). A fusion impact squashes the
   stone it hits by 14% and wobbles neighbours within 2.2 tiles by up to 6%, less with distance.
-- A wobble rings out at 19 rad/s and dies at 6/s, starting with the squash. All numbers: `UDIGameSettings` > Body.
+- A wobble rings out at 14 rad/s and dies at 5/s, starting with the squash. All numbers: `UDIGameSettings` > Body.
 
 ## Audio and haptics (all generated, no assets)
 
@@ -107,7 +108,7 @@ plays them in response to game events; placed pieces name their own landing cue.
 - Volume sliders in the pause menu: effects (default 70%) and sea (default 40%). Live while dragging; saved when the
   finger lifts, and the effects slider plays a sample note at the new level.
 - Place: soft low note whose pitch follows where the piece lands (8 notes around the ring), so every move is musical.
-- Chain: one note per collision, each higher (step = depth + 1), played as the collision lands (~220 ms apart);
+- Chain: one note per collision, each higher (step = depth + 1), played as the collision lands (~340 ms apart);
   a quiet low note settles chains of 2+. Breeze: quick high-to-low wind-chime cascade. Minus lift: two falling notes.
 - First-ever number (32+ in Classic): bright three-note chime and a sun-gold ripple. Passing your best mid-run:
   soft major chord, and the score swells and glows gold for 1.2 s. Game over: gentle descending three notes.

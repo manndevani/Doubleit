@@ -67,7 +67,8 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
                  -> FDIGame resolves the whole move instantly (PlacedRing, events with RingAfter, next centre)
                  -> StartPlayback builds steps: Land (PlacedRing) -> one step per fusion event -> Settled (final ring + centre)
                     each step re-anchored from the previous one; RingOffset = final offset immediately
-                 -> timer: land now, first collision +160 ms, next collisions +220 ms, settle +140 ms
+                 -> timer: land now; first collision once RingActor::HasLanded(placed id) (polled every 20 ms, at most
+                    0.6 s) + 140 ms; next collisions +340 ms, settle +200 ms
                     collision step: RingActor::ShowBoard(ring, event) + Impact(ripple, shake 3+) + Events.FusionStep
                     settled step: BoardChanged (bests, learning, Events.StateChanged), Events.GameOver / ChainSettled /
                     NumberRevealed / NewBest; audio and HUD react as listeners
@@ -85,8 +86,8 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
   4 aim dot (value 1 = coral), 5 ripple ring (value 1 = gold reveal), 6 tutorial hint (drawn first, so under the stones); for 4 and 5, rank 1 = light theme (ink).
 - `ADIRingActor` animates in **polar space** (angle + radius per visual, keyed by piece id): reflows and merges slide along
   the arc (shortest way round), placements travel out along a spoke, lifts travel in. Consumed pieces slide into the
-  result and fade; results pulse in at 1.22x. Motion is spring-driven (k 230, c 23, 2 substeps, ~3% overshoot).
-  Ripples grow and fade over 0.55 s; shake (2-4 px) decays quickly. `Tick` returns early once settled, so a still
+  result and fade; results pulse in at 1.22x. Motion is spring-driven (k 160, c 19, 2 substeps, ~3% overshoot).
+  Ripples grow and fade over 0.8 s; shake (2-4 px) decays quickly. `Tick` returns early once settled, so a still
   board costs no CPU. `IsAnimating()` reports when everything has settled (used by the playthrough bot).
 - Tile material (`Shaders/DI_Tile.hlsl`): seeded pebble outline + rounded procedural digits, plus/minus/breeze
   glyphs, aim dots and ripple rings. Tile space comes from the screen-space UV Jacobian, so glyphs stay upright.
