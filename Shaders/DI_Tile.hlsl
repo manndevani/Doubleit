@@ -193,10 +193,11 @@ else if (K == 3)
 	// Smaller stone so the glow fades out inside the quad instead of being clipped square.
 	float Glow = exp(-max(R - Rad, 0) * 9) * 0.5 * (1 - smoothstep(0.85, 0.99, R));
 	Disc = max(Disc, Glow * (1 - Disc));
-	// Three wind lines: the breeze clears the smaller half of the ring.
+	// A divide sign: the breeze halves the ring.
 	float2 Q = G / 0.8;
-	Sd = (min(min(T.Seg(Q, float2(-0.4, 0.25), float2(0.25, 0.25)), T.Seg(Q, float2(-0.25, 0), float2(0.4, 0))),
-		T.Seg(Q, float2(-0.4, -0.25), float2(0.1, -0.25))) - 0.06) * 0.8;
+	float Bar = T.Seg(Q, float2(-0.4, 0), float2(0.4, 0)) - 0.07;
+	float Dots = min(length(Q - float2(0, 0.27)), length(Q + float2(0, 0.27))) - 0.1;
+	Sd = min(Bar, Dots) * 0.8;
 }
 else if (K == 6)
 {

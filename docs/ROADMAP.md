@@ -42,7 +42,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Android back / Esc toggles pause
 - [x] Full-run playthrough bot (`Scripts/playthrough.ps1`): PASS, ~0.6 s settle, ~2.6 ms average frame
 - [x] Radial motion (arc reflow/merges, radial place/lift), dotted aim guide (touch: aim while held, place on release)
-- [x] Glyph clarity: flagged "1", dark/coral minus, breeze wind lines
+- [x] Glyph clarity: flagged "1", dark/coral minus, breeze divide sign
 - [x] Symmetric ring (re-anchored, no fixed top): fusions collapse from both sides, gaps open evenly
 - [x] Step-by-step chain playback with rising notes, ripples, haptics, small shake on 3+ chains
 - [x] Placement notes by position, breeze chime, first-ever-number reveal, new-best celebration

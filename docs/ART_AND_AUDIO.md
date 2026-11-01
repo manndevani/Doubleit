@@ -18,7 +18,7 @@ It deliberately avoids warm beige/clay "generic app" palettes.
 | Fullness arc near full | → coral `#FF9B85` | same |
 | UI ink / soft ink | `#F2F4F8` / `#8FB3C4` | `#10233A` / `#5A7A8C` |
 | Buttons / panel | `#1E4A5C` / `#0C2433` | `#CDE9EC` / `#E3F3F4` |
-| Plus / Minus / Breeze | coral `#FF9B85` with dark + / ink `#1C2E4A` with coral rim and − / pearl `#F2F4F8` with wind lines + glow | same |
+| Plus / Minus / Breeze | coral `#FF9B85` with dark + / ink `#1C2E4A` with coral rim and − / pearl `#F2F4F8` with a dark ÷ (it halves the ring) + glow | same |
 | Aim guide dots, impact ripples | pearl `#E6EAF2` (dots: coral to the tile a minus would lift; ripples: sun-gold on a first-ever number) | ink `#1C2E4A` instead of pearl, so they show on the light background |
 | Tutorial hint circle | coral `#FF9B85`, faint fill + brighter rim, breathing | same |
 | Breeze button (top right) | pearl `#F2F4F8` dot with a soft-ink rim + count in soft ink; 1.25x while its breeze is in the centre, breathes 12% in the tutorial | same |
