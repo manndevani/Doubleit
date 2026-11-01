@@ -1,6 +1,7 @@
 # Cook + package for Android (ASTC). -Shipping for store builds, -Install to push to a USB-connected device.
 param([switch]$Shipping, [switch]$Install)
 . "$PSScriptRoot\common.ps1"
+Use-AndroidToolchain
 $config = if ($Shipping) { 'Shipping' } else { 'Development' }
 $out = Join-Path $Root 'Build\Packaged'
 $uatArgs = @('BuildCookRun', "-project=$Project", '-platform=Android', '-cookflavor=ASTC', "-clientconfig=$config",

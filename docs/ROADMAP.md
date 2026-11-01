@@ -9,7 +9,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Core rules in pure C++ (`FDIGame`, rules, spawner)
 - [x] Automated headless tests + scripts
 - [x] Android SDK/NDK installed via `setup_android.ps1`
-- [ ] UE Android target platform installed in the Launcher (owner)
+- [x] UE Android target platform installed in the Launcher (owner)
 - [x] First green run of `run_tests.ps1` (10/10, 2026-11-01)
 - [ ] Empty map + first Android package installs on a phone
 - [x] `git init` + remote repo
@@ -60,7 +60,8 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [ ] Profile on a real low-end phone (GPU time per frame, battery over a 10-minute session)
 - [ ] Touch aim/release verified by hand on a phone (automation drives taps, not drags)
 - [ ] Auto Backup restore verified on a phone (`adb shell bmgr backupnow com.doubleit.game`, uninstall, reinstall)
-- [ ] Android-only code (JNI, UPL) compiled and tested on a phone, which needs UE's Android platform support installed
+- [x] Android-only code (JNI, UPL, ads Java) compiles; first package builds (`Build/Packaged/Android_ASTC`)
+- [ ] Android-only code tested on a phone (vibrate, night mode, ads consent + banner)
 - [x] Save and restore the current run when the app is backgrounded (saved every move too)
 - [x] Breeze owned, not dealt: button top right, clears the half nearest the tap, 1 to start + 1 per first-ever number from 256
 - [x] Breeze shop UI behind `IDIStore` (fake store in development builds)
@@ -68,7 +69,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 
 ## M3: Support page & store
 - [x] Ad defaults confirmed: opt-in, menus and game over only (see MONETIZATION.md)
-- [x] AdMob banner + UMP consent, opt-in in pause > support (Android side written, compiled and tested once Android support is installed; test ids until the AdMob account exists)
+- [x] AdMob banner + UMP consent, opt-in in pause > support (Android side compiles, phone test pending; test ids until the AdMob account exists)
 - [ ] Play Billing: breeze packs (`breeze_3`, `breeze_10`) behind `IDIStore`, plus tips; breeze prices set ($0.99 / $2.49), tip tiers to decide
 - [ ] Store assets, privacy policy, closed test (12 testers / 14 days)
 - [ ] Play Games Services saved game for the profile (instant, cross-device; needs a Play Console app id)

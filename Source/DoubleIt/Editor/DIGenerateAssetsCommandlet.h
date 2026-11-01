@@ -5,7 +5,7 @@
 #include "DIGenerateAssetsCommandlet.generated.h"
 
 /**
- * Regenerates the project's materials from Shaders/*.hlsl so nothing is hand-wired in the editor.
+ * Regenerates the project's materials from Shaders/(name).hlsl so nothing is hand-wired in the editor.
  * Run: UnrealEditor-Cmd Doubleit.uproject -run=DIGenerateAssets   (or Scripts/generate_assets.ps1)
  */
 UCLASS()

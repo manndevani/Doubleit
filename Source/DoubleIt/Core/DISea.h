@@ -32,7 +32,8 @@ public:
 		float Level = 0.9f;           // output before the soft limiter
 	};
 
-	FDISea(int32 SampleRate, int32 Seed, const FSettings& Settings = FSettings());
+	FDISea(int32 SampleRate, int32 Seed, const FSettings& Settings);
+	FDISea(int32 SampleRate, int32 Seed) : FDISea(SampleRate, Seed, FSettings()) {} // no default argument: Clang needs FSettings complete
 
 	/** Appends Frames stereo frames (interleaved 16-bit) to Out. Consecutive calls continue seamlessly. */
 	void Render(TArray<int16>& Out, int32 Frames);

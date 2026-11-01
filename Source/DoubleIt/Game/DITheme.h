@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 
-/** UI colours per theme (Dusk Lagoon). Board colours live in Shaders/*.hlsl. Spec: docs/ART_AND_AUDIO.md#palette */
+/** UI colours per theme (Dusk Lagoon). Board colours live in Shaders/(name).hlsl. Spec: docs/ART_AND_AUDIO.md#palette */
 struct FDITheme
 {
 	bool bDark = false;
