@@ -57,6 +57,8 @@ public:
 	FDIValueEvent PieceEarned;
 	/** A shop purchase went through and added this many pieces. */
 	FDICountEvent PiecesBought;
+	/** The player turned the banner on but consent was not given: it stays off (the HUD says so). */
+	FDIEvent AdsDeclined;
 	/** Score, board, pause, theme or settings changed: anything showing state should refresh. */
 	FDIEvent StateChanged;
 };

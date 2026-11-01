@@ -13,6 +13,7 @@ bool FDISaveMigrationTest::RunTest(const FString&)
 	Old->BestDoubling = 1152;
 	Old->BestAddition = 40;
 	Old->Bests.Add(DIModes::Classic, 900);
+	Old->bAdsOn = true; // whatever an old build left there, the banner starts off
 	FDIProfileRecord Played;
 	Played.HighestEver = 512;
 	Old->Profiles.Add(DIModes::Classic, Played);
@@ -24,11 +25,13 @@ bool FDISaveMigrationTest::RunTest(const FString&)
 	TestEqual(TEXT("volume sliders get their defaults"), Old->AmbienceVolume, UDIGameSettings::Get().DefaultAmbienceVolume);
 	TestEqual(TEXT("v4: starts with the new-player breezes"), Old->Owned.FindRef(TEXT("Breeze")), UDIGameSettings::Get().StartingPieces.FindRef(TEXT("Breeze")));
 	TestEqual(TEXT("v4: numbers already made never pay"), Old->RewardedUpTo.FindRef(DIModes::Classic), int64(512));
+	TestFalse(TEXT("v5: the banner starts off (opt-in)"), Old->bAdsOn);
 	TestFalse(TEXT("second run is a no-op"), Old->Migrate());
 
 	UDISaveGame* Fresh = NewObject<UDISaveGame>();
 	Fresh->MarkNew();
 	TestTrue(TEXT("fresh save has volumes"), Fresh->EffectsVolume >= 0.f);
+	TestFalse(TEXT("fresh save has no banner"), Fresh->bAdsOn);
 	TestEqual(TEXT("fresh save has its breeze"), Fresh->Owned.FindRef(TEXT("Breeze")), UDIGameSettings::Get().StartingPieces.FindRef(TEXT("Breeze")));
 	TestFalse(TEXT("fresh save needs nothing"), Fresh->Migrate());
 

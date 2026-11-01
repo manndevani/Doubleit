@@ -76,8 +76,15 @@ private:
 	UFUNCTION() void HandleAmbienceReleased();
 	UFUNCTION() void HandleBreeze();
 	UFUNCTION() void HandleShop();
-	UFUNCTION() void HandleShopClose();
-	void OpenShop();
+	UFUNCTION() void HandleSupport();
+	UFUNCTION() void HandleAdsToggle();
+	UFUNCTION() void HandlePrivacy();
+	UFUNCTION() void HandlePanelClose();
+	/** Shows Panel over the board (pausing it); closing returns to the pause menu if it came from there. */
+	void OpenPanel(UBorder* Panel);
+	UVerticalBox* MakePanel(TObjectPtr<UBorder>& OutPanel, const TCHAR* TitleKey);
+	UTextBlock* MakePanelBody(UVerticalBox* Box);
+	void AddPanelClose(UVerticalBox* Box);
 	void RefreshShop(const ADoubleItGameMode& GM);
 
 	TWeakObjectPtr<ADoubleItGameMode> GameMode;
@@ -86,8 +93,7 @@ private:
 	float NudgeLeft = 0.f;
 	float ToastLeft = 0.f;
 	float PulseTime = 0.f;
-	bool bShopOpen = false;
-	bool bShopFromPause = false;
+	bool bPanelFromPause = false;
 
 	UPROPERTY() TObjectPtr<UCanvasPanel> Root;
 	UPROPERTY() TObjectPtr<UTextBlock> Score;
@@ -112,6 +118,14 @@ private:
 	UPROPERTY() TObjectPtr<UTextBlock> BreezeCount;
 	UPROPERTY() TObjectPtr<UTextBlock> ToastText;
 	UPROPERTY() TObjectPtr<UBorder> ShopPanel;
+	UPROPERTY() TObjectPtr<UBorder> SupportPanel;
+	UPROPERTY() TObjectPtr<UBorder> ActivePanel; // the shop or support panel on show, if any
+	UPROPERTY() TArray<TObjectPtr<UBorder>> Panels;
+	UPROPERTY() TObjectPtr<UTextBlock> AdsLabel;
+	UPROPERTY() TObjectPtr<UButton> PrivacyButton;
+	UPROPERTY() TObjectPtr<UBorder> AdPreview;
+	UPROPERTY() TObjectPtr<UTextBlock> AdPreviewText;
+	UPROPERTY() TObjectPtr<UWidget> AdPreviewBox;
 	UPROPERTY() TObjectPtr<UTextBlock> ShopBody;
 	UPROPERTY() TObjectPtr<UTextBlock> ShopHave;
 	UPROPERTY() TObjectPtr<UTextBlock> ShopClosed;

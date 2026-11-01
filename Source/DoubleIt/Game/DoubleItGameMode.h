@@ -10,6 +10,7 @@
 class ADIRingActor;
 class UDIAudio;
 class UDIShop;
+class UDIAds;
 class UDIHUDWidget;
 class UDISaveGame;
 
@@ -43,7 +44,7 @@ public:
 	void CycleTheme();
 
 	/**
-	 * The HUD breeze button: brings the owned piece (the mode.s RewardPiece; the tutorial.s own in its last step) into
+	 * The HUD breeze button: brings the owned piece (the mode's RewardPiece; the tutorial's own in its last step) into
 	 * the centre, or puts it back unused. Spending happens when it is used (UDIShop).
 	 */
 	void ToggleBringIn();
@@ -55,6 +56,7 @@ public:
 	/** Owned count of the piece the button brings in (never shown in the tutorial, where it is free). */
 	int32 GetOwnedCount() const;
 	UDIShop* GetShop() const { return Shop; }
+	UDIAds* GetAds() const { return Ads; }
 	bool IsAutomationRun() const { return bAutomationRun; }
 
 	UFUNCTION(BlueprintPure, Category = "DoubleIt")
@@ -199,6 +201,8 @@ public:
 	TObjectPtr<UDIAudio> Audio;
 	UPROPERTY()
 	TObjectPtr<UDIShop> Shop;
+	UPROPERTY()
+	TObjectPtr<UDIAds> Ads;
 
 	UPROPERTY()
 	TObjectPtr<UDIHUDWidget> HUDWidget;

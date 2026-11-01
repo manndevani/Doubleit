@@ -21,7 +21,13 @@ Shop.Body,"A breeze clears the half of the ring nearest where you place it. You 
 Shop.Have,"you have {0}",{0} = breezes owned
 Shop.Pack,"{0} breezes  ·  {1}",{0} = count; {1} = price from the store
 Shop.Closed,"the shop opens soon",shown while no store is connected
-Shop.Close,"close",
+HUD.Close,"close",closes the shop or support panel
+HUD.Support,"support",pause menu entry that opens the support panel
+Support.Title,"support",
+Support.Body,"Double It is free, with no ads unless you choose. If you would like to help, turn on a small banner. It only shows on menus and the end screen, never while you play.",
+Support.Banner,"small banner: {0}",{0} = HUD.On / HUD.Off
+Support.Privacy,"privacy choices",opens Google's consent options (shown only where required)
+Support.Declined,"the banner stays off until you agree in the privacy form",after the player turned ads on but gave no consent
 Shop.Bought,"+{0} breezes",{0} = count bought
 Theme.System,"follow phone",
 Theme.Light,"light",

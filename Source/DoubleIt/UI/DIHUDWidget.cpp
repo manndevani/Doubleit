@@ -20,6 +20,7 @@
 #include "Game/DoubleItGameMode.h"
 #include "Game/DIGameSettings.h"
 #include "Game/DIShop.h"
+#include "Game/DIAds.h"
 #include "Core/DIGame.h"
 #include "Misc/Paths.h"
 
@@ -34,7 +35,8 @@ namespace
 	constexpr float BreezeHoldScale = 1.25f;  // the dot while its breeze is in the centre
 	constexpr float BreezePulseSpeed = 3.f;   // rad/s, while the tutorial asks for the button
 	constexpr float ToastFadeSeconds = 0.6f;
-	constexpr float ShopTextWidth = 820.f;
+	constexpr float PanelTextWidth = 820.f;
+	const FVector2D AdPreviewSize(842.f, 131.f); // 320 x 50 dp (a standard banner) at the 1080-wide reference
 	/** Fonts are staged as loose files (DirectoriesToAlwaysStageAsNonUFS) so Slate can load them on device. */
 	FSlateFontInfo NunitoFont(float Size, bool bLight = false)
 	{
@@ -181,6 +183,8 @@ void UDIHUDWidget::Build()
 	Label->SetText(DIText::Get(TEXT("HUD.HowToPlay")));
 	MakeButton(Menu, Label)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleShop);
 	Label->SetText(DIText::Get(TEXT("HUD.Breezes")));
+	MakeButton(Menu, Label)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleSupport);
+	Label->SetText(DIText::Get(TEXT("HUD.Support")));
 	MakeButton(Menu, SoundLabel)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleSound);
 	EffectsSlider = MakeVolume(Menu, TEXT("HUD.Effects"));
 	EffectsSlider->OnValueChanged.AddDynamic(this, &UDIHUDWidget::HandleEffects);
@@ -210,26 +214,8 @@ void UDIHUDWidget::Build()
 	}
 
 	// Shop: what a breeze does, how many you have, the packs the store sells (filled in RefreshShop), close.
-	ShopPanel = WidgetTree->ConstructWidget<UBorder>();
-	ShopPanel->SetHorizontalAlignment(HAlign_Center);
-	ShopPanel->SetVerticalAlignment(VAlign_Center);
-	UCanvasPanelSlot* ShopSlot = Root->AddChildToCanvas(ShopPanel);
-	ShopSlot->SetAnchors(FAnchors(0, 0, 1, 1));
-	ShopSlot->SetOffsets(FMargin(0));
-	UVerticalBox* ShopBox = WidgetTree->ConstructWidget<UVerticalBox>();
-	ShopPanel->SetContent(ShopBox);
-
-	UTextBlock* ShopTitle = MakeText(64.f);
-	ShopTitle->SetText(DIText::Get(TEXT("Shop.Title")));
-	ShopBox->AddChildToVerticalBox(ShopTitle)->SetPadding(FMargin(0, 0, 0, 24));
-	PanelTexts.Add(ShopTitle);
-	USizeBox* BodyBox = WidgetTree->ConstructWidget<USizeBox>();
-	BodyBox->SetWidthOverride(ShopTextWidth);
-	ShopBody = MakeText(30.f);
-	ShopBody->SetAutoWrapText(true);
-	BodyBox->AddChild(ShopBody);
-	ShopBox->AddChildToVerticalBox(BodyBox)->SetHorizontalAlignment(HAlign_Center);
-	PanelSoftTexts.Add(ShopBody);
+	UVerticalBox* ShopBox = MakePanel(ShopPanel, TEXT("Shop.Title"));
+	ShopBody = MakePanelBody(ShopBox);
 	ShopHave = MakeText(40.f);
 	ShopBox->AddChildToVerticalBox(ShopHave)->SetPadding(FMargin(0, 32, 0, 16));
 	PanelTexts.Add(ShopHave);
@@ -239,9 +225,80 @@ void UDIHUDWidget::Build()
 	ShopClosed->SetText(DIText::Get(TEXT("Shop.Closed")));
 	ShopBox->AddChildToVerticalBox(ShopClosed)->SetPadding(FMargin(0, 12));
 	PanelSoftTexts.Add(ShopClosed);
-	UButton* Close = MakeButton(ShopBox, Label);
-	Close->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleShopClose);
-	Label->SetText(DIText::Get(TEXT("Shop.Close")));
+	AddPanelClose(ShopBox);
+
+	// Support: why the banner exists, the opt-in switch, Google's privacy choices when required, close.
+	UVerticalBox* SupportBox = MakePanel(SupportPanel, TEXT("Support.Title"));
+	MakePanelBody(SupportBox)->SetText(DIText::Get(TEXT("Support.Body")));
+	UButton* BannerButton = MakeButton(SupportBox, AdsLabel);
+	BannerButton->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleAdsToggle);
+	PrivacyButton = MakeButton(SupportBox, Label);
+	PrivacyButton->OnClicked.AddDynamic(this, &UDIHUDWidget::HandlePrivacy);
+	Label->SetText(DIText::Get(TEXT("Support.Privacy")));
+	for (UButton* Button : { BannerButton, PrivacyButton.Get() })
+	{
+		if (UVerticalBoxSlot* ButtonSlot = Cast<UVerticalBoxSlot>(Button->Slot))
+		{
+			ButtonSlot->SetHorizontalAlignment(HAlign_Fill);
+			ButtonSlot->SetPadding(FMargin(0, 12));
+		}
+	}
+	AddPanelClose(SupportBox);
+
+	// Desktop development only: a bar where the real banner would sit (320x50 dp at the bottom), to check the layout.
+	USizeBox* AdBox = WidgetTree->ConstructWidget<USizeBox>();
+	AdBox->SetWidthOverride(AdPreviewSize.X);
+	AdBox->SetHeightOverride(AdPreviewSize.Y);
+	AdPreview = WidgetTree->ConstructWidget<UBorder>();
+	AdPreview->SetHorizontalAlignment(HAlign_Center);
+	AdPreview->SetVerticalAlignment(VAlign_Center);
+	AdPreviewText = MakeText(28.f);
+	AdPreviewText->SetText(FText::AsCultureInvariant(TEXT("ad preview"))); // development only, never shipped
+	AdPreview->SetContent(AdPreviewText);
+	AdBox->AddChild(AdPreview);
+	AdBox->SetVisibility(ESlateVisibility::Collapsed);
+	Place(Root, AdBox, FVector2D(0.5, 1.0), FVector2D::ZeroVector, FVector2D(0.5, 1.0));
+	AdPreviewBox = AdBox;
+}
+
+UVerticalBox* UDIHUDWidget::MakePanel(TObjectPtr<UBorder>& OutPanel, const TCHAR* TitleKey)
+{
+	OutPanel = WidgetTree->ConstructWidget<UBorder>();
+	OutPanel->SetHorizontalAlignment(HAlign_Center);
+	OutPanel->SetVerticalAlignment(VAlign_Center);
+	UCanvasPanelSlot* PanelSlot = Root->AddChildToCanvas(OutPanel);
+	PanelSlot->SetAnchors(FAnchors(0, 0, 1, 1));
+	PanelSlot->SetOffsets(FMargin(0));
+	OutPanel->SetVisibility(ESlateVisibility::Collapsed);
+	Panels.Add(OutPanel);
+	UVerticalBox* Box = WidgetTree->ConstructWidget<UVerticalBox>();
+	OutPanel->SetContent(Box);
+
+	UTextBlock* Title = MakeText(64.f);
+	Title->SetText(DIText::Get(TitleKey));
+	Box->AddChildToVerticalBox(Title)->SetPadding(FMargin(0, 0, 0, 24));
+	PanelTexts.Add(Title);
+	return Box;
+}
+
+UTextBlock* UDIHUDWidget::MakePanelBody(UVerticalBox* Box)
+{
+	USizeBox* BodyBox = WidgetTree->ConstructWidget<USizeBox>();
+	BodyBox->SetWidthOverride(PanelTextWidth);
+	UTextBlock* Body = MakeText(30.f);
+	Body->SetAutoWrapText(true);
+	BodyBox->AddChild(Body);
+	Box->AddChildToVerticalBox(BodyBox)->SetHorizontalAlignment(HAlign_Center);
+	PanelSoftTexts.Add(Body);
+	return Body;
+}
+
+void UDIHUDWidget::AddPanelClose(UVerticalBox* Box)
+{
+	TObjectPtr<UTextBlock> Label;
+	UButton* Close = MakeButton(Box, Label);
+	Close->OnClicked.AddDynamic(this, &UDIHUDWidget::HandlePanelClose);
+	Label->SetText(DIText::Get(TEXT("HUD.Close")));
 	if (UVerticalBoxSlot* CloseSlot = Cast<UVerticalBoxSlot>(Close->Slot))
 	{
 		CloseSlot->SetHorizontalAlignment(HAlign_Fill);
@@ -269,6 +326,7 @@ void UDIHUDWidget::Bind(ADoubleItGameMode* InGameMode)
 		{
 			Toast(FText::Format(DIText::Get(TEXT("HUD.BreezeEarned")), DIText::Number(Value)));
 		});
+		Events->AdsDeclined.AddWeakLambda(this, [this]() { Toast(DIText::Get(TEXT("Support.Declined"))); });
 		Events->PiecesBought.AddWeakLambda(this, [this](int32 Count)
 		{
 			Toast(FText::Format(DIText::Get(TEXT("Shop.Bought")), FText::AsNumber(Count)));
@@ -370,7 +428,12 @@ void UDIHUDWidget::ApplyTheme(const FDITheme& Theme)
 	ToastText->SetColorAndOpacity(FSlateColor(Theme.SoftInk));
 
 	PausePanel->SetBrushColor(Theme.Panel);
-	ShopPanel->SetBrushColor(Theme.Panel);
+	for (UBorder* Panel : Panels)
+	{
+		Panel->SetBrushColor(Theme.Panel);
+	}
+	AdPreview->SetBrushColor(Theme.Button);
+	AdPreviewText->SetColorAndOpacity(FSlateColor(Theme.SoftInk));
 	for (UTextBlock* Text : PanelTexts)
 	{
 		Text->SetColorAndOpacity(FSlateColor(Theme.Ink));
@@ -425,16 +488,30 @@ void UDIHUDWidget::Refresh()
 	GameOverHint->SetVisibility(Over);
 
 	const bool bPaused = GM->IsBoardPaused();
-	bShopOpen &= bPaused;
-	PausePanel->SetVisibility(bPaused && !bShopOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-	ShopPanel->SetVisibility(bShopOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	if (!bPaused)
+	{
+		ActivePanel = nullptr;
+	}
+	PausePanel->SetVisibility(bPaused && !ActivePanel ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	for (UBorder* Panel : Panels)
+	{
+		Panel->SetVisibility(Panel == ActivePanel ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
 	PauseButton->SetVisibility(bPaused ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+
+	const UDIAds* Ads = GM->GetAds();
+	AdPreviewBox->SetVisibility(Ads && Ads->IsPreviewShown() ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	if (Ads && ActivePanel == SupportPanel)
+	{
+		AdsLabel->SetText(FText::Format(DIText::Get(TEXT("Support.Banner")), OnOff(Ads->IsOptedIn())));
+		PrivacyButton->SetVisibility(Ads->IsPrivacyRequired() ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
 
 	// The tutorial shows the button only in the step that teaches it, free (no count).
 	const bool bBreeze = !bPaused && (bTutorial ? GM->OffersBringIn() : !GM->IsGameOver());
 	BreezeButton->SetVisibility(bBreeze ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	BreezeCount->SetText(bTutorial ? FText::GetEmpty() : FText::AsNumber(GM->GetOwnedCount()));
-	if (bShopOpen)
+	if (ActivePanel == ShopPanel)
 	{
 		RefreshShop(*GM);
 	}
@@ -489,31 +566,48 @@ void UDIHUDWidget::HandleBreeze()
 	// None left (and none in the centre): the button opens the shop instead.
 	if (!GM->OffersBringIn() && !GM->IsInTutorial() && !GM->IsGameOver())
 	{
-		OpenShop();
+		OpenPanel(ShopPanel);
 		return;
 	}
 	GM->ToggleBringIn();
 }
 
-void UDIHUDWidget::HandleShop() { OpenShop(); }
+void UDIHUDWidget::HandleShop() { OpenPanel(ShopPanel); }
+void UDIHUDWidget::HandleSupport() { OpenPanel(SupportPanel); }
 
-void UDIHUDWidget::OpenShop()
+void UDIHUDWidget::HandleAdsToggle()
+{
+	if (UDIAds* Ads = GameMode.IsValid() ? GameMode->GetAds() : nullptr)
+	{
+		Ads->SetOptedIn(!Ads->IsOptedIn());
+	}
+}
+
+void UDIHUDWidget::HandlePrivacy()
+{
+	if (UDIAds* Ads = GameMode.IsValid() ? GameMode->GetAds() : nullptr)
+	{
+		Ads->ShowPrivacyOptions();
+	}
+}
+
+void UDIHUDWidget::OpenPanel(UBorder* Panel)
 {
 	if (ADoubleItGameMode* GM = GameMode.Get())
 	{
-		bShopFromPause = GM->IsBoardPaused();
-		bShopOpen = true;
+		bPanelFromPause = GM->IsBoardPaused();
+		ActivePanel = Panel;
 		GM->SetBoardPaused(true);
 		Refresh();
 	}
 }
 
-void UDIHUDWidget::HandleShopClose()
+void UDIHUDWidget::HandlePanelClose()
 {
-	bShopOpen = false;
+	ActivePanel = nullptr;
 	if (ADoubleItGameMode* GM = GameMode.Get())
 	{
-		if (bShopFromPause)
+		if (bPanelFromPause)
 		{
 			Refresh(); // back to the pause menu it came from
 		}

@@ -10,6 +10,7 @@
 #include "DIRingActor.h"
 #include "DISaveGame.h"
 #include "DIShop.h"
+#include "DIAds.h"
 #include "Core/DIAdaptive.h"
 #include "Core/DIPieceType.h"
 #include "Core/DIRingLayout.h"
@@ -75,6 +76,8 @@ void ADoubleItGameMode::BeginPlay()
 	Audio->Listen(*Events);
 	Shop = NewObject<UDIShop>(this);
 	Shop->Init(*this, *Save, *Events);
+	Ads = NewObject<UDIAds>(this);
+	Ads->Init(*this, *Save, *Events);
 
 	RingActor = GetWorld()->SpawnActor<ADIRingActor>();
 
@@ -800,6 +803,10 @@ void ADoubleItGameMode::RunAutomationFromCommandLine()
 		Game->SetBoard(Ring, FDIPiece::Number(90));
 		RingOffset = 0.f;
 		BoardChanged();
+	}
+	if (FParse::Param(FCommandLine::Get(), TEXT("DIAdsOn")))
+	{
+		Ads->SetOptedIn(true, false); // banner on for this session only (with -DIPaused: the placeholder)
 	}
 	if (FParse::Param(FCommandLine::Get(), TEXT("DIBringIn")))
 	{

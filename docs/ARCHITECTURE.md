@@ -30,22 +30,27 @@ Source/DoubleIt/
     DIPawn.*         orthographic camera at the origin looking down -Z (+X = screen up)
     DIGameEvents.h   event hub (Observer, UWorldSubsystem): PiecePlaced, FusionStep, ChainSettled, NumberRevealed,
                      NewBest, GameOver, TutorialAdvanced, TutorialNudge, RingFilled, PauseChanged, HeldChanged,
-                     PieceEarned, PiecesBought, StateChanged
+                     PieceEarned, PiecesBought, AdsDeclined, StateChanged
     DIAudio.*        listens to events, plays named cues on the current chord (synth notes + haptics); streams the sea, loops the pads
     DIShop.*         keeps FDIWallet in the save; earns on the settled board (StateChanged), spends on PiecePlaced of an
                      owned piece; sells UDIGameSettings::Packs through IDIStore
     DIStore.*        IDIStore (Strategy): Query / Buy. DIStores::Make: fake store (dev), closed store (shipping, until
                      Google Play Billing is added behind the same interface)
+    DIAds.*          the opt-in banner: consent each launch when on, shows/hides on StateChanged / PauseChanged by
+                     DIAdRules::ShowBanner (Core/DIAdRules.h), AdsDeclined when consent is refused
+    DIAdNetwork.*    IDIAdNetwork (Strategy): Gather / ShowPrivacyOptions / ShowBanner / HideBanner. DIAdNetworks::Make:
+                     AdMob + UMP via JNI (Android), a preview bar (desktop dev), none (otherwise)
     DIText.h         player text from the string table Content/DoubleIt/Text/DoubleIt.csv (DIText::Get)
     DIPlatform.*     night mode + vibrate (Android JNI via DoubleIt_UPL.xml, Windows registry on desktop)
     DISaveGame.*     settings, volumes, per-mode bests, FDIProfileRecord map, tutorial flag, run in progress, owned
-                     pieces + rewarded-up-to; SaveVersion (4) + ordered migration steps
+                     pieces + rewarded-up-to, ads opt-in; SaveVersion (5) + ordered migration steps
     DITheme.h        Dusk Lagoon UI colours (light/dark)
   UI/DIHUDWidget.*   whole UI built in C++ UMG (score, best, pause panel, tutorial line, game over, best shimmer,
-                     breeze button + count, shop panel with one UDIPackButton per pack, toast line)
+                     breeze button + count, shop and support panels, one UDIPackButton per pack, toast line, ad preview bar)
   Editor/DIGenerateAssetsCommandlet  builds M_Tile / M_Background from Shaders/*.hlsl
   Tests/           automation tests (see TESTING.md)
-  DoubleIt_UPL.xml  Android manifest/Java additions (VIBRATE, allowBackup, night mode + vibrate methods)
+  DoubleIt_UPL.xml  Android manifest/Java additions (VIBRATE, allowBackup, night mode + vibrate methods; AdMob app id
+                    meta-data, play-services-ads + UMP gradle deps, banner and consent Java)
 ```
 
 ## The C++ / Blueprint boundary
@@ -164,7 +169,7 @@ Events fire when a moment is shown to the player, not when Core resolves it, so 
 Fast-forwarded steps send no `FusionStep` / `ChainSettled`.
 `RingFilled(fraction)` is sent whenever the settled board is shown (the ambience warms with it) and `PauseChanged`
 when the pause menu opens or closes. `HeldChanged(bHolding)` follows the breeze button; `PieceEarned(value)` and
-`PiecesBought(count)` come from `UDIShop` (sound and the HUD toast listen).
+`PiecesBought(count)` come from `UDIShop` (sound and the HUD toast listen); `AdsDeclined` from `UDIAds` (toast).
 
 ## Owned pieces (the breeze)
 
@@ -177,6 +182,16 @@ shop pack button  -> UDIPackButton -> UDIShop::Buy -> IDIStore::Buy -> FDIWallet
 ```
 Which piece the button brings in is data: the mode's `RewardPiece` (the tutorial's `BringInKind` in its last step).
 Earning on the settled board, not on `FusionStep`, means a fast-forwarded chain still pays.
+
+## Ads (opt-in banner)
+
+```
+Support toggle -> UDIAds::SetOptedIn -> save bAdsOn -> IDIAdNetwork::Gather (UMP form if needed) -> OnConsent
+StateChanged / PauseChanged -> UDIAds::Update -> DIAdRules::ShowBanner(opted in, consent, tutorial, menu, game over)
+                            -> IDIAdNetwork::ShowBanner / HideBanner -> StateChanged (HUD preview bar, Support labels)
+```
+Android: the C++ calls `AndroidThunkJava_DIAds*` in the UPL Java; the Java reports consent back through
+`GameActivity.nativeDIAdsConsent`, which hops to the game thread. Ids come from `[DoubleIt.Ads]` in DefaultEngine.ini.
 
 ## Save versioning
 

@@ -22,6 +22,8 @@ It deliberately avoids warm beige/clay "generic app" palettes.
 | Aim guide dots, impact ripples | pearl `#E6EAF2` (dots: coral to the tile a minus would lift; ripples: sun-gold on a first-ever number) | ink `#1C2E4A` instead of pearl, so they show on the light background |
 | Tutorial hint circle | coral `#FF9B85`, faint fill + brighter rim, breathing | same |
 | Breeze button (top right) | pearl `#F2F4F8` dot with a soft-ink rim + count in soft ink; 1.25x while its breeze is in the centre, breathes 12% in the tutorial | same |
+| Support panel (pause > support) | same panel style as the shop: title, one short body line, an "ads: off/on" toggle, a "privacy choices" button only when consent rules need it, close | same |
+| Ad banner | standard 320x50 banner at the bottom centre, only on menus and game over; on desktop dev builds a flat panel-coloured bar labelled "ad preview" stands in | same |
 
 Tile ranks (1, 2, 4, 8… or 1, 2, 3… in Addition) cycle through 12 sea-glass colours:
 mint `#7FE0C2`, aqua `#5BC0EB`, lilac `#B9A6F5`, sun `#FFD480`, rose `#F7A8C8`, seafoam `#9EE6E0`,

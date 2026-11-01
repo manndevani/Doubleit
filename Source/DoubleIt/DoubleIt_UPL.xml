@@ -1,11 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android additions used by Game/DIPlatform.cpp -->
+<!-- Android additions used by Game/DIPlatform.cpp (night mode, vibrate) and Game/DIAdNetwork.cpp (opt-in banner) -->
 <root xmlns:android="http://schemas.android.com/apk/res/android">
+	<init>
+		<!-- AdMob app id for the manifest: [DoubleIt.Ads] in Config/DefaultEngine.ini (Google's test id until release). -->
+		<setStringFromProperty result="DIAdMobAppId" ini="Engine" section="DoubleIt.Ads" property="AppId" default=""/>
+	</init>
+
 	<androidManifestUpdates>
 		<addPermission android:name="android.permission.VIBRATE"/>
 		<!-- Android Auto Backup: the save (settings, bests, adaptive-pace profile) is restored after a reinstall. -->
 		<addAttribute tag="application" name="android:allowBackup" value="true"/>
+		<!-- Google Mobile Ads refuses to start without the app id in the manifest. -->
+		<setElement result="DIAdsMeta" value="meta-data"/>
+		<addAttribute tag="$DIAdsMeta" name="android:name" value="com.google.android.gms.ads.APPLICATION_ID"/>
+		<addAttribute tag="$DIAdsMeta" name="android:value" value="$S(DIAdMobAppId)"/>
+		<addElement tag="application" name="DIAdsMeta"/>
 	</androidManifestUpdates>
+
+	<!-- Current Google Mobile Ads SDK and Google's consent SDK (UMP). The engine's own AdMob (a 2019 SDK) is off. -->
+	<buildGradleAdditions>
+		<insert>
+dependencies {
+	implementation 'com.google.android.gms:play-services-ads:25.4.0'
+	implementation 'com.google.android.ump:user-messaging-platform:3.2.0'
+}
+		</insert>
+	</buildGradleAdditions>
 
 	<gameActivityClassAdditions>
 		<insert>
@@ -23,6 +43,108 @@
 			v.vibrate(android.os.VibrationEffect.createOneShot(ms, 60));
 		else
 			v.vibrate(ms);
+	}
+
+	// Opt-in banner (Game/DIAdNetwork.cpp). Consent first (UMP shows its form only where the law needs it), then the
+	// SDK starts; the result goes back to C++ through nativeDIAdsConsent. The banner sits at the bottom, centred.
+	private com.google.android.gms.ads.AdView diAdView;
+
+	public native void nativeDIAdsConsent(boolean canRequestAds, boolean privacyOptionsRequired);
+
+	private void diAdsReport()
+	{
+		com.google.android.ump.ConsentInformation info = com.google.android.ump.UserMessagingPlatform.getConsentInformation(this);
+		boolean canRequest = info.canRequestAds();
+		if (canRequest)
+		{
+			new Thread(new Runnable()
+			{
+				public void run() { com.google.android.gms.ads.MobileAds.initialize(GameActivity.this); }
+			}).start();
+		}
+		boolean privacyRequired = info.getPrivacyOptionsRequirementStatus()
+			== com.google.android.ump.ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED;
+		nativeDIAdsConsent(canRequest, privacyRequired);
+	}
+
+	public void AndroidThunkJava_DIAdsGather()
+	{
+		final android.app.Activity activity = this;
+		runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				com.google.android.ump.ConsentRequestParameters params = new com.google.android.ump.ConsentRequestParameters.Builder().build();
+				com.google.android.ump.UserMessagingPlatform.getConsentInformation(activity).requestConsentInfoUpdate(activity, params,
+					new com.google.android.ump.ConsentInformation.OnConsentInfoUpdateSuccessListener()
+					{
+						public void onConsentInfoUpdateSuccess()
+						{
+							com.google.android.ump.UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity,
+								new com.google.android.ump.ConsentForm.OnConsentFormDismissedListener()
+								{
+									public void onConsentFormDismissed(com.google.android.ump.FormError error) { diAdsReport(); }
+								});
+						}
+					},
+					new com.google.android.ump.ConsentInformation.OnConsentInfoUpdateFailureListener()
+					{
+						public void onConsentInfoUpdateFailure(com.google.android.ump.FormError error) { diAdsReport(); }
+					});
+			}
+		});
+	}
+
+	public void AndroidThunkJava_DIAdsPrivacyOptions()
+	{
+		final android.app.Activity activity = this;
+		runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				com.google.android.ump.UserMessagingPlatform.showPrivacyOptionsForm(activity,
+					new com.google.android.ump.ConsentForm.OnConsentFormDismissedListener()
+					{
+						public void onConsentFormDismissed(com.google.android.ump.FormError error) { diAdsReport(); }
+					});
+			}
+		});
+	}
+
+	public void AndroidThunkJava_DIAdsShowBanner(final String unitId)
+	{
+		runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				if (diAdView == null)
+				{
+					diAdView = new com.google.android.gms.ads.AdView(GameActivity.this);
+					diAdView.setAdUnitId(unitId);
+					diAdView.setAdSize(com.google.android.gms.ads.AdSize.BANNER);
+					android.widget.FrameLayout.LayoutParams params = new android.widget.FrameLayout.LayoutParams(
+						android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+						android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL);
+					addContentView(diAdView, params);
+					diAdView.loadAd(new com.google.android.gms.ads.AdRequest.Builder().build());
+				}
+				diAdView.setVisibility(android.view.View.VISIBLE);
+				diAdView.resume();
+			}
+		});
+	}
+
+	public void AndroidThunkJava_DIAdsHideBanner()
+	{
+		runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				if (diAdView == null) return;
+				diAdView.pause();
+				diAdView.setVisibility(android.view.View.GONE);
+			}
+		});
 	}
 		</insert>
 	</gameActivityClassAdditions>

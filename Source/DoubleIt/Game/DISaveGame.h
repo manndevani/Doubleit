@@ -45,7 +45,7 @@ public:
 	static constexpr const TCHAR* SlotName = TEXT("DoubleIt");
 
 	/** Bump when the layout changes, and add the matching step in DISaveGame.cpp. */
-	static constexpr int32 CurrentVersion = 4;
+	static constexpr int32 CurrentVersion = 5;
 
 	/**
 	 * Version this data was written with. Defaults to 0 on purpose: a save from before versioning has no such field,
@@ -104,6 +104,10 @@ public:
 	TMap<FName, int32> Owned;
 	UPROPERTY()
 	TMap<FName, int64> RewardedUpTo;
+
+	/** The optional banner (UDIAds): off until the player turns it on in Support. */
+	UPROPERTY()
+	bool bAdsOn = false;
 
 	/** How this player plays each mode (key: mode id, e.g. "Classic"); drives the invisible adaptive pace. */
 	UPROPERTY()

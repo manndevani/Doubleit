@@ -68,7 +68,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 
 ## M3: Support page & store
 - [x] Ad defaults confirmed: opt-in, menus and game over only (see MONETIZATION.md)
-- [ ] AdMob banner + UMP consent
+- [x] AdMob banner + UMP consent, opt-in in pause > support (Android side written, compiled and tested once Android support is installed; test ids until the AdMob account exists)
 - [ ] Play Billing: breeze packs (`breeze_3`, `breeze_10`) behind `IDIStore`, plus tips; breeze prices set ($0.99 / $2.49), tip tiers to decide
 - [ ] Store assets, privacy policy, closed test (12 testers / 14 days)
 - [ ] Play Games Services saved game for the profile (instant, cross-device; needs a Play Console app id)

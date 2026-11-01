@@ -43,9 +43,15 @@ namespace
 		}
 	}
 
+	/** 4 -> 5: the optional banner; everyone starts with it off (opt-in). */
+	void AdsOptIn(UDISaveGame& Save)
+	{
+		Save.bAdsOn = false;
+	}
+
 	/** Step i upgrades version i to i + 1. Only ever append; never edit a shipped step. */
 	using FMigrationStep = void (*)(UDISaveGame&);
-	constexpr FMigrationStep Steps[] = { &BestsByMode, &AudioLevels, &SavedRun, &OwnedPieces };
+	constexpr FMigrationStep Steps[] = { &BestsByMode, &AudioLevels, &SavedRun, &OwnedPieces, &AdsOptIn };
 	static_assert(UE_ARRAY_COUNT(Steps) == UDISaveGame::CurrentVersion, "one migration step per version");
 }
 
