@@ -1,0 +1,33 @@
+#pragma once
+
+#include "CoreMinimal.h"
+
+class FDIGame;
+
+enum class EDITutorialResult : uint8
+{
+	Continue, // keep playing this step
+	Advance,  // step done; call SetupStep for the next one (or finish)
+	Retry     // wrong move; call SetupStep again
+};
+
+/** Scripted first-run tutorial. Spec: docs/GAME_DESIGN.md#tutorial */
+class DOUBLEIT_API FDITutorial
+{
+public:
+	static constexpr int32 NumSteps = 6;
+
+	void Reset() { Step = 0; }
+	int32 GetStep() const { return Step; }
+	bool IsFinished() const { return Step >= NumSteps; }
+	FString GetInstruction() const;
+
+	/** Puts the step's scripted board into Game. */
+	void SetupStep(FDIGame& Game) const;
+
+	/** Call after every action that changed the board. Moves to the next step on Advance. */
+	EDITutorialResult Evaluate(const FDIGame& Game);
+
+private:
+	int32 Step = 0;
+};

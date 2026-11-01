@@ -13,6 +13,16 @@ void ADIPlayerController::SetupInputComponent()
 	Super::SetupInputComponent();
 	InputComponent->BindTouch(IE_Pressed, this, &ADIPlayerController::OnTouch);
 	InputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &ADIPlayerController::OnClick);
+	InputComponent->BindKey(EKeys::Android_Back, IE_Pressed, this, &ADIPlayerController::OnBack);
+	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ADIPlayerController::OnBack);
+}
+
+void ADIPlayerController::OnBack()
+{
+	if (ADoubleItGameMode* GM = GetWorld()->GetAuthGameMode<ADoubleItGameMode>())
+	{
+		GM->TogglePause();
+	}
 }
 
 void ADIPlayerController::OnTouch(ETouchIndex::Type FingerIndex, FVector Location)

@@ -4,6 +4,14 @@
 #include "GameFramework/SaveGame.h"
 #include "DISaveGame.generated.h"
 
+UENUM()
+enum class EDIThemeMode : uint8
+{
+	System,
+	Light,
+	Dark
+};
+
 UCLASS()
 class DOUBLEIT_API UDISaveGame : public USaveGame
 {
@@ -17,4 +25,16 @@ public:
 
 	UPROPERTY()
 	int64 BestAddition = 0;
+
+	UPROPERTY()
+	bool bSound = true;
+
+	UPROPERTY()
+	bool bHaptics = true;
+
+	UPROPERTY()
+	EDIThemeMode ThemeMode = EDIThemeMode::System;
+
+	UPROPERTY()
+	bool bTutorialDone = false;
 };

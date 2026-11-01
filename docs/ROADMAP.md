@@ -30,11 +30,17 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [ ] Mouse/touch input verified by hand (automation bypasses the controller)
 
 ## M2: Feel & polish
-- [ ] Palette data asset, light/dark theme
-- [ ] Background gradient drift material
-- [ ] Sounds (pentatonic plucks), haptics, settings toggles
-- [ ] Tutorial (6 steps)
-- [ ] Balance pass with the `DoubleIt.Sim` bot
+- [x] "Dusk Lagoon" identity: dark + light themes, follows the phone, manual override
+- [x] Background gradient drift + glowing ring and fullness arc
+- [x] Fusion animation: consumed pieces glide into the merge point, the result pulses (id-tracked visuals)
+- [x] UI in C++-built UMG: score, best, pause button, pause/settings panel (no Widget Blueprints)
+- [x] Nunito font (OFL) loaded from loose files
+- [x] Synthesized pentatonic sounds + haptics (Android JNI), sound/vibration toggles
+- [x] Tutorial (6 scripted steps, retry on a wrong move), replayable from the menu
+- [x] Balance pass with the greedy `DoubleIt.Sim` bot (Addition spawn range narrowed)
+- [x] Android back / Esc toggles pause
+- [ ] Android-only code (JNI, UPL) compiled and tested on a phone, which needs UE's Android platform support installed
+- [ ] Save and restore the current run when the app is backgrounded
 
 ## M3: Support page & store
 - [ ] (?) Ad defaults confirmed (see MONETIZATION.md)

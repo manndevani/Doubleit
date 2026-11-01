@@ -34,10 +34,14 @@ public:
 	bool CanConvertCenter() const { return bCenterAbsorbed; }
 	const TArray<FDIFusionEvent>& GetLastEvents() const { return LastEvents; }
 
-	void SetRingForTest(const TArray<FDIPiece>& InRing) { Ring = InRing; }
-	void SetCenterForTest(const FDIPiece& InCenter) { Center = InCenter; bCenterAbsorbed = false; }
+	/** Scripted board (tutorial, tests). Assigns fresh ids and clears transient state. */
+	void SetBoard(const TArray<FDIPiece>& InRing, const FDIPiece& InCenter);
+
+	void SetRingForTest(const TArray<FDIPiece>& InRing);
+	void SetCenterForTest(const FDIPiece& InCenter) { Center = Tag(InCenter); bCenterAbsorbed = false; }
 
 private:
+	FDIPiece Tag(FDIPiece Piece) { Piece.Id = NextId++; return Piece; }
 	void ResolveAll();
 	bool TryFuseAt(int32 PlusIndex);
 	void ApplyBreeze();
@@ -52,6 +56,7 @@ private:
 	int64 Score = 0;
 	int64 HighestValue = 0;
 	int32 Moves = 0;
+	uint32 NextId = 1;
 	bool bGameOver = false;
 	bool bCenterAbsorbed = false;
 };

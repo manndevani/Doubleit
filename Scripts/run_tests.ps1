@@ -20,6 +20,7 @@ $json = Join-Path $report 'index.json'
 if (-not (Test-Path $json)) { Write-Host "NO REPORT - see Saved\Logs\tests.log"; exit 2 }
 $r = Get-Content $json -Raw -Encoding UTF8 | ConvertFrom-Json
 foreach ($t in $r.tests) {
+    $t.entries | Where-Object { $_.event.message -like 'STAT *' } | ForEach-Object { Write-Host $_.event.message }
     if ($t.state -ne 'Success') {
         Write-Host "FAIL $($t.fullTestPath)"
         $t.entries | Where-Object { $_.event.type -eq 'Error' } | ForEach-Object { Write-Host "   $($_.event.message)" }

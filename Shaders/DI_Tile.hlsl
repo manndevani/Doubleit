@@ -55,20 +55,21 @@ struct FDITile
 };
 
 FDITile T;
+// Dusk Lagoon sea-glass palette (sRGB), one colour per ladder rank.
 const float3 Palette[12] =
 {
-	float3(0.616, 0.710, 0.627), // sage
-	float3(0.847, 0.765, 0.647), // sand
-	float3(0.788, 0.561, 0.478), // clay
-	float3(0.663, 0.612, 0.769), // lavender
-	float3(0.561, 0.702, 0.788), // mist
-	float3(0.890, 0.710, 0.643), // blush
-	float3(0.498, 0.663, 0.608), // teal
-	float3(0.788, 0.698, 0.420), // ochre
-	float3(0.706, 0.549, 0.651), // mauve
-	float3(0.435, 0.561, 0.686), // slate
-	float3(0.612, 0.561, 0.478), // taupe
-	float3(0.369, 0.490, 0.431)  // deep green
+	float3(0.498, 0.878, 0.761), // mint      #7FE0C2
+	float3(0.357, 0.753, 0.922), // aqua      #5BC0EB
+	float3(0.725, 0.651, 0.961), // lilac     #B9A6F5
+	float3(1.000, 0.831, 0.502), // sun       #FFD480
+	float3(0.969, 0.659, 0.784), // rose      #F7A8C8
+	float3(0.620, 0.902, 0.878), // seafoam   #9EE6E0
+	float3(0.549, 0.620, 1.000), // periwinkle#8C9EFF
+	float3(1.000, 0.765, 0.627), // peach     #FFC3A0
+	float3(0.247, 0.722, 0.686), // lagoon    #3FB8AF
+	float3(0.851, 0.545, 0.878), // orchid    #D98BE0
+	float3(0.902, 0.918, 0.949), // pearl     #E6EAF2
+	float3(0.180, 0.525, 0.671)  // deep sea  #2E86AB
 };
 
 // Screen-aligned tile space via the inverse UV Jacobian: glyphs stay upright whatever the mesh's UV layout.
@@ -87,17 +88,17 @@ float3 Fill;
 float Sd = 1e5;
 if (K == 1)
 {
-	Fill = float3(0.910, 0.659, 0.486);
+	Fill = float3(1.000, 0.608, 0.522); // coral #FF9B85
 	Sd = min(T.Seg(P, float2(-0.4, 0), float2(0.4, 0)), T.Seg(P, float2(0, -0.4), float2(0, 0.4))) - 0.09;
 }
 else if (K == 2)
 {
-	Fill = float3(0.522, 0.663, 0.788);
+	Fill = float3(0.357, 0.753, 0.922); // aqua #5BC0EB
 	Sd = T.Seg(P, float2(-0.4, 0), float2(0.4, 0)) - 0.09;
 }
 else if (K == 3)
 {
-	Fill = float3(0.980, 0.973, 0.957);
+	Fill = float3(0.949, 0.957, 0.973); // pearl #F2F4F8
 	float Glow = exp(-max(R - 0.92, 0) * 8) * 0.45;
 	Disc = max(Disc, Glow * (1 - Disc));
 }
@@ -110,6 +111,6 @@ else
 float InkAA = max(fwidth(Sd), 1e-4);
 float Ink = 1 - smoothstep(-InkAA, InkAA, Sd);
 float Luma = dot(Fill, float3(0.299, 0.587, 0.114));
-float3 InkColor = Luma > 0.62 ? float3(0.29, 0.27, 0.25) : float3(0.99, 0.98, 0.96);
+float3 InkColor = Luma > 0.62 ? float3(0.063, 0.137, 0.227) : float3(0.97, 0.98, 1.0); // deep ink #10233A / white
 float3 Srgb = lerp(Fill, InkColor, Ink);
 return float4(pow(Srgb, 2.2), Disc * Alpha);

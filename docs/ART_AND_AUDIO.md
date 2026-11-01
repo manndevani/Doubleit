@@ -1,36 +1,44 @@
-# Art & Audio Direction: minimal and soothing
+# Art & Audio Direction: "Dusk Lagoon"
+
+A calm night-water identity: deep teal-to-indigo water, sea-glass tiles, a softly glowing aqua ring.
+It deliberately avoids warm beige/clay "generic app" palettes.
 
 ## Principles
 
-- Calm over flashy: slow easing (≥ 250 ms, ease-in-out), no screen shake, no harsh flashes.
-- Few elements: a ring, tiles, a center piece and the score. Nothing else during play.
-- Number legibility first: high contrast between digits and tile, rounded geometric font.
+- Calm over flashy: slow exponential easing, no screen shake, no harsh flashes.
+- Few elements: ring, tiles, centre piece, score. Nothing else during play.
+- Number legibility first: digits switch between deep ink and white based on tile luminance.
 
-## Palette (draft; final values go in `DA_Palette` data asset)
+## Palette (source of truth: `Shaders/*.hlsl` for the board, `Source/DoubleIt/Game/DITheme.h` for UI)
 
-| Role | Light theme | Dark theme |
+| Role | Dark (signature) | Light |
 |---|---|---|
-| Background gradient | `#F4EFE9 → #E6DED6` | `#1E2330 → #141822` |
-| Ring line | `#CFC6BC` | `#3A4152` |
-| Plus | `#E8A87C` (peach) | same |
-| Minus | `#85A9C9` (mist blue) | same |
-| Breeze | `#FFFFFF` with soft glow | same |
-| Number tiles | hue steps around a muted wheel (sage, sand, clay, lavender…), one per ladder rank | same, brighter |
+| Background gradient | `#0F3B4C → #1B1F4A` | `#CFEFF0 → #E3E6FA` |
+| Ring line / glow | `#5FD3C6` + glow | `#3FA9A0` |
+| Fullness arc near full | → coral `#FF9B85` | same |
+| UI ink / soft ink | `#F2F4F8` / `#8FB3C4` | `#10233A` / `#5A7A8C` |
+| Buttons / panel | `#1E4A5C` / `#0C2433` | `#CDE9EC` / `#E3F3F4` |
+| Plus / Minus / Breeze | coral `#FF9B85` / aqua `#5BC0EB` / pearl `#F2F4F8` + glow | same |
+
+Tile ranks (1, 2, 4, 8… or 1, 2, 3… in Addition) cycle through 12 sea-glass colours:
+mint `#7FE0C2`, aqua `#5BC0EB`, lilac `#B9A6F5`, sun `#FFD480`, rose `#F7A8C8`, seafoam `#9EE6E0`,
+periwinkle `#8C9EFF`, peach `#FFC3A0`, lagoon `#3FB8AF`, orchid `#D98BE0`, pearl `#E6EAF2`, deep sea `#2E86AB`.
+
+Theme follows the phone (Android night mode via JNI, Windows app theme on desktop), with a manual light/dark override in the pause menu.
 
 ## Typography
 
-One rounded sans font (e.g. *Nunito* or *Quicksand*, both OFL-licensed). It is baked into the digit atlas for tiles and used
-directly in UMG.
+Nunito (OFL, `Content/DoubleIt/Fonts/`): static Regular for text and buttons; the variable file's ExtraLight default for the large score.
+Loaded from loose files (staged as NonUFS), so no font assets. Tile digits are procedural seven-segment glyphs in the tile shader.
 
-## Motion
+## Motion (`ADIRingActor`)
 
-- Placement: the tile eases in from the center (300 ms).
-- Fusion: neighbours glide into the merge point, then a soft scale pulse and ring ripple.
-- The background gradient drifts very slowly (60 s cycle).
+- Pieces are tracked by id: when the ring reflows they glide to their new angle.
+- Fusion: consumed pieces glide into the merge point and fade, and the result pulses in at 1.35× its size and settles.
+- New centre pieces grow from nothing; the background drifts on a ~60 s cycle.
 
-## Audio
+## Audio and haptics (all generated, no assets)
 
-- Soft marimba/kalimba plucks; pitch rises with chain depth (pentatonic, so it never clashes).
-- Optional ambient pad loop (toggle in settings).
-- Haptics: a light tick on placement and a slightly longer one on fusion (toggle).
-- Assets must be royalty-free/CC0; record the source of each one in `docs/DECISIONS.md`.
+- `Core/DISynth`: kalimba-like plucks (soft attack, decay, inharmonic partials) on a C-major pentatonic scale.
+- Place: low soft note. Fusion: one rising note per chain step (120 ms apart). Game over: gentle descending three notes.
+- Haptics: 10 ms on place, 18–48 ms on fusion by chain depth, 40 ms on game over. Toggles for sound and vibration live in the pause menu.

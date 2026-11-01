@@ -52,7 +52,9 @@ Each fusion adds `resultValue × chainDepth` (the first fusion is depth 1). The 
 The spawner is deterministic for a given seed, so a seed always replays the same game.
 
 - **Number range:** Doubling spawns `2^r` with `r ∈ [base, base+2]`, where `base = moves / 40`.
-  Addition spawns `v ∈ [1+base, 3+base]`.
+  Addition spawns `v ∈ [1+base, 2+base]` (two values only: its merges leave the spawn range quickly, so pairs must stay common).
+- **Balance check:** `DoubleIt.Sim.GreedyBalance` plays 20 seeded games per rule set with a greedy bot.
+  Latest results: Doubling averages 45 moves and a score of 355; Addition averages 54 moves and a score of 204.
 - **Plus:** guaranteed if none of the last 5 spawns was a Plus; otherwise a 17% chance.
 - **Minus:** 5% chance after move 10, never twice in a row.
 - **Breeze:** 1.5% chance after move 30, and only while the ring holds at least 12 pieces.
@@ -65,11 +67,15 @@ The spawner is deterministic for a given seed, so a seed always replays the same
 | Addition | later | Unlocked by reaching 1,000 points in Classic *(tune)*. |
 | Zen / Timed | later | Ideas only. |
 
-## Tutorial (v1, 6 steps, mirrors the reference)
+## Tutorial (`Core/DITutorial`, 6 scripted boards)
 
-1. Tap between two pieces to place.
-2. A Plus merges two equal numbers.
-3. Look for symmetry to start chains.
-4. Minus takes a piece out.
-5. Tap an absorbed piece to turn it into a Plus.
-6. A full ring ends the run; Breeze clears half of it.
+Shown on first launch and from the pause menu ("how to play"). A wrong move replays the step after a short pause.
+
+| Step | Board | Done when |
+|---|---|---|
+| 1 | `[2,4,8,4]`, centre 2 | any placement |
+| 2 | `[2,2,8,4]`, centre + | a fusion happened (otherwise retry) |
+| 3 | `[8,2,2,8,1,4]`, centre + | a chain of depth ≥ 2 (otherwise retry) |
+| 4 | `[2,4,16,4,8]`, centre − | a piece was lifted |
+| 5 | lifted 16 in the centre | the centre was turned into a + (otherwise retry) |
+| 6 | 16 pieces, centre Breeze | any placement |

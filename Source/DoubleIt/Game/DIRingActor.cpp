@@ -10,7 +10,9 @@
 namespace
 {
 	constexpr float PlaneMeshSize = 100.f; // /Engine/BasicShapes/Plane is 100x100
-	constexpr float EaseRate = 14.f;
+	constexpr float MoveRate = 10.f;
+	constexpr float FadeRate = 7.f;
+	constexpr float PulseScale = 1.35f;
 }
 
 ADIRingActor::ADIRingActor()
@@ -45,78 +47,174 @@ void ADIRingActor::BeginPlay()
 	Tiles->SetMaterial(0, LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/DoubleIt/Materials/M_Tile.M_Tile")));
 }
 
+void ADIRingActor::SetDark(bool bDark)
+{
+	Background->SetCustomPrimitiveDataFloat(1, bDark ? 1.f : 0.f);
+}
+
 void ADIRingActor::SyncFromGame(const FDIGame& Game)
 {
+	Rules = Game.GetRules();
 	const TArray<FDIPiece>& Ring = Game.GetRing();
-	const int32 Count = Ring.Num() + 1;
 
-	if (Visuals.Num() != Count)
+	struct FTarget
 	{
-		Visuals.SetNum(Count);
-		Tiles->ClearInstances();
-		for (int32 i = 0; i < Count; ++i)
+		FDIPiece Piece;
+		FVector2D Pos;
+		float Size;
+		bool bCenter;
+	};
+	TMap<uint32, FTarget> Targets;
+	if (!Game.IsGameOver())
+	{
+		Targets.Add(Game.GetCenter().Id, { Game.GetCenter(), FVector2D::ZeroVector, DIRingLayout::CenterSize, true });
+	}
+	for (int32 i = 0; i < Ring.Num(); ++i)
+	{
+		Targets.Add(Ring[i].Id, { Ring[i], DIRingLayout::TilePosition(i, Ring.Num()), DIRingLayout::TileSize, false });
+	}
+
+	TMap<uint32, uint32> ConsumedBy;
+	TSet<uint32> Results;
+	for (const FDIFusionEvent& Event : Game.GetLastEvents())
+	{
+		Results.Add(Event.ResultId);
+		for (uint32 Id : Event.ConsumedIds)
 		{
-			Tiles->AddInstance(FTransform::Identity, true);
+			ConsumedBy.Add(Id, Event.ResultId);
+		}
+	}
+	auto FinalTarget = [&](uint32 Id) -> const FTarget*
+	{
+		for (int32 Hop = 0; Hop < 32; ++Hop)
+		{
+			if (const FTarget* T = Targets.Find(Id))
+			{
+				return T;
+			}
+			const uint32* Next = ConsumedBy.Find(Id);
+			if (!Next)
+			{
+				return nullptr;
+			}
+			Id = *Next;
+		}
+		return nullptr;
+	};
+
+	TSet<uint32> Seen;
+	for (FTileVisual& V : Visuals)
+	{
+		if (const FTarget* T = Targets.Find(V.Piece.Id))
+		{
+			V.Piece = T->Piece;
+			V.TargetPos = T->Pos;
+			V.TargetSize = T->Size;
+			V.bCenter = T->bCenter;
+			V.bDying = false;
+			V.TargetAlpha = 1.f;
+			Seen.Add(V.Piece.Id);
+		}
+		else if (!V.bDying)
+		{
+			V.bDying = true;
+			V.bCenter = false;
+			V.TargetAlpha = 0.f;
+			V.TargetSize *= 0.6f;
+			if (ConsumedBy.Contains(V.Piece.Id))
+			{
+				if (const FTarget* Into = FinalTarget(V.Piece.Id))
+				{
+					V.TargetPos = Into->Pos;
+				}
+			}
 		}
 	}
 
-	Visuals[0].TargetPos = FVector2D::ZeroVector;
-	Visuals[0].TargetSize = Game.IsGameOver() ? 0.f : DIRingLayout::CenterSize;
-	WriteCustomData(0, Game.GetCenter(), Game.GetRules());
-
-	for (int32 i = 0; i < Ring.Num(); ++i)
+	for (const TPair<uint32, FTarget>& Pair : Targets)
 	{
-		Visuals[i + 1].TargetPos = DIRingLayout::TilePosition(i, Ring.Num());
-		Visuals[i + 1].TargetSize = DIRingLayout::TileSize;
-		WriteCustomData(i + 1, Ring[i], Game.GetRules());
+		if (Seen.Contains(Pair.Key))
+		{
+			continue;
+		}
+		const FTarget& T = Pair.Value;
+		FTileVisual& V = Visuals.AddDefaulted_GetRef();
+		V.Piece = T.Piece;
+		V.TargetPos = T.Pos;
+		V.TargetSize = T.Size;
+		V.bCenter = T.bCenter;
+		if (Results.Contains(Pair.Key))
+		{
+			V.Pos = T.Pos;
+			V.Size = T.Size * PulseScale;
+		}
+		else
+		{
+			V.Pos = T.bCenter ? FVector2D::ZeroVector : T.Pos;
+			V.Size = 0.f;
+		}
 	}
 
 	Background->SetCustomPrimitiveDataFloat(0, float(Ring.Num()) / FDIGame::MaxRingPieces);
-	PushTransforms();
-}
-
-void ADIRingActor::WriteCustomData(int32 Instance, const FDIPiece& Piece, EDIRuleSet Rules)
-{
-	float Rank = 0.f;
-	if (Piece.IsNumber())
-	{
-		Rank = Rules == EDIRuleSet::Doubling
-			? float(FMath::FloorLog2_64(uint64(FMath::Max<int64>(Piece.Value, 1))))
-			: float(Piece.Value);
-	}
-	Tiles->SetCustomDataValue(Instance, 0, float(FMath::Min<int64>(Piece.Value, 999999)));
-	Tiles->SetCustomDataValue(Instance, 1, float(uint8(Piece.Kind)));
-	Tiles->SetCustomDataValue(Instance, 2, Rank);
-	Tiles->SetCustomDataValue(Instance, 3, 1.f);
+	bAnimating = true;
+	PushInstances();
 }
 
 void ADIRingActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if (!bAnimating)
+	{
+		return;
+	}
 
-	const float Alpha = 1.f - FMath::Exp(-EaseRate * DeltaSeconds);
-	bool bMoving = false;
+	const float Move = 1.f - FMath::Exp(-MoveRate * DeltaSeconds);
+	const float Fade = 1.f - FMath::Exp(-FadeRate * DeltaSeconds);
+	bAnimating = false;
 	for (FTileVisual& V : Visuals)
 	{
-		bMoving |= !V.Pos.Equals(V.TargetPos, 0.1) || !FMath::IsNearlyEqual(V.Size, V.TargetSize, 0.1f);
-		V.Pos = FMath::Lerp(V.Pos, V.TargetPos, Alpha);
-		V.Size = FMath::Lerp(V.Size, V.TargetSize, Alpha);
+		V.Pos = FMath::Lerp(V.Pos, V.TargetPos, Move);
+		V.Size = FMath::Lerp(V.Size, V.TargetSize, Move);
+		V.Alpha = FMath::Lerp(V.Alpha, V.TargetAlpha, Fade);
+		bAnimating |= !V.Pos.Equals(V.TargetPos, 0.2) || !FMath::IsNearlyEqual(V.Size, V.TargetSize, 0.2f)
+			|| !FMath::IsNearlyEqual(V.Alpha, V.TargetAlpha, 0.01f);
 	}
-	if (bMoving)
-	{
-		PushTransforms();
-	}
+	Visuals.RemoveAll([](const FTileVisual& V) { return V.bDying && V.Alpha < 0.02f; });
+	PushInstances();
 }
 
-void ADIRingActor::PushTransforms()
+void ADIRingActor::PushInstances()
 {
 	TArray<FTransform> Transforms;
 	Transforms.Reserve(Visuals.Num());
+	for (const FTileVisual& V : Visuals)
+	{
+		// Centre above ring above dying pieces, so translucency sorts predictably.
+		const float Z = V.bCenter ? 2.f : (V.bDying ? 0.5f : 1.f);
+		Transforms.Emplace(FQuat::Identity, ToWorld(V.Pos, Z), FVector(FMath::Max(V.Size, 0.01f) / PlaneMeshSize));
+	}
+
+	if (Tiles->GetInstanceCount() != Visuals.Num())
+	{
+		Tiles->ClearInstances();
+		Tiles->AddInstances(Transforms, false);
+	}
+	else
+	{
+		Tiles->BatchUpdateInstancesTransforms(0, Transforms, false, false, true);
+	}
+
 	for (int32 i = 0; i < Visuals.Num(); ++i)
 	{
-		// Center draws slightly above the ring so translucency sorts predictably.
-		const float Z = i == 0 ? 2.f : 1.f;
-		Transforms.Emplace(FQuat::Identity, ToWorld(Visuals[i].Pos, Z), FVector(Visuals[i].Size / PlaneMeshSize));
+		const FDIPiece& P = Visuals[i].Piece;
+		float Rank = 0.f;
+		if (P.IsNumber())
+		{
+			Rank = Rules == EDIRuleSet::Doubling
+				? float(FMath::FloorLog2_64(uint64(FMath::Max<int64>(P.Value, 1))))
+				: float(P.Value);
+		}
+		Tiles->SetCustomData(i, { float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, Visuals[i].Alpha }, false);
 	}
-	Tiles->BatchUpdateInstancesTransforms(0, Transforms, true, true, true);
+	Tiles->MarkRenderStateDirty();
 }

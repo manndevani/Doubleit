@@ -19,5 +19,6 @@ protected:
 private:
 	void OnTouch(ETouchIndex::Type FingerIndex, FVector Location);
 	void OnClick();
+	void OnBack();
 	void HandleScreenTap(const FVector2D& ScreenPos);
 };

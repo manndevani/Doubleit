@@ -81,7 +81,8 @@ namespace
 	{
 		UMaterial* M = NewMaterial(TEXT("M_Tile"));
 		M->BlendMode = BLEND_Translucent;
-		M->bUsedWithInstancedStaticMeshes = true;
+		bool bNeedsRecompile = false;
+		M->SetMaterialUsage(bNeedsRecompile, MATUSAGE_InstancedStaticMeshes);
 
 		UMaterialExpression* UV = AddExpression<UMaterialExpressionTextureCoordinate>(M);
 		TArray<TPair<FName, UMaterialExpression*>> Inputs = { { TEXT("UV"), UV } };
@@ -115,9 +116,13 @@ namespace
 		Fill->ParameterName = TEXT("Fill");
 		Fill->bUseCustomPrimitiveData = true;
 		Fill->PrimitiveDataIndex = 0;
+		UMaterialExpressionScalarParameter* Dark = AddExpression<UMaterialExpressionScalarParameter>(M);
+		Dark->ParameterName = TEXT("Dark");
+		Dark->bUseCustomPrimitiveData = true;
+		Dark->PrimitiveDataIndex = 1;
 
 		UMaterialExpressionCustom* Custom = AddCustom(M, TEXT("DI_Background.hlsl"), CMOT_Float3,
-			{ { TEXT("ScreenUV"), Screen }, { TEXT("WP"), World }, { TEXT("Time"), Time }, { TEXT("Fill"), Fill } });
+			{ { TEXT("ScreenUV"), Screen }, { TEXT("WP"), World }, { TEXT("Time"), Time }, { TEXT("Fill"), Fill }, { TEXT("Dark"), Dark } });
 		M->GetEditorOnlyData()->EmissiveColor.Connect(0, Custom);
 		return SaveMaterial(M);
 	}

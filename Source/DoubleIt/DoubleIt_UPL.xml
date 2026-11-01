@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android additions used by Game/DIPlatform.cpp -->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+	<androidManifestUpdates>
+		<addPermission android:name="android.permission.VIBRATE"/>
+	</androidManifestUpdates>
+
+	<gameActivityClassAdditions>
+		<insert>
+	public boolean AndroidThunkJava_DIIsNightMode()
+	{
+		int mode = getResources().getConfiguration().uiMode &amp; android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+		return mode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+	}
+
+	public void AndroidThunkJava_DIVibrate(int ms)
+	{
+		android.os.Vibrator v = (android.os.Vibrator) getSystemService(android.content.Context.VIBRATOR_SERVICE);
+		if (v == null || !v.hasVibrator()) return;
+		if (android.os.Build.VERSION.SDK_INT &gt;= 26)
+			v.vibrate(android.os.VibrationEffect.createOneShot(ms, 60));
+		else
+			v.vibrate(ms);
+	}
+		</insert>
+	</gameActivityClassAdditions>
+</root>

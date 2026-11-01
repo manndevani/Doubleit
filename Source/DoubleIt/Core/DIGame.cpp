@@ -12,9 +12,26 @@ FDIGame::FDIGame(EDIRuleSet InRules, int32 Seed, const FDISpawnTuning& Tuning)
 		{
 			Piece = Spawner.Next(0, Ring.Num());
 		}
-		Ring.Add(Piece);
+		Ring.Add(Tag(Piece));
 	}
-	Center = Spawner.Next(0, Ring.Num());
+	Center = Tag(Spawner.Next(0, Ring.Num()));
+}
+
+void FDIGame::SetBoard(const TArray<FDIPiece>& InRing, const FDIPiece& InCenter)
+{
+	SetRingForTest(InRing);
+	SetCenterForTest(InCenter);
+	LastEvents.Reset();
+	bGameOver = false;
+}
+
+void FDIGame::SetRingForTest(const TArray<FDIPiece>& InRing)
+{
+	Ring.Reset();
+	for (const FDIPiece& Piece : InRing)
+	{
+		Ring.Add(Tag(Piece));
+	}
 }
 
 bool FDIGame::PlaceAt(int32 Slot)
@@ -61,7 +78,7 @@ bool FDIGame::ConvertCenterToPlus()
 	{
 		return false;
 	}
-	Center = FDIPiece::Plus();
+	Center = Tag(FDIPiece::Plus());
 	bCenterAbsorbed = false;
 	return true;
 }
@@ -103,13 +120,21 @@ bool FDIGame::TryFuseAt(int32 PlusIndex)
 			? DIRules::FirstFusion(Rules, Outer)
 			: DIRules::ChainFusion(Rules, Ring[CenterIndex].Value, Outer);
 
+		FDIFusionEvent Event;
+		Event.ConsumedIds[0] = L.Id;
+		Event.ConsumedIds[1] = R.Id;
+		Event.ConsumedIds[2] = Ring[CenterIndex].Id;
+
 		RemoveNeighbours(CenterIndex);
-		Ring[CenterIndex] = FDIPiece::Number(NewValue);
+		Ring[CenterIndex] = Tag(FDIPiece::Number(NewValue));
 		++Depth;
 
 		Score += NewValue * Depth;
 		HighestValue = FMath::Max(HighestValue, NewValue);
-		LastEvents.Add(FDIFusionEvent{ Depth, NewValue });
+		Event.ChainDepth = Depth;
+		Event.ResultValue = NewValue;
+		Event.ResultId = Ring[CenterIndex].Id;
+		LastEvents.Add(Event);
 	}
 	return Depth > 0;
 }
@@ -164,5 +189,5 @@ void FDIGame::FinishMove()
 		bGameOver = true;
 		return;
 	}
-	Center = Spawner.Next(Moves, Ring.Num());
+	Center = Tag(Spawner.Next(Moves, Ring.Num()));
 }

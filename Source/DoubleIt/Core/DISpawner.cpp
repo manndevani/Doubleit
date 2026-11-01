@@ -38,11 +38,11 @@ FDIPiece FDISpawner::Next(int32 Moves, int32 RingSize)
 FDIPiece FDISpawner::NextNumber(int32 Moves)
 {
 	const int32 Base = Moves / FMath::Max(1, Tuning.MovesPerRangeStep);
-	const int32 Offset = Stream.RandRange(0, 2);
-
 	if (Rules == EDIRuleSet::Doubling)
 	{
+		const int32 Offset = Stream.RandRange(0, 2);
 		return FDIPiece::Number(int64(1) << FMath::Min(Base + Offset, 62));
 	}
-	return FDIPiece::Number(1 + Base + Offset);
+	// Addition merges leave the spawn range quickly, so spawn only two adjacent values to keep pairs common.
+	return FDIPiece::Number(1 + Base + Stream.RandRange(0, 1));
 }
