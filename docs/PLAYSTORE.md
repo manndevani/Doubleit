@@ -2,9 +2,9 @@
 
 ## Account and listing
 - [ ] Google Play Console developer account (one-time $25)
-- [ ] App name, short description (80 chars), full description
+- [x] App name, short description (80 chars), full description: drafted in [STORE_LISTING.md](STORE_LISTING.md)
 - [ ] Icon 512×512, feature graphic 1024×500, ≥ 2 phone screenshots
-- [ ] Privacy policy URL (required: ads + billing)
+- [ ] Privacy policy URL (required: ads + billing); text drafted in [PRIVACY_POLICY.md](PRIVACY_POLICY.md), needs hosting
 - [ ] Content rating questionnaire, target audience (13+), Data safety form, Ads declaration
 
 ## Build
@@ -12,7 +12,8 @@
 - [ ] `StoreVersion` incremented on every upload; `VersionDisplayName` semver
 - [ ] targetSdk meets the current Play requirement (36 configured)
 - [ ] AAB (`bEnableBundle`), arm64-v8a, upload key signing, Play App Signing enrolled
-- [ ] Size: base module < 150 MB (target < 60 MB: no starter content, ASTC, strip unused plugins)
+- [ ] Size: base module < 150 MB (target < 60 MB). Shipping AAB is 69 MB (engine plugins off by default, English-only
+  ICU, no editor content); Development builds are ~150 MB (debug symbols, Vulkan validation layer)
 
 ## Quality
 - [ ] All automation tests green

@@ -319,8 +319,6 @@ bool FDIAdaptiveTest::RunTest(const FString&)
 	return true;
 }
 
-#endif
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDITutorialHintTest, "DoubleIt.Core.TutorialHintCompletesEachStep", DIM2TestFlags)
 bool FDITutorialHintTest::RunTest(const FString&)
 {
@@ -362,3 +360,5 @@ bool FDITutorialHintTest::RunTest(const FString&)
 	}
 	return true;
 }
+
+#endif

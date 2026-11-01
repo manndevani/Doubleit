@@ -3,6 +3,7 @@
 	"EngineAssociation": "5.8",
 	"Category": "",
 	"Description": "Double It - a calm number-merging ring puzzle",
+	"DisableEnginePluginsByDefault": true,
 	"Modules": [
 		{
 			"Name": "DoubleIt",
@@ -11,7 +12,6 @@
 		}
 	],
 	"Plugins": [
-		{ "Name": "ModelingToolsEditorMode", "Enabled": false },
 		{ "Name": "OnlineSubsystemGooglePlay", "Enabled": true, "SupportedTargetPlatforms": [ "Android" ] }
 	],
 	"TargetPlatforms": [ "Android", "Windows" ]

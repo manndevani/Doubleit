@@ -28,5 +28,5 @@ that touches play is the breeze, which can always be earned by playing too.
   requires one. No ad request is made before consent allows it.
 - Before release: replace the Google **test ids** in `Config/DefaultEngine.ini` `[DoubleIt.Ads]` (`AppId`,
   `BannerUnitId`) with the real AdMob ones; declare "Contains ads" and the AD_ID permission in the Play Console; the
-  privacy policy names AdMob and UMP.
+  privacy policy names AdMob and UMP (drafted in [PRIVACY_POLICY.md](PRIVACY_POLICY.md)).
 - Do not target ads to children. Set the content rating and target audience to 13+ unless we design for kids (Families policy).

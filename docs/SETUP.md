@@ -24,3 +24,12 @@ Restart the terminal (and the editor) afterwards so the new environment variable
 1. Generate an upload keystore: `keytool -genkeypair -v -keystore doubleit-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload`
 2. Put it in `Build/Android/` (**git-ignored**) and fill in *Project Settings → Android → Distribution Signing*.
 3. Enroll in Play App Signing (Google holds the app-signing key).
+
+## Packaging
+
+```powershell
+./Scripts/package_android.ps1             # Development: ~150 MB, debug symbols, validation layers
+./Scripts/package_android.ps1 -Shipping   # store build: AAB ~69 MB in Build/Packaged/Android_ASTC
+```
+Engine plugins are off by default (`DisableEnginePluginsByDefault` in `Doubleit.uproject`): a new plugin must be listed
+there. Only English text data is staged (`Config/DefaultGame.ini`).

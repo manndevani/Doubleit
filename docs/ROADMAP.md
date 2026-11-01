@@ -71,7 +71,9 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Ad defaults confirmed: opt-in, menus and game over only (see MONETIZATION.md)
 - [x] AdMob banner + UMP consent, opt-in in pause > support (Android side compiles, phone test pending; test ids until the AdMob account exists)
 - [ ] Play Billing: breeze packs (`breeze_3`, `breeze_10`) behind `IDIStore`, plus tips; breeze prices set ($0.99 / $2.49), tip tiers to decide
-- [ ] Store assets, privacy policy, closed test (12 testers / 14 days)
+- [x] Store text and privacy policy drafted (STORE_LISTING.md, PRIVACY_POLICY.md)
+- [x] APK size: Shipping AAB 69 MB (was 147 MB as Development with every engine plugin)
+- [ ] Store graphics, privacy policy hosted, closed test (12 testers / 14 days)
 - [ ] Play Games Services saved game for the profile (instant, cross-device; needs a Play Console app id)
 - [ ] Evaluate Block Store for the profile (reinstall persistence without sign-in; verify on a device first)
 - [ ] Privacy policy states play stats stay on the device and in the user's Google backup

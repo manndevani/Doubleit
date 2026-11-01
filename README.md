@@ -20,6 +20,8 @@ symmetric numbers around the merge keep chaining outward.
 | [docs/TESTING.md](docs/TESTING.md) | Automated test strategy, automation flags, test inventory |
 | [docs/SETUP.md](docs/SETUP.md) | Toolchain (UE 5.8, VS 2022, Android SDK/NDK) |
 | [docs/PLAYSTORE.md](docs/PLAYSTORE.md) | Release checklist for Google Play |
+| [docs/STORE_LISTING.md](docs/STORE_LISTING.md) | Store text, settings and Data safety answers (draft) |
+| [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md) | Privacy policy text to host (draft) |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Milestones + task checkboxes (the tracker) |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Decision log (why we chose what we chose) |
 | [docs/reference/ATOMAS_NOTES.md](docs/reference/ATOMAS_NOTES.md) | What we learned from the reference screenshots |
