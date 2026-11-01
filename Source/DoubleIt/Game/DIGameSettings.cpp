@@ -66,6 +66,7 @@ UDIGameSettings::UDIGameSettings()
 	Cue(TEXT("Lift"), { { 3, 0.18f, 0.f }, { 1, 0.16f, 0.07f } }, 8);
 	Cue(TEXT("GameOver"), { { 4, 0.25f, 0.f }, { 2, 0.25f, 0.3f }, { 0, 0.25f, 0.6f } }, 40);
 	Cue(TEXT("TutorialStep"), { { 2, 0.3f, 0.f }, { 4, 0.3f, 0.1f } });
+	Cue(TEXT("TutorialNudge"), { { -3, 0.12f, 0.f } }, 6); // soft and low: "not that one", never a buzzer
 	Cue(TEXT("HapticsOn"), {}, 20);
 
 	// Five-tone chords of C major (C D E G B, A C E G B...), so the steps keep the old pentatonic spacing and any

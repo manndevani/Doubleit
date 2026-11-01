@@ -26,6 +26,13 @@ public:
 	/** Puts the step's scripted board into Game. */
 	void SetupStep(FDIGame& Game) const;
 
+	/**
+	 * What this step makes of a board after a move, without moving on: Advance (the lesson), Continue (fine, keep
+	 * going) or Retry (not what this step teaches). The game mode tries each tap on a copy first and only plays it
+	 * when this is not Retry, so a wrong move is never played and then taken back.
+	 */
+	EDITutorialResult Judge(const FDIGame& After) const;
+
 	/** Call after every action that changed the board. Moves to the next step on Advance. */
 	EDITutorialResult Evaluate(const FDIGame& Game);
 

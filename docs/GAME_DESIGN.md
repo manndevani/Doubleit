@@ -101,7 +101,10 @@ Classic and Addition share every number except the reveal floor (32 vs 6). Per-m
 
 ## Tutorial (`Core/DITutorial`, 6 scripted boards)
 
-Shown on first launch and from the pause menu ("how to play"). A wrong move replays the step after a short pause.
+Shown on first launch and from the pause menu ("how to play"). The tutorial is strict: each tap is tried on a copy of the
+board first, and a move the step does not teach is never played. The instruction swells, the centre stone wobbles and a
+soft low note sounds, and the player simply tries again. While the lifted piece waits in the centre (step 5) the aim line
+is hidden, since the ring is not the answer. "(otherwise retry)" below means such moves are refused.
 
 | Step | Board | Done when |
 |---|---|---|

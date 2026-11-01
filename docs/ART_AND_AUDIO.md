@@ -110,4 +110,6 @@ plays them in response to game events; placed pieces name their own landing cue.
   a quiet low note settles chains of 2+. Breeze: quick high-to-low wind-chime cascade. Minus lift: two falling notes.
 - First-ever number (32+ in Classic): bright three-note chime and a sun-gold ripple. Passing your best mid-run:
   soft major chord, and the score swells and glows gold for 1.2 s. Game over: gentle descending three notes.
+- Tutorial nudge (a refused tap): one soft low note (step -3, volume 0.12) and a 6 ms tick, the instruction swells 7%
+  over 0.5 s and the centre stone wobbles. Never a buzzer.
 - Haptics: 8 ms on place and lift, 20–44 ms per chain collision by depth, 24 ms new best, 40 ms game over. Toggles for sound and vibration live in the pause menu.

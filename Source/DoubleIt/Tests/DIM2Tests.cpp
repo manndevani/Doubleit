@@ -161,6 +161,12 @@ bool FDITutorialTest::RunTest(const FString&)
 
 	// 1: [2,2,8,4] plus; wrong gap first, then the right one (between index 0 and 1 = 45 deg)
 	Tut.SetupStep(Game);
+	{
+		FDIGame Trial = Game;
+		DIRingLayout::ApplyTap(Trial, At(200));
+		TestTrue(TEXT("a wrong gap is judged Retry on a copy"), Tut.Judge(Trial) == EDITutorialResult::Retry);
+		TestEqual(TEXT("the real board is untouched"), Game.GetRing().Num(), 4);
+	}
 	DIRingLayout::ApplyTap(Game, At(200));
 	TestTrue(TEXT("wrong gap retries"), Tut.Evaluate(Game) == EDITutorialResult::Retry);
 	Tut.SetupStep(Game);
@@ -180,6 +186,13 @@ bool FDITutorialTest::RunTest(const FString&)
 	// 4: center tap converts
 	Tut.SetupStep(Game);
 	TestTrue(TEXT("step 4 starts with absorbed centre"), Game.CanConvertCenter());
+	{
+		// The game mode tries taps on a copy: placing the lifted piece is judged Retry, so it is never played.
+		FDIGame Trial = Game;
+		DIRingLayout::ApplyTap(Trial, At(30));
+		TestTrue(TEXT("placing the lifted piece is refused"), Tut.Judge(Trial) == EDITutorialResult::Retry);
+		TestEqual(TEXT("judging does not move the tutorial on"), Tut.GetStep(), 4);
+	}
 	DIRingLayout::ApplyTap(Game, FVector2D::ZeroVector);
 	TestTrue(TEXT("convert advances"), Tut.Evaluate(Game) == EDITutorialResult::Advance);
 

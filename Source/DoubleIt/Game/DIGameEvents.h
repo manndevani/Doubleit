@@ -43,6 +43,8 @@ public:
 	FDIEvent NewBest;
 	FDIEvent GameOver;
 	FDIEvent TutorialAdvanced;
+	/** A tap the tutorial step does not teach was refused: show where to tap instead. */
+	FDIEvent TutorialNudge;
 	/** The ring on show holds this share of its capacity (0..1); sent whenever the board is shown. */
 	FDIFillEvent RingFilled;
 	FDIPauseEvent PauseChanged;

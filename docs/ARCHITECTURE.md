@@ -27,7 +27,7 @@ Source/DoubleIt/
     DIPlayerController.*  touch press/drag = aim, release = place; mouse hover = aim, click = place; back/Esc = pause
     DIPawn.*         orthographic camera at the origin looking down -Z (+X = screen up)
     DIGameEvents.h   event hub (Observer, UWorldSubsystem): PiecePlaced, FusionStep, ChainSettled, NumberRevealed,
-                     NewBest, GameOver, TutorialAdvanced, StateChanged
+                     NewBest, GameOver, TutorialAdvanced, TutorialNudge, RingFilled, PauseChanged, StateChanged
     DIAudio.*        listens to events, plays named cues on the current chord (synth notes + haptics); streams the sea, loops the pads
     DIText.h         player text from the string table Content/DoubleIt/Text/DoubleIt.csv (DIText::Get)
     DIPlatform.*     night mode + vibrate (Android JNI via DoubleIt_UPL.xml, Windows registry on desktop)

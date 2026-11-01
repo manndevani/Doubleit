@@ -85,6 +85,18 @@ void ADIRingActor::BeginPlay()
 	if (UDIGameEvents* Events = UDIGameEvents::Get(this))
 	{
 		Events->NewBest.AddWeakLambda(this, [this]() { BloomGlow(1.f, true); });
+		Events->TutorialNudge.AddWeakLambda(this, [this]()
+		{
+			// The centre stone wobbles: "here".
+			for (FTileVisual& V : Visuals)
+			{
+				if (V.bCenter && !V.bDying)
+				{
+					Wobble(V, Feel().ImpactSquash, 0.f);
+					bAnimating = true;
+				}
+			}
+		});
 	}
 	PushGlow();
 }

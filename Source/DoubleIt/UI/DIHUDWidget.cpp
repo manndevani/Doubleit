@@ -20,6 +20,8 @@
 namespace
 {
 	constexpr float CelebrateSeconds = 1.2f;
+	constexpr float NudgeSeconds = 0.5f;
+	constexpr float NudgeSwell = 0.07f;
 	constexpr float SliderStep = 0.05f;
 	constexpr float SliderBar = 10.f, SliderKnob = 44.f; // thick enough for a thumb
 	/** Fonts are staged as loose files (DirectoriesToAlwaysStageAsNonUFS) so Slate can load them on device. */
@@ -180,6 +182,7 @@ void UDIHUDWidget::Bind(ADoubleItGameMode* InGameMode)
 	{
 		Events->StateChanged.AddUObject(this, &UDIHUDWidget::Refresh);
 		Events->NewBest.AddUObject(this, &UDIHUDWidget::CelebrateBest);
+		Events->TutorialNudge.AddUObject(this, &UDIHUDWidget::Nudge);
 	}
 }
 
@@ -188,9 +191,19 @@ void UDIHUDWidget::CelebrateBest()
 	CelebrateLeft = CelebrateSeconds;
 }
 
+void UDIHUDWidget::Nudge()
+{
+	NudgeLeft = NudgeSeconds;
+}
+
 void UDIHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	if (NudgeLeft > 0.f && TutorialText)
+	{
+		NudgeLeft = FMath::Max(NudgeLeft - InDeltaTime, 0.f);
+		TutorialText->SetRenderScale(FVector2D(1.f + NudgeSwell * FMath::Sin((1.f - NudgeLeft / NudgeSeconds) * PI)));
+	}
 	if (CelebrateLeft <= 0.f || !Score)
 	{
 		return;

@@ -197,7 +197,7 @@ void ADoubleItGameMode::HandleAim(const TOptional<FVector2D>& BoardPos)
 	const int32 Num = Game ? Game->GetRing().Num() : 0;
 	const bool bMinus = Game && DIPieces::Of(Game->GetCenter()).LiftsFromRing();
 	if (!BoardPos || !Game || bBoardPaused || bInputLocked || Game->IsGameOver() || DIRingLayout::IsCenter(*BoardPos)
-		|| (bMinus && Num == 0))
+		|| (bMinus && Num == 0) || (bInTutorial && Game->CanConvertCenter()))
 	{
 		RingActor->ClearAim();
 		return;
@@ -235,6 +235,16 @@ void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 	{
 		RestartRun();
 		return;
+	}
+	if (bInTutorial)
+	{
+		// Try the tap on a copy first: a move the step does not teach is never played (and so never taken back).
+		FDIGame Trial = *Game;
+		if (DIRingLayout::ApplyTap(Trial, BoardPos, RingOffset) && Tutorial.Judge(Trial) == EDITutorialResult::Retry)
+		{
+			Events->TutorialNudge.Broadcast();
+			return;
+		}
 	}
 
 	const TArray<FDIPiece> Before = Game->GetRing();

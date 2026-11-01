@@ -41,6 +41,7 @@ void UDIAudio::Listen(UDIGameEvents& Events)
 	Events.NewBest.AddUObject(this, &UDIAudio::Play, FName(TEXT("NewBest")), 0);
 	Events.GameOver.AddUObject(this, &UDIAudio::Play, FName(TEXT("GameOver")), 0);
 	Events.TutorialAdvanced.AddUObject(this, &UDIAudio::Play, FName(TEXT("TutorialStep")), 0);
+	Events.TutorialNudge.AddUObject(this, &UDIAudio::Play, FName(TEXT("TutorialNudge")), 0);
 	if (bSound)
 	{
 		StartAmbience();

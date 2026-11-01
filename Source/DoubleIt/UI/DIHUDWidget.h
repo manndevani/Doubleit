@@ -33,6 +33,9 @@ public:
 	/** Passing your best mid-run: the score swells and glows sun-gold, then settles back (~1.2 s). */
 	void CelebrateBest();
 
+	/** The tutorial refused a tap: the instruction swells once, pointing back at what to do. */
+	void Nudge();
+
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -59,6 +62,7 @@ private:
 	TWeakObjectPtr<ADoubleItGameMode> GameMode;
 	FLinearColor ScoreInk = FLinearColor::White;
 	float CelebrateLeft = 0.f;
+	float NudgeLeft = 0.f;
 
 	UPROPERTY() TObjectPtr<UCanvasPanel> Root;
 	UPROPERTY() TObjectPtr<UTextBlock> Score;

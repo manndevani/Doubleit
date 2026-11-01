@@ -23,7 +23,7 @@ void FDITutorial::SetupStep(FDIGame& Game) const
 	}
 }
 
-EDITutorialResult FDITutorial::Evaluate(const FDIGame& Game)
+EDITutorialResult FDITutorial::Judge(const FDIGame& Game) const
 {
 	bool bDone = false;
 	bool bWrong = false;
@@ -40,8 +40,17 @@ EDITutorialResult FDITutorial::Evaluate(const FDIGame& Game)
 
 	if (bDone)
 	{
-		++Step;
 		return EDITutorialResult::Advance;
 	}
 	return bWrong ? EDITutorialResult::Retry : EDITutorialResult::Continue;
+}
+
+EDITutorialResult FDITutorial::Evaluate(const FDIGame& Game)
+{
+	const EDITutorialResult Result = Judge(Game);
+	if (Result == EDITutorialResult::Advance)
+	{
+		++Step;
+	}
+	return Result;
 }
