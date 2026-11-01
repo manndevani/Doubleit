@@ -67,9 +67,9 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Breeze aim preview: the stones it would clear fade while you aim
 
 ## M3: Support page & store
-- [ ] (?) Ad defaults confirmed (see MONETIZATION.md)
+- [x] Ad defaults confirmed: opt-in, menus and game over only (see MONETIZATION.md)
 - [ ] AdMob banner + UMP consent
-- [ ] Play Billing: breeze packs (`breeze_3`, `breeze_10`) behind `IDIStore`, plus tips; prices to decide
+- [ ] Play Billing: breeze packs (`breeze_3`, `breeze_10`) behind `IDIStore`, plus tips; breeze prices set ($0.99 / $2.49), tip tiers to decide
 - [ ] Store assets, privacy policy, closed test (12 testers / 14 days)
 - [ ] Play Games Services saved game for the profile (instant, cross-device; needs a Play Console app id)
 - [ ] Evaluate Block Store for the profile (reinstall persistence without sign-in; verify on a device first)
