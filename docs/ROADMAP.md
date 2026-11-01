@@ -36,7 +36,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] UI in C++-built UMG: score, best, pause button, pause/settings panel (no Widget Blueprints)
 - [x] Nunito font (OFL) loaded from loose files
 - [x] Synthesized pentatonic sounds + haptics (Android JNI), sound/vibration toggles
-- [x] Soothing sound pass: glass voice with a baked room, chord progression melody, humanised notes, sea + pad ambience that warms as the ring fills, effects and sea volume sliders
+- [x] Soothing sound pass: glass voice with a baked room, chord progression melody, humanised notes, live never-looping sea + pad ambience that warms as the ring fills, effects and sea volume sliders
 - [x] Tutorial (6 scripted steps, retry on a wrong move), replayable from the menu
 - [x] Balance pass with the greedy `DoubleIt.Sim` bot (Addition spawn range narrowed)
 - [x] Android back / Esc toggles pause

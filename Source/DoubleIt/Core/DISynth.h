@@ -42,20 +42,14 @@ namespace DISynth
 	/** Interleaved stereo 16-bit PCM at SampleRate. */
 	DOUBLEIT_API TArray<int16> Note(const FVoice& Voice, float Frequency, float Volume);
 
-	/** A soft sea wash and a quiet pad, generated once. Loop lengths are whole seconds so the loop is seamless. */
+	/** A quiet pad, generated once as a loop of whole seconds so it is seamless. The sea is live: Core/DISea. */
 	struct FAmbience
 	{
 		int32 LoopSeconds = 24;
-		float WaveSeconds = 8.f;          // one swell of the sea, rounded so it fits the loop
-		float SeaLevel = 0.5f;
-		float SeaBrightness = 0.08f;      // one-pole low-pass amount (0..1): lower is darker, further away
 		TArray<float> PadHz = { 130.81f, 196.f, 261.63f }; // C3 G3 C4: an open fifth that sits under every chord
 		float PadLevel = 0.18f;
 		float PadDriftSeconds = 12.f;     // the pad's slow swell
 	};
-
-	/** Interleaved stereo 16-bit PCM at AmbienceRate: the sea wash. Seed changes the water, not the timing. */
-	DOUBLEIT_API TArray<int16> Sea(const FAmbience& Ambience, int32 Seed);
 
 	/** Interleaved stereo 16-bit PCM at AmbienceRate: a pad of sines at Hz with a slow swell. */
 	DOUBLEIT_API TArray<int16> Pad(const FAmbience& Ambience, const TArray<float>& Hz, float Level);

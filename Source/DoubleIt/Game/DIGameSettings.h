@@ -204,13 +204,13 @@ public:
 
 	/** Ambience (sea wash + calm pad, and a warm pad that grows as the ring fills) at full slider. */
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
-	float SeaGain = 0.22f;
+	float SeaGain = 0.3f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
-	float CalmPadGain = 0.35f;
+	float CalmPadGain = 0.18f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
-	float WarmPadGain = 0.3f;
+	float WarmPadGain = 0.2f;
 
 	/** E4 G4 D5: added over the calm pad as the ring fills, a gentle lift rather than an alarm. */
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")

@@ -3,6 +3,7 @@
 #include "DIGameSettings.h"
 #include "DIPlatform.h"
 #include "Core/DIPieceType.h"
+#include "Core/DISea.h"
 #include "Core/DISynth.h"
 #include "Components/AudioComponent.h"
 #include "Engine/World.h"
@@ -14,7 +15,8 @@ namespace
 {
 	constexpr float NoteLevel = 0.6f;     // synth headroom; cue volumes scale from here
 	constexpr float StopMargin = 0.05f;   // s after a note's tail before its component stops
-	constexpr int32 SeaSeed = 7;
+	constexpr int32 SeaBlockFrames = 2048;   // ~90 ms rendered per refill on the audio thread
+	constexpr float SeaPrimeSeconds = 0.5f;
 
 	TSharedRef<const TArray<uint8>> ToBytes(const TArray<int16>& Samples)
 	{
@@ -28,6 +30,7 @@ namespace
 
 void UDIAudio::Listen(UDIGameEvents& Events)
 {
+	Jitter.Initialize(int32(FPlatformTime::Cycles())); // a different sea and different little timing each session
 	Events.PiecePlaced.AddUObject(this, &UDIAudio::OnPiecePlaced);
 	Events.FusionStep.AddUObject(this, &UDIAudio::OnFusionStep);
 	Events.ChainSettled.AddUObject(this, &UDIAudio::OnChainSettled);
@@ -204,15 +207,14 @@ void UDIAudio::StartAmbience()
 		return;
 	}
 	const DISynth::FAmbience Ambience;
-	if (!SeaPcm)
+	if (!CalmPcm)
 	{
-		// Generated once (a few tens of ms) and kept: three loops of ~2 MB each.
-		SeaPcm = ToBytes(DISynth::Sea(Ambience, SeaSeed));
+		// Pads are generated once (a few tens of ms) and kept: two loops of ~2 MB each.
 		CalmPcm = ToBytes(DISynth::Pad(Ambience, Ambience.PadHz, Ambience.PadLevel));
 		WarmPcm = ToBytes(DISynth::Pad(Ambience, Settings().WarmPadHz, Ambience.PadLevel));
 	}
 	StopAmbience();
-	Sea = StartLoop(SeaPcm.ToSharedRef());
+	Sea = StartSea();
 	CalmPad = StartLoop(CalmPcm.ToSharedRef());
 	WarmPad = StartLoop(WarmPcm.ToSharedRef());
 	UpdateAmbience(Settings().AmbienceFadeSeconds);
@@ -246,7 +248,24 @@ void UDIAudio::UpdateAmbience(float FadeSeconds)
 	Fade(WarmPad, Settings().WarmPadGain * Fill * Level);
 }
 
-UAudioComponent* UDIAudio::StartLoop(const TSharedRef<const TArray<uint8>>& Pcm)
+UAudioComponent* UDIAudio::StartSea()
+{
+	// Live, never a loop: a new sea each session, rendered a block at a time whenever the stream runs low.
+	TSharedRef<FDISea> Water = MakeShared<FDISea>(DISynth::AmbienceRate, Jitter.RandHelper(MAX_int32));
+	USoundWaveProcedural* Wave = NewStream();
+	Wave->OnSoundWaveProceduralUnderflow.BindLambda([Water, Block = TArray<int16>()](USoundWaveProcedural* Procedural, int32 SamplesRequired) mutable
+	{
+		Block.Reset();
+		Water->Render(Block, FMath::Max(SamplesRequired / 2, SeaBlockFrames));
+		Procedural->QueueAudio(reinterpret_cast<const uint8*>(Block.GetData()), Block.Num() * sizeof(int16));
+	});
+	TArray<int16> Prime;
+	Water->Render(Prime, FMath::RoundToInt32(SeaPrimeSeconds * DISynth::AmbienceRate));
+	Wave->QueueAudio(reinterpret_cast<const uint8*>(Prime.GetData()), Prime.Num() * sizeof(int16));
+	return Spawn(Wave);
+}
+
+USoundWaveProcedural* UDIAudio::NewStream()
 {
 	USoundWaveProcedural* Wave = NewObject<USoundWaveProcedural>(this);
 	Wave->SetSampleRate(DISynth::AmbienceRate);
@@ -254,12 +273,23 @@ UAudioComponent* UDIAudio::StartLoop(const TSharedRef<const TArray<uint8>>& Pcm)
 	Wave->Duration = INDEFINITELY_LOOPING_DURATION;
 	Wave->SoundGroup = SOUNDGROUP_Default;
 	Wave->bLooping = false;
+	return Wave;
+}
+
+UAudioComponent* UDIAudio::StartLoop(const TSharedRef<const TArray<uint8>>& Pcm)
+{
+	USoundWaveProcedural* Wave = NewStream();
 	// Runs on the audio thread: queue the same loop again whenever it runs low. The buffer is shared and immutable.
 	Wave->OnSoundWaveProceduralUnderflow.BindLambda([Pcm](USoundWaveProcedural* Procedural, int32 SamplesRequired)
 	{
 		Procedural->QueueAudio(Pcm->GetData(), Pcm->Num());
 	});
 	Wave->QueueAudio(Pcm->GetData(), Pcm->Num());
+	return Spawn(Wave);
+}
+
+UAudioComponent* UDIAudio::Spawn(USoundWaveProcedural* Wave)
+{
 	// Starts silent; UpdateAmbience fades it in.
 	UAudioComponent* Component = UGameplayStatics::SpawnSound2D(GetWorld(), Wave, 1.f, 1.f, 0.f, nullptr, false, false);
 	if (Component)

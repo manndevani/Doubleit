@@ -23,7 +23,7 @@
 | `DoubleIt.Core.MinusAndConvert`, `Breeze`, `GameOver` | special pieces and the end condition |
 | `DoubleIt.Core.SpawnerDeterministicAndFair` | seed determinism, plus guarantee, minus/breeze gating |
 | `DoubleIt.Core.FusionEventsTrackIds` | event ids the renderer follows |
-| `DoubleIt.Core.Synth` | pentatonic and chord frequencies; note PCM (no clipping, decays, stereo width, no clicks at either end); ambience loops have the right length, never clip and loop without a seam |
+| `DoubleIt.Core.Synth` | pentatonic and chord frequencies; note PCM (no clipping, decays, stereo width, no clicks at either end); the pad loop has the right length and no seam; the live sea continues seamlessly across blocks, never clips, rises and falls with waves (logs `STAT sea rms`) and differs per seed |
 | `DoubleIt.Core.TutorialHappyPathAndRetry` | all 6 tutorial boards, retry on a wrong move |
 | `DoubleIt.Core.AdaptivePace` | neutral with no data, struggling/strong detection, bounds, one bad run is only a nudge, sim: helped runs last longer |
 | `DoubleIt.Layout.TilePositionsClockwiseFromTop`, `SlotAndTileHitTesting`, `TapRouting` | ring geometry and tap routing |

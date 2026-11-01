@@ -2,6 +2,7 @@
 #include "Core/DIAdaptive.h"
 #include "Core/DIGame.h"
 #include "Core/DIRingLayout.h"
+#include "Core/DISea.h"
 #include "Core/DISynth.h"
 #include "Core/DITutorial.h"
 
@@ -83,10 +84,10 @@ bool FDISynthTest::RunTest(const FString&)
 	TestEqual(TEXT("starts silent (no click)"), int32(Pcm[0]), 0);
 	TestTrue(TEXT("ends silent (no click)"), FMath::Abs(int32(Pcm.Last())) < 64);
 
-	// Ambience loops: right length, never clip, and the seam (last frame -> first frame) is no bigger than a normal step.
+	// Pad loop: right length, and the seam (last frame -> first frame) is no bigger than a normal step.
 	const DISynth::FAmbience Ambience;
-	for (const TArray<int16>& Loop : { DISynth::Sea(Ambience, 7), DISynth::Pad(Ambience, Ambience.PadHz, Ambience.PadLevel) })
 	{
+		const TArray<int16> Loop = DISynth::Pad(Ambience, Ambience.PadHz, Ambience.PadLevel);
 		TestEqual(TEXT("loop length"), Loop.Num(), 2 * Ambience.LoopSeconds * DISynth::AmbienceRate);
 		int32 MaxStep = 0;
 		for (int32 i = 2; i < Loop.Num(); ++i)
@@ -96,6 +97,48 @@ bool FDISynthTest::RunTest(const FString&)
 		const int32 Seam = FMath::Max(FMath::Abs(int32(Loop[0]) - int32(Loop[Loop.Num() - 2])), FMath::Abs(int32(Loop[1]) - int32(Loop.Last())));
 		TestTrue(TEXT("seamless loop"), Seam <= MaxStep);
 	}
+
+	// Live sea: rendering in blocks continues seamlessly, it never clips, and its level moves (waves), never a flat hiss.
+	constexpr int32 Rate = DISynth::AmbienceRate;
+	FDISea Whole(Rate, 11), Blocks(Rate, 11);
+	TArray<int16> A, B;
+	Whole.Render(A, Rate * 60);
+	for (int32 i = 0; i < 60 * 5; ++i)
+	{
+		Blocks.Render(B, Rate / 5); // 22050 / 5 is whole: 300 blocks are exactly 60 s
+	}
+	if (!TestEqual(TEXT("sea length"), B.Num(), A.Num()))
+	{
+		return false;
+	}
+	int32 MaxDiff = 0, SeaPeak = 0;
+	for (int32 i = 0; i < A.Num(); ++i)
+	{
+		MaxDiff = FMath::Max(MaxDiff, FMath::Abs(int32(A[i]) - int32(B[i])));
+		SeaPeak = FMath::Max(SeaPeak, FMath::Abs(int32(A[i])));
+	}
+	TestTrue(TEXT("blocks continue seamlessly"), MaxDiff <= 2);
+	TestTrue(TEXT("sea never clips"), SeaPeak < 32767);
+	TArray<double> Level; // RMS per half second
+	for (int32 w = 0; w < 120; ++w)
+	{
+		double Sum = 0;
+		for (int32 i = 0; i < Rate; ++i) // Rate samples = half a second of stereo
+		{
+			Sum += FMath::Square(double(A[w * Rate + i]));
+		}
+		Level.Add(FMath::Sqrt(Sum / Rate));
+	}
+	double Mean = 0, Var = 0;
+	for (double L : Level) Mean += L / Level.Num();
+	for (double L : Level) Var += FMath::Square(L - Mean) / Level.Num();
+	AddInfo(FString::Printf(TEXT("STAT sea rms mean %.0f, swing %.0f%%, peak %d"), Mean, 100.0 * FMath::Sqrt(Var) / Mean, SeaPeak));
+	TestTrue(TEXT("audible"), Mean > 1000.0);
+	TestTrue(TEXT("waves rise and fall"), FMath::Sqrt(Var) > 0.2 * Mean);
+	FDISea Other(Rate, 12);
+	TArray<int16> C;
+	Other.Render(C, Rate * 2);
+	TestTrue(TEXT("another seed is another sea"), FMemory::Memcmp(C.GetData(), A.GetData(), C.Num() * sizeof(int16)) != 0);
 	return true;
 }
 

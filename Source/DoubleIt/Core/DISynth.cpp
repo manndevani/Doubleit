@@ -124,52 +124,6 @@ TArray<int16> DISynth::Note(const FVoice& Voice, float Frequency, float Volume)
 	return Out;
 }
 
-TArray<int16> DISynth::Sea(const FAmbience& A, int32 Seed)
-{
-	// Brown-ish noise through a one-pole low-pass, swelling like slow waves. A tail is rendered past the loop
-	// end and cross-faded into the start, so the loop has no seam.
-	const int32 Loop = A.LoopSeconds * AmbienceRate;
-	const int32 Tail = AmbienceRate * 2;
-	const float Waves = FMath::Max(1.f, FMath::RoundToFloat(A.LoopSeconds / A.WaveSeconds));
-	FRandomStream Stream(Seed);
-	TArray<float> L, R;
-	L.SetNumUninitialized(Loop + Tail);
-	R.SetNumUninitialized(Loop + Tail);
-	float Fl = 0.f, Fr = 0.f;
-	for (int32 i = 0; i < Loop + Tail; ++i)
-	{
-		const float Phase = UE_TWO_PI * Waves * float(i) / Loop;
-		// Each swell rises slowly and falls back; left and right a little apart so it surrounds.
-		const float SwellL = FMath::Square(0.5f + 0.5f * FMath::Sin(Phase));
-		const float SwellR = FMath::Square(0.5f + 0.5f * FMath::Sin(Phase - 0.6f));
-		Fl += A.SeaBrightness * (Stream.FRandRange(-1.f, 1.f) - Fl);
-		Fr += A.SeaBrightness * (Stream.FRandRange(-1.f, 1.f) - Fr);
-		L[i] = Fl * (0.25f + 0.75f * SwellL);
-		R[i] = Fr * (0.25f + 0.75f * SwellR);
-	}
-	// The filtered noise is quiet; bring its peak to SeaLevel.
-	float Peak = 1e-4f;
-	for (int32 i = 0; i < Loop + Tail; ++i)
-	{
-		Peak = FMath::Max(Peak, FMath::Max(FMath::Abs(L[i]), FMath::Abs(R[i])));
-	}
-	TArray<int16> Out;
-	Out.SetNumUninitialized(Loop * 2);
-	for (int32 i = 0; i < Loop; ++i)
-	{
-		float Sl = L[i], Sr = R[i];
-		if (i < Tail)
-		{
-			const float W = float(i) / Tail;
-			Sl = Sl * W + L[Loop + i] * (1.f - W);
-			Sr = Sr * W + R[Loop + i] * (1.f - W);
-		}
-		Out[i * 2] = ToPcm(Sl / Peak * A.SeaLevel);
-		Out[i * 2 + 1] = ToPcm(Sr / Peak * A.SeaLevel);
-	}
-	return Out;
-}
-
 TArray<int16> DISynth::Pad(const FAmbience& A, const TArray<float>& Hz, float Level)
 {
 	const int32 Loop = A.LoopSeconds * AmbienceRate;

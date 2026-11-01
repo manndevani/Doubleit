@@ -53,6 +53,9 @@ private:
 	/** Fades every ambience layer to its level for the current sliders, fill and pause state. */
 	void UpdateAmbience(float FadeSeconds);
 	UAudioComponent* StartLoop(const TSharedRef<const TArray<uint8>>& Pcm);
+	UAudioComponent* StartSea();
+	class USoundWaveProcedural* NewStream();
+	UAudioComponent* Spawn(class USoundWaveProcedural* Wave);
 
 	bool bSound = true;
 	float EffectsVolume = 1.f;
@@ -63,7 +66,6 @@ private:
 	FRandomStream Jitter; // its own stream: humanising never touches the game's seeded randomness
 
 	TMap<int32, TArray<uint8>> PcmCache; // by frequency in centi-Hz
-	TSharedPtr<const TArray<uint8>> SeaPcm;
 	TSharedPtr<const TArray<uint8>> CalmPcm;
 	TSharedPtr<const TArray<uint8>> WarmPcm;
 

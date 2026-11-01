@@ -95,9 +95,14 @@ plays them in response to game events; placed pieces name their own landing cue.
   read when a cue starts, so an arpeggio never straddles a change. `Progression`, `MovesPerChord` in settings.
 - Humanising: every note's volume varies ±10%, and later notes of a cue start up to 12 ms late. The first note always
   plays at once, so taps feel instant. Its own random stream: the game's seeded randomness is untouched.
-- Ambience (22.05 kHz stereo loops, 24 s, generated once): a sea wash (brown-ish noise, slow 8 s swells, left and
-  right offset) and a calm pad on C3 G3 C4. A warm pad (E4 G4 D5) fades in with the ring fullness, a gentle lift
-  rather than an alarm. Pausing drops the ambience to 40% over 1.5 s. Sound off stops it.
+- Sea (`Core/DISea`, 22.05 kHz stereo): live, never a loop. It is rendered a block at a time on the audio thread from a
+  new seed each session. Waves arrive every 5-12 s, each with its own strength, side (left to right), swell (1.6-3.2 s)
+  and wash-back (2.5-5 s). A wave swells as a low rumble (220 Hz), opens up to a brighter hiss as it breaks (up to
+  2.6 kHz), then pulls back with bubbling foam (noise above 1.5 kHz, fluttering at ~14 Hz). A deep distant wash
+  (140 Hz) runs underneath, and a soft limiter rounds off overlapping waves. Sea gain 0.3.
+- Pads (22.05 kHz stereo loops of 24 s, generated once): a calm pad on C3 G3 C4 (gain 0.18), and a warm pad (E4 G4 D5,
+  gain 0.2) that fades in with the ring fullness, a gentle lift rather than an alarm. Kept low so they sit under the
+  sea instead of reading as a tone. Pausing drops the ambience to 40% over 1.5 s. Sound off stops it.
 - Volume sliders in the pause menu: effects (default 80%) and sea (default 50%). Live while dragging; saved when the
   finger lifts, and the effects slider plays a sample note at the new level.
 - Place: soft low note whose pitch follows where the piece lands (8 notes around the ring), so every move is musical.

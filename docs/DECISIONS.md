@@ -42,3 +42,4 @@
 | 2026-11-02 | Soft-body deform as a log-stretch pair (2 floats) computed on the CPU only while animating | Stretch and wobble add up and keep the area; a still board still costs no CPU |
 | 2026-11-02 | Status glow driven by eased fullness, bloom and game-over in the background shader | Shows how the run is going without any UI; one quad, no extra draw |
 | 2026-11-02 | Save v2 adds effects/ambience volumes (-1 = unset, filled from settings by MarkNew or the 1 -> 2 step) | Defaults stay in settings, not in the save class |
+| 2026-11-02 | Sea rendered live (Core/DISea, seeded waves on the audio thread) instead of a 24 s loop | A looped wash with even swells sounded like one tone on repeat; irregular waves with a swell, break and foam shape never repeat and cost a little CPU only while sound is on |

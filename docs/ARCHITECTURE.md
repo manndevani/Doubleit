@@ -1,5 +1,5 @@
 | Sounds and haptics (notes, delays, volumes, haptic ms), chord progression, ambience levels | `UDIGameSettings::Cues`, `Progression`, ambience gains | Project Settings > Game > Double It > Audio |
-| Voice timbre and ambience loop shape | `DISynth::FVoice`, `DISynth::FAmbience` defaults | edit the struct defaults |
+| Voice timbre, pad loops, sea waves | `DISynth::FVoice`, `DISynth::FAmbience`, `FDISea::FSettings` defaults | edit the struct defaults |
 | Soft bodies and status glow | `UDIGameSettings` > Body, Glow | Project Settings > Game > Double It |# Architecture
 
 ## Layers
@@ -16,7 +16,8 @@ Source/DoubleIt/
     DIGame.*         ring state machine: PlaceAt / AbsorbAt / ConvertCenterToPlus, events, PlacedRing
     DIRingLayout.*   ring geometry + hit testing with a ring offset; Reanchor (symmetric motion); ApplyTap
     DIAdaptive.*     player profile per mode, Learn / Skill / TuningFor (invisible adaptive pace)
-    DISynth.*        chord/scale frequencies, glass-voice notes with a baked room, sea and pad ambience loops (PCM)
+    DISynth.*        chord/scale frequencies, glass-voice notes with a baked room, pad ambience loops (PCM)
+    DISea.*          live sea that never loops: seeded waves (swell, break, foam) rendered block by block
     DITutorial.*     6 scripted boards, Evaluate -> Continue / Advance / Retry
   Game/            UE glue
     DoubleItGameMode.*            owns FDIGame, tutorial, save, audio, ring actor, HUD; tap/aim; move playback; learning
@@ -27,7 +28,7 @@ Source/DoubleIt/
     DIPawn.*         orthographic camera at the origin looking down -Z (+X = screen up)
     DIGameEvents.h   event hub (Observer, UWorldSubsystem): PiecePlaced, FusionStep, ChainSettled, NumberRevealed,
                      NewBest, GameOver, TutorialAdvanced, StateChanged
-    DIAudio.*        listens to events, plays named cues on the current chord (synth notes + haptics), ambience loops
+    DIAudio.*        listens to events, plays named cues on the current chord (synth notes + haptics); streams the sea, loops the pads
     DIText.h         player text from the string table Content/DoubleIt/Text/DoubleIt.csv (DIText::Get)
     DIPlatform.*     night mode + vibrate (Android JNI via DoubleIt_UPL.xml, Windows registry on desktop)
     DISaveGame.*     settings, per-mode bests and FDIProfileRecord map, tutorial flag; SaveVersion + ordered migration steps
