@@ -5,7 +5,17 @@
 #include "Core/DIMode.h"
 #include "DIGameSettings.generated.h"
 
-/** One note of a sound cue: pentatonic step (DISynth), volume 0..1, delay from the cue start. */
+/** A chord the melody follows: its tones as semitones above the harmony root, within one octave, sorted. */
+USTRUCT()
+struct FDIChord
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, Category = "Harmony") FName Name;
+	UPROPERTY(Config, EditAnywhere, Category = "Harmony") TArray<int32> Tones;
+};
+
+/** One note of a sound cue: a step on the current chord (step 0 = its first tone), volume 0..1, delay from the cue start. */
 USTRUCT()
 struct FDICueNote
 {
@@ -127,6 +137,21 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Motion")
 	float AimOpacityFar = 0.85f;
 
+	/** Status glow behind the board (Shaders/DI_Background.hlsl): its colour follows the ring fullness at this rate (1/s). */
+	UPROPERTY(Config, EditAnywhere, Category = "Glow")
+	float MoodRate = 1.5f;
+
+	/** A fusion blooms the glow by BloomFrom (a single merge) up to 1 (a long chain); the bloom fades at BloomFade (1/s). */
+	UPROPERTY(Config, EditAnywhere, Category = "Glow")
+	float BloomFrom = 0.25f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Glow")
+	float BloomFade = 1.6f;
+
+	/** How fast the glow sinks to dusk at game over and comes back on a new run (1/s). */
+	UPROPERTY(Config, EditAnywhere, Category = "Glow")
+	float OverRate = 1.2f;
+
 	/** Camera fit: world units across on a phone; we only ever zoom out from it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Layout")
 	float PhoneWidthUnits = 820.f;
@@ -158,6 +183,76 @@ public:
 	/** Chains this long or longer end with the ChainSettle cue. */
 	UPROPERTY(Config, EditAnywhere, Category = "Audio")
 	int32 ChainSettleFrom = 2;
+
+	/** Moves become melody: cue steps land on the tones of the current chord, which moves on every MovesPerChord. */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	TArray<FDIChord> Progression;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Audio", meta = (ClampMin = 1))
+	int32 MovesPerChord = 6;
+
+	/** Step 0 of the first octave, Hz (C5). */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	float HarmonyRootHz = 523.2511f;
+
+	/** Humanising: every note's volume varies by up to this share, and it starts up to this late. */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	float VolumeJitter = 0.1f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Audio", meta = (Units = "s"))
+	float TimingJitter = 0.012f;
+
+	/** Ambience (sea wash + calm pad, and a warm pad that grows as the ring fills) at full slider. */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	float SeaGain = 0.22f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	float CalmPadGain = 0.35f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	float WarmPadGain = 0.3f;
+
+	/** E4 G4 D5: added over the calm pad as the ring fills, a gentle lift rather than an alarm. */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	TArray<float> WarmPadHz = { 329.63f, 392.f, 587.33f };
+
+	/** The ambience drops to this share while paused. */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	float PausedAmbience = 0.4f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Audio", meta = (Units = "s"))
+	float AmbienceFadeSeconds = 1.5f;
+
+	/** Slider defaults for a new player (0..1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	float DefaultEffectsVolume = 0.8f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Audio")
+	float DefaultAmbienceVolume = 0.5f;
+
+	/** Moving stones stretch along their path: share of size per board unit/s, capped at StretchMax. */
+	UPROPERTY(Config, EditAnywhere, Category = "Body")
+	float StretchPerSpeed = 0.00008f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Body")
+	float StretchMax = 0.12f;
+
+	/** An impact squashes the stone it hits by this share; stones within ImpactReachTiles wobble less with distance. */
+	UPROPERTY(Config, EditAnywhere, Category = "Body")
+	float ImpactSquash = 0.14f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Body")
+	float NeighbourSquash = 0.06f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Body")
+	float ImpactReachTiles = 2.2f;
+
+	/** The wobble after an impact: frequency (rad/s) and how fast it dies (1/s). */
+	UPROPERTY(Config, EditAnywhere, Category = "Body")
+	float WobbleFreq = 19.f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Body")
+	float WobbleDecay = 6.f;
 
 	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 };

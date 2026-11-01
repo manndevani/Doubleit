@@ -6,6 +6,7 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/SafeZone.h"
+#include "Components/Slider.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Game/DIGameEvents.h"
@@ -19,6 +20,8 @@
 namespace
 {
 	constexpr float CelebrateSeconds = 1.2f;
+	constexpr float SliderStep = 0.05f;
+	constexpr float SliderBar = 10.f, SliderKnob = 44.f; // thick enough for a thumb
 	/** Fonts are staged as loose files (DirectoriesToAlwaysStageAsNonUFS) so Slate can load them on device. */
 	FSlateFontInfo NunitoFont(float Size, bool bLight = false)
 	{
@@ -142,6 +145,14 @@ void UDIHUDWidget::Build()
 	MakeButton(Menu, Label)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleTutorial);
 	Label->SetText(DIText::Get(TEXT("HUD.HowToPlay")));
 	MakeButton(Menu, SoundLabel)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleSound);
+	EffectsSlider = MakeVolume(Menu, TEXT("HUD.Effects"));
+	EffectsSlider->OnValueChanged.AddDynamic(this, &UDIHUDWidget::HandleEffects);
+	EffectsSlider->OnMouseCaptureEnd.AddDynamic(this, &UDIHUDWidget::HandleEffectsReleased);
+	EffectsSlider->OnControllerCaptureEnd.AddDynamic(this, &UDIHUDWidget::HandleEffectsReleased);
+	AmbienceSlider = MakeVolume(Menu, TEXT("HUD.Ambience"));
+	AmbienceSlider->OnValueChanged.AddDynamic(this, &UDIHUDWidget::HandleAmbience);
+	AmbienceSlider->OnMouseCaptureEnd.AddDynamic(this, &UDIHUDWidget::HandleAmbienceReleased);
+	AmbienceSlider->OnControllerCaptureEnd.AddDynamic(this, &UDIHUDWidget::HandleAmbienceReleased);
 	MakeButton(Menu, HapticsLabel)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleHaptics);
 	MakeButton(Menu, ThemeLabel)->OnClicked.AddDynamic(this, &UDIHUDWidget::HandleTheme);
 
@@ -150,7 +161,11 @@ void UDIHUDWidget::Build()
 		if (UVerticalBoxSlot* BoxSlot = Cast<UVerticalBoxSlot>(Child->Slot))
 		{
 			BoxSlot->SetHorizontalAlignment(HAlign_Fill);
-			if (Child != PauseTitle)
+			if (SliderLabels.Contains(Child))
+			{
+				BoxSlot->SetPadding(FMargin(0, 16, 0, 0)); // a label sits right on top of its slider
+			}
+			else if (Child != PauseTitle)
 			{
 				BoxSlot->SetPadding(FMargin(0, 12));
 			}
@@ -225,6 +240,24 @@ void UDIHUDWidget::ApplyTheme(const FDITheme& Theme)
 	PauseGlyph->SetColorAndOpacity(FSlateColor(Theme.SoftInk));
 
 	PausePanel->SetBrushColor(Theme.Panel);
+
+	FSliderStyle Bar;
+	Bar.SetNormalBarImage(FSlateRoundedBoxBrush(Theme.Button, SliderBar * 0.5f));
+	Bar.SetHoveredBarImage(FSlateRoundedBoxBrush(Theme.Button, SliderBar * 0.5f));
+	Bar.SetDisabledBarImage(FSlateRoundedBoxBrush(Theme.Button, SliderBar * 0.5f));
+	Bar.SetBarThickness(SliderBar);
+	const FSlateRoundedBoxBrush Knob(Theme.Ink, SliderKnob * 0.5f, FVector2f(SliderKnob));
+	Bar.SetNormalThumbImage(Knob);
+	Bar.SetHoveredThumbImage(Knob);
+	Bar.SetDisabledThumbImage(Knob);
+	for (USlider* Slider : { EffectsSlider.Get(), AmbienceSlider.Get() })
+	{
+		Slider->SetWidgetStyle(Bar);
+	}
+	for (UTextBlock* Text : SliderLabels)
+	{
+		Text->SetColorAndOpacity(FSlateColor(Theme.SoftInk));
+	}
 }
 
 void UDIHUDWidget::Refresh()
@@ -261,6 +294,8 @@ void UDIHUDWidget::Refresh()
 		SoundLabel->SetText(FText::Format(DIText::Get(TEXT("HUD.Sound")), OnOff(Save->bSound)));
 		HapticsLabel->SetText(FText::Format(DIText::Get(TEXT("HUD.Vibration")), OnOff(Save->bHaptics)));
 		ThemeLabel->SetText(FText::Format(DIText::Get(TEXT("HUD.Theme")), ThemeName(Save->ThemeMode)));
+		EffectsSlider->SetValue(Save->EffectsVolume);
+		AmbienceSlider->SetValue(Save->AmbienceVolume);
 	}
 }
 
@@ -271,3 +306,25 @@ void UDIHUDWidget::HandleTutorial() { if (GameMode.IsValid()) GameMode->StartTut
 void UDIHUDWidget::HandleSound() { if (GameMode.IsValid()) GameMode->ToggleSound(); }
 void UDIHUDWidget::HandleHaptics() { if (GameMode.IsValid()) GameMode->ToggleHaptics(); }
 void UDIHUDWidget::HandleTheme() { if (GameMode.IsValid()) GameMode->CycleTheme(); }
+void UDIHUDWidget::HandleEffects(float Value) { if (GameMode.IsValid()) GameMode->SetEffectsVolume(Value, false); }
+void UDIHUDWidget::HandleAmbience(float Value) { if (GameMode.IsValid()) GameMode->SetAmbienceVolume(Value, false); }
+
+// Live while dragging; saved once when the finger lifts (effects also play a sample at the new level).
+void UDIHUDWidget::HandleEffectsReleased() { if (GameMode.IsValid()) GameMode->SetEffectsVolume(EffectsSlider->GetValue(), true); }
+void UDIHUDWidget::HandleAmbienceReleased() { if (GameMode.IsValid()) GameMode->SetAmbienceVolume(AmbienceSlider->GetValue(), true); }
+
+USlider* UDIHUDWidget::MakeVolume(UVerticalBox* Menu, const TCHAR* LabelKey)
+{
+	UTextBlock* Label = MakeText(28.f);
+	Label->SetText(DIText::Get(LabelKey));
+	Menu->AddChildToVerticalBox(Label);
+	SliderLabels.Add(Label);
+
+	USlider* Slider = WidgetTree->ConstructWidget<USlider>();
+	Slider->SetStepSize(SliderStep);
+	Slider->SetMinValue(0.f);
+	Slider->SetMaxValue(1.f);
+	Slider->MouseUsesStep = true;
+	Menu->AddChildToVerticalBox(Slider);
+	return Slider;
+}

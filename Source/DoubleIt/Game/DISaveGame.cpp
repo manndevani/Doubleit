@@ -1,5 +1,6 @@
 #include "DISaveGame.h"
 #include "DoubleIt.h"
+#include "DIGameSettings.h"
 
 namespace
 {
@@ -19,9 +20,16 @@ namespace
 		Move(Save.BestAddition, DIModes::Addition);
 	}
 
+	/** 1 -> 2: effects and ambience volume sliders, starting at the defaults. */
+	void AudioLevels(UDISaveGame& Save)
+	{
+		Save.EffectsVolume = UDIGameSettings::Get().DefaultEffectsVolume;
+		Save.AmbienceVolume = UDIGameSettings::Get().DefaultAmbienceVolume;
+	}
+
 	/** Step i upgrades version i to i + 1. Only ever append; never edit a shipped step. */
 	using FMigrationStep = void (*)(UDISaveGame&);
-	constexpr FMigrationStep Steps[] = { &BestsByMode };
+	constexpr FMigrationStep Steps[] = { &BestsByMode, &AudioLevels };
 	static_assert(UE_ARRAY_COUNT(Steps) == UDISaveGame::CurrentVersion, "one migration step per version");
 }
 
@@ -38,4 +46,11 @@ bool UDISaveGame::Migrate()
 		Steps[SaveVersion](*this);
 	}
 	return bRan;
+}
+
+void UDISaveGame::MarkNew()
+{
+	SaveVersion = CurrentVersion;
+	EffectsVolume = UDIGameSettings::Get().DefaultEffectsVolume;
+	AmbienceVolume = UDIGameSettings::Get().DefaultAmbienceVolume;
 }

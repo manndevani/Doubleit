@@ -36,6 +36,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] UI in C++-built UMG: score, best, pause button, pause/settings panel (no Widget Blueprints)
 - [x] Nunito font (OFL) loaded from loose files
 - [x] Synthesized pentatonic sounds + haptics (Android JNI), sound/vibration toggles
+- [x] Soothing sound pass: glass voice with a baked room, chord progression melody, humanised notes, sea + pad ambience that warms as the ring fills, effects and sea volume sliders
 - [x] Tutorial (6 scripted steps, retry on a wrong move), replayable from the menu
 - [x] Balance pass with the greedy `DoubleIt.Sim` bot (Addition spawn range narrowed)
 - [x] Android back / Esc toggles pause
@@ -49,6 +50,8 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Android Auto Backup enabled (save restored after reinstall)
 - [x] Sea-glass pebble stones: seeded morphing outlines, GPU idle breathing, subtle springs (~3% overshoot)
 - [x] Alive stones: squash and stretch, occasional shrug, flowing outline, number and sheen sway (all GPU)
+- [x] Soft bodies: stones stretch along their path, squash on landing and impacts, neighbours wobble
+- [x] Status glow behind the board: colour gradient by fullness, blooms on chains (gold for finds), dusk at game over
 - [x] Mobile pass: MSAA off, 60 fps cap, CPU idle on a still board; layout verified at 5 screen shapes (`Scripts/screen_sizes.ps1`)
 - [x] Data-driven modes: rule-set strategy + per-mode config + registry; feel numbers in Project Settings
 - [x] Scalable structure: event hub, piece types + spawn table, versioned save, string table, sound cue data

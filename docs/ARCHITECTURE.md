@@ -1,4 +1,6 @@
-# Architecture
+| Sounds and haptics (notes, delays, volumes, haptic ms), chord progression, ambience levels | `UDIGameSettings::Cues`, `Progression`, ambience gains | Project Settings > Game > Double It > Audio |
+| Voice timbre and ambience loop shape | `DISynth::FVoice`, `DISynth::FAmbience` defaults | edit the struct defaults |
+| Soft bodies and status glow | `UDIGameSettings` > Body, Glow | Project Settings > Game > Double It |# Architecture
 
 ## Layers
 
@@ -14,7 +16,7 @@ Source/DoubleIt/
     DIGame.*         ring state machine: PlaceAt / AbsorbAt / ConvertCenterToPlus, events, PlacedRing
     DIRingLayout.*   ring geometry + hit testing with a ring offset; Reanchor (symmetric motion); ApplyTap
     DIAdaptive.*     player profile per mode, Learn / Skill / TuningFor (invisible adaptive pace)
-    DISynth.*        pentatonic note frequencies + kalimba-like pluck PCM
+    DISynth.*        chord/scale frequencies, glass-voice notes with a baked room, sea and pad ambience loops (PCM)
     DITutorial.*     6 scripted boards, Evaluate -> Continue / Advance / Retry
   Game/            UE glue
     DoubleItGameMode.*            owns FDIGame, tutorial, save, audio, ring actor, HUD; tap/aim; move playback; learning
@@ -25,7 +27,7 @@ Source/DoubleIt/
     DIPawn.*         orthographic camera at the origin looking down -Z (+X = screen up)
     DIGameEvents.h   event hub (Observer, UWorldSubsystem): PiecePlaced, FusionStep, ChainSettled, NumberRevealed,
                      NewBest, GameOver, TutorialAdvanced, StateChanged
-    DIAudio.*        listens to events, plays named cues from UDIGameSettings::Cues (synth notes + haptics)
+    DIAudio.*        listens to events, plays named cues on the current chord (synth notes + haptics), ambience loops
     DIText.h         player text from the string table Content/DoubleIt/Text/DoubleIt.csv (DIText::Get)
     DIPlatform.*     night mode + vibrate (Android JNI via DoubleIt_UPL.xml, Windows registry on desktop)
     DISaveGame.*     settings, per-mode bests and FDIProfileRecord map, tutorial flag; SaveVersion + ordered migration steps
@@ -78,7 +80,7 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
 
 - Orthographic camera, **unlit** materials, no dynamic lights, shadows or post (bloom, motion blur, auto exposure off).
 - Everything on the board is **one** `UInstancedStaticMeshComponent` of `/Engine/BasicShapes/Plane` quads, so one draw call.
-  Per-instance custom data `[value, kind, rank, alpha, seed]` drives `M_Tile`. Kinds: 0 number, 1 plus, 2 minus, 3 breeze,
+  Per-instance custom data `[value, kind, rank, alpha, seed, deform a, deform b]` drives `M_Tile`. Kinds: 0 number, 1 plus, 2 minus, 3 breeze,
   4 aim dot (value 1 = coral), 5 ripple ring (value 1 = gold reveal); for 4 and 5, rank 1 = light theme (ink).
 - `ADIRingActor` animates in **polar space** (angle + radius per visual, keyed by piece id): reflows and merges slide along
   the arc (shortest way round), placements travel out along a spoke, lifts travel in. Consumed pieces slide into the
@@ -90,8 +92,11 @@ finger up        -> controller -> GameMode::HandleTap -> DIRingLayout::ApplyTap(
   A second custom node (`Shaders/DI_TileBreath.hlsl`) feeds World Position Offset: idle breathing on the GPU.
   All alive motion (squash, shrug, flowing outline, inner sway) is per-pixel from Time + Seed: zero CPU while idle.
   Stone quads are padded by `TileQuadPad` (must equal the shader's `QuadPad`) so the stretch has room.
-- Background (`Shaders/DI_Background.hlsl`): drifting gradient, ring line, fullness arc (custom primitive data 0 = fill,
-  1 = dark). It reads absolute world position, so the camera may move.
+  Soft bodies: while animating, `Tick` computes each stone.s deform (stretch along its board velocity + impact wobble)
+  as a log-stretch pair; the shader samples with its exponential, so stretches add up and always keep the area.
+- Background (`Shaders/DI_Background.hlsl`): drifting gradient, status glow, ring line, fullness arc (custom primitive
+  data 0 = fill, 1 = dark, 2 = mood (eased fill), 3 = bloom, 4 = gold, 5 = over). `ADIRingActor` eases them in `Tick`:
+  fusions bloom it via `Impact`, game over comes from `SyncFromGame`, and it listens to `NewBest` for a gold bloom. It reads absolute world position, so the camera may move.
 - Camera fit (`ADIPawn::FitToViewport`, re-run when viewport size or UI scale changes): the ring is centred in the band
   between the top HUD (500 UMG units) and the game-over lines (80% height) by moving the pawn along world X, and the
   ortho width only zooms out from the 820-unit phone layout (squat screens, foldables), capped at 1.6 px per unit.
@@ -140,6 +145,8 @@ that reacts to the game subscribes to `UDIGameEvents` (a world subsystem with ty
 (achievements, analytics, leaderboards, another screen) is a new listener and needs no change to the game mode.
 Events fire when a moment is shown to the player, not when Core resolves it, so sound and HUD stay in step with playback.
 Fast-forwarded steps send no `FusionStep` / `ChainSettled`.
+`RingFilled(fraction)` is sent whenever the settled board is shown (the ambience warms with it) and `PauseChanged`
+when the pause menu opens or closes.
 
 ## Save versioning
 

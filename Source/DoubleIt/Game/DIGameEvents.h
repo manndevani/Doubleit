@@ -9,6 +9,8 @@ DECLARE_MULTICAST_DELEGATE(FDIEvent);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDIPieceEvent, const FDIPiece& /*Piece*/, float /*Angle*/);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDIFusionStepEvent, const FDIFusionEvent& /*Step*/, float /*Angle*/);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDIChainEvent, int32 /*Depth*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDIFillEvent, float /*Fraction*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDIPauseEvent, bool /*bPaused*/);
 
 /**
  * Event hub (Observer). The game mode announces what happened, as it is shown to the player; presenters (audio, HUD,
@@ -41,6 +43,9 @@ public:
 	FDIEvent NewBest;
 	FDIEvent GameOver;
 	FDIEvent TutorialAdvanced;
+	/** The ring on show holds this share of its capacity (0..1); sent whenever the board is shown. */
+	FDIFillEvent RingFilled;
+	FDIPauseEvent PauseChanged;
 	/** Score, board, pause, theme or settings changed: anything showing state should refresh. */
 	FDIEvent StateChanged;
 };

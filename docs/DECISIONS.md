@@ -37,3 +37,8 @@
 | 2026-11-01 | Player text in a CSV string table via `LOCTABLE_FROMFILE_GAME`, staged NonUFS | Ready for translation in the Localization Dashboard without assets; literal path so the gatherer finds it |
 | 2026-11-01 | Sound cues as data (`UDIGameSettings::Cues`) | Sounds tunable without code; events name cues, pieces name their landing cue |
 | 2026-11-02 | Alive motion in the pixel shader (area-keeping squash, seeded shrug, inner sway), quads padded 1.25x | Feels like a soft creature at zero CPU cost; padding instead of shrinking keeps stone size and tap areas unchanged |
+| 2026-11-02 | Notes follow a 5-tone chord progression (Cmaj9 Am9 Fmaj9 G6add9) instead of a fixed pentatonic | Same step spacing as before, but moves form a slowly changing harmony; five tones per chord keep every combination consonant |
+| 2026-11-02 | Room reverb baked into each cached note; ambience as generated loops re-queued on underflow | No runtime effect chain or submix to set up on mobile; a handful of cached notes (~250 KB each) and three ~2 MB loops |
+| 2026-11-02 | Soft-body deform as a log-stretch pair (2 floats) computed on the CPU only while animating | Stretch and wobble add up and keep the area; a still board still costs no CPU |
+| 2026-11-02 | Status glow driven by eased fullness, bloom and game-over in the background shader | Shows how the run is going without any UI; one quad, no extra draw |
+| 2026-11-02 | Save v2 adds effects/ambience volumes (-1 = unset, filled from settings by MarkNew or the 1 -> 2 step) | Defaults stay in settings, not in the save class |

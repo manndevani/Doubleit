@@ -61,13 +61,45 @@ All motion is polar (angle + radius), so nothing cuts across the inside of the r
 - Aim guide: while a finger is down (or the mouse hovers) a dotted spoke runs from the centre to the landing gap, with a larger dot
   at the gap. The piece is placed when the finger lifts. Settle after a move averages ~0.7 s including chain playback.
 
+## Status glow (`Shaders/DI_Background.hlsl`)
+
+A soft radial glow sits behind the board and shows how the run is going, as a tint, never a spotlight:
+- Its colour follows the ring fullness along a gradient: lagoon `#3FB8AF` (calm) → periwinkle `#8C9EFF` → sun `#FFD480`
+  → coral `#FF9B85` (nearly full). The fullness is eased (MoodRate 1.5/s), so the colour drifts rather than jumps.
+- A fusion blooms it (from 0.25 for a single merge to 1 for a long chain, fading at 1.6/s). A first-ever number or a
+  new best blooms it sun-gold.
+- At game over it sinks to dusk `#715A8F` at about half strength (OverRate 1.2/s) and comes back on a new run.
+- It breathes ±6% very slowly. Strength 0.2 on dark, 0.16 on light. Numbers live in `UDIGameSettings` > Glow and as
+  named constants at the top of the glow block in the shader.
+
+## Soft bodies (stones react to motion)
+
+`ADIRingActor` feeds each stone a deform (two floats of custom data, an area-keeping log-stretch) while it moves:
+- Stones stretch along their path by speed (0.00008 of size per unit/s, at most 12%), so slides, placements and the
+  ring re-anchoring all read as soft things moving through water.
+- Landing on the ring squashes the stone along its spoke (by arrival speed, at most 14%). A fusion impact squashes the
+  stone it hits by 14% and wobbles neighbours within 2.2 tiles by up to 6%, less with distance.
+- A wobble rings out at 19 rad/s and dies at 6/s, starting with the squash. All numbers: `UDIGameSettings` > Body.
+
 ## Audio and haptics (all generated, no assets)
 
-Every cue below is data: a named list of notes (pentatonic step, volume, delay) plus a haptic length, in
-`UDIGameSettings::Cues` (Project Settings > Game > Double It > Audio). Audio plays them in response to game events;
-placed pieces name their own landing cue.
+The rule for sound: subtle, never in the way of the game. Every cue below is data: a named list of notes (step,
+volume, delay) plus a haptic length, in `UDIGameSettings::Cues` (Project Settings > Game > Double It > Audio). Audio
+plays them in response to game events; placed pieces name their own landing cue.
 
-- `Core/DISynth`: kalimba-like plucks (soft attack, decay, inharmonic partials) on a C-major pentatonic scale.
+- Voice (`Core/DISynth::FVoice`): struck glass / soft marimba. Fundamental plus 2x, 3.93x and 6.8x partials that die
+  faster the higher they are, an 8 ms mallet attack, left and right detuned 3 cents apart for width, and a small
+  baked stereo room (four combs + two all-passes per channel, 1.4 s, 22% mix). 1.9 s per note, 32 kHz stereo.
+- Moves become melody: cue steps land on the tones of the current chord, which moves on every 6 placements through
+  Cmaj9 → Am9 → Fmaj9 → G6add9 (five tones each, all C major, so any order of moves stays in harmony). The chord is
+  read when a cue starts, so an arpeggio never straddles a change. `Progression`, `MovesPerChord` in settings.
+- Humanising: every note's volume varies ±10%, and later notes of a cue start up to 12 ms late. The first note always
+  plays at once, so taps feel instant. Its own random stream: the game's seeded randomness is untouched.
+- Ambience (22.05 kHz stereo loops, 24 s, generated once): a sea wash (brown-ish noise, slow 8 s swells, left and
+  right offset) and a calm pad on C3 G3 C4. A warm pad (E4 G4 D5) fades in with the ring fullness, a gentle lift
+  rather than an alarm. Pausing drops the ambience to 40% over 1.5 s. Sound off stops it.
+- Volume sliders in the pause menu: effects (default 80%) and sea (default 50%). Live while dragging; saved when the
+  finger lifts, and the effects slider plays a sample note at the new level.
 - Place: soft low note whose pitch follows where the piece lands (8 notes around the ring), so every move is musical.
 - Chain: one note per collision, each higher (step = depth + 1), played as the collision lands (~220 ms apart);
   a quiet low note settles chains of 2+. Breeze: quick high-to-low wind-chime cascade. Minus lift: two falling notes.

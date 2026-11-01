@@ -54,7 +54,7 @@ namespace
 		}
 	};
 
-	TMap<EDIPieceKind, TSharedRef<const IDIPieceType>>& Registry()
+	TMap<EDIPieceKind, TSharedRef<const IDIPieceType>>& PieceRegistry()
 	{
 		static TMap<EDIPieceKind, TSharedRef<const IDIPieceType>> Types = []
 		{
@@ -71,11 +71,11 @@ namespace
 
 const IDIPieceType& DIPieces::Get(EDIPieceKind Kind)
 {
-	const TSharedRef<const IDIPieceType>* Found = Registry().Find(Kind);
-	return Found ? Found->Get() : Registry().FindChecked(EDIPieceKind::Number).Get();
+	const TSharedRef<const IDIPieceType>* Found = PieceRegistry().Find(Kind);
+	return Found ? Found->Get() : PieceRegistry().FindChecked(EDIPieceKind::Number).Get();
 }
 
 void DIPieces::Register(EDIPieceKind Kind, TSharedRef<const IDIPieceType> Type)
 {
-	Registry().Add(Kind, Type);
+	PieceRegistry().Add(Kind, Type);
 }

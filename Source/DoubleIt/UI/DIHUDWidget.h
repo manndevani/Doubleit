@@ -9,6 +9,7 @@ class UBorder;
 class UButton;
 class UCanvasPanel;
 class UPanelWidget;
+class USlider;
 class UTextBlock;
 class UVerticalBox;
 struct FDITheme;
@@ -41,6 +42,7 @@ private:
 	UTextBlock* MakeText(float Size);
 	UButton* MakeButton(UPanelWidget* Parent, TObjectPtr<UTextBlock>& OutLabel, float FontSize = 34.f);
 	void ApplyTheme(const FDITheme& Theme);
+	USlider* MakeVolume(UVerticalBox* Menu, const TCHAR* LabelKey);
 
 	UFUNCTION() void HandlePause();
 	UFUNCTION() void HandleResume();
@@ -49,6 +51,10 @@ private:
 	UFUNCTION() void HandleSound();
 	UFUNCTION() void HandleHaptics();
 	UFUNCTION() void HandleTheme();
+	UFUNCTION() void HandleEffects(float Value);
+	UFUNCTION() void HandleAmbience(float Value);
+	UFUNCTION() void HandleEffectsReleased();
+	UFUNCTION() void HandleAmbienceReleased();
 
 	TWeakObjectPtr<ADoubleItGameMode> GameMode;
 	FLinearColor ScoreInk = FLinearColor::White;
@@ -69,6 +75,9 @@ private:
 	UPROPERTY() TObjectPtr<UTextBlock> ThemeLabel;
 	UPROPERTY() TArray<TObjectPtr<UButton>> MenuButtons;
 	UPROPERTY() TArray<TObjectPtr<UTextBlock>> MenuLabels;
+	UPROPERTY() TObjectPtr<USlider> EffectsSlider;
+	UPROPERTY() TObjectPtr<USlider> AmbienceSlider;
+	UPROPERTY() TArray<TObjectPtr<UTextBlock>> SliderLabels;
 
 	bool bLastDark = false;
 	bool bThemeApplied = false;

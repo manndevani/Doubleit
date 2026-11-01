@@ -66,8 +66,9 @@ void ADoubleItGameMode::BeginPlay()
 	}
 
 	Audio = NewObject<UDIAudio>(this);
-	Audio->bSound = Save->bSound;
+	Audio->SetSoundOn(Save->bSound);
 	Audio->bHaptics = Save->bHaptics;
+	Audio->SetVolumes(Save->EffectsVolume, Save->AmbienceVolume);
 	Audio->Listen(*Events);
 
 	RingActor = GetWorld()->SpawnActor<ADIRingActor>();
@@ -475,14 +476,36 @@ FText ADoubleItGameMode::GetTutorialProgress() const
 void ADoubleItGameMode::SetBoardPaused(bool bPaused)
 {
 	bBoardPaused = bPaused;
+	Events->PauseChanged.Broadcast(bPaused);
 	Events->StateChanged.Broadcast();
 }
 
 void ADoubleItGameMode::ToggleSound()
 {
 	Save->bSound = !Save->bSound;
-	Audio->bSound = Save->bSound;
+	Audio->SetSoundOn(Save->bSound);
 	PersistSettings();
+}
+
+void ADoubleItGameMode::SetEffectsVolume(float Volume, bool bPersist)
+{
+	Save->EffectsVolume = FMath::Clamp(Volume, 0.f, 1.f);
+	Audio->SetVolumes(Save->EffectsVolume, Save->AmbienceVolume);
+	if (bPersist)
+	{
+		Audio->Play(TEXT("TutorialStep")); // a sample at the new level
+		PersistSettings();
+	}
+}
+
+void ADoubleItGameMode::SetAmbienceVolume(float Volume, bool bPersist)
+{
+	Save->AmbienceVolume = FMath::Clamp(Volume, 0.f, 1.f);
+	Audio->SetVolumes(Save->EffectsVolume, Save->AmbienceVolume);
+	if (bPersist)
+	{
+		PersistSettings();
+	}
 }
 
 void ADoubleItGameMode::ToggleHaptics()
@@ -541,6 +564,7 @@ void ADoubleItGameMode::BoardChanged()
 	if (RingActor && Game)
 	{
 		RingActor->SyncFromGame(*Game, RingOffset);
+		Events->RingFilled.Broadcast(float(Game->GetRing().Num()) / FMath::Max(Game->GetMaxRingPieces(), 1));
 	}
 	if (IsGameOver() && !bInTutorial)
 	{

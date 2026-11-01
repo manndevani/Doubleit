@@ -49,10 +49,16 @@ bool FDISynthTest::RunTest(const FString&)
 	TestTrue(TEXT("step -5 is C4"), FMath::IsNearlyEqual(DISynth::PentatonicFrequency(-5), 261.63f, 0.1f));
 	TestTrue(TEXT("step -1 is A4"), FMath::IsNearlyEqual(DISynth::PentatonicFrequency(-1), 440.f, 0.1f));
 
-	const TArray<int16> Pcm = DISynth::Pluck(440.f, 1.f, 0.5f);
-	TestEqual(TEXT("length"), Pcm.Num(), DISynth::SampleRate);
+	// Chords: step 0 is the chord's first tone, one octave per Tones.Num() steps.
+	const TArray<int32> G6add9 = { 2, 4, 7, 9, 11 };
+	TestTrue(TEXT("chord step 0 is D5"), FMath::IsNearlyEqual(DISynth::ScaleFrequency(0, G6add9, 523.2511f), 587.33f, 0.1f));
+	TestTrue(TEXT("chord step -5 is D4"), FMath::IsNearlyEqual(DISynth::ScaleFrequency(-5, G6add9, 523.2511f), 293.66f, 0.1f));
+
+	const DISynth::FVoice Voice;
+	const TArray<int16> Pcm = DISynth::Note(Voice, 440.f, 0.5f);
+	TestEqual(TEXT("stereo length"), Pcm.Num(), 2 * FMath::RoundToInt32(Voice.Seconds * DISynth::SampleRate));
 	int32 Peak = 0;
-	double Head = 0, Tail = 0;
+	double Head = 0, Tail = 0, Side = 0;
 	for (int32 i = 0; i < Pcm.Num(); ++i)
 	{
 		const int32 Abs = FMath::Abs(int32(Pcm[i]));
@@ -65,11 +71,31 @@ bool FDISynthTest::RunTest(const FString&)
 		{
 			Tail += Abs;
 		}
+		if (i % 2 == 0)
+		{
+			Side += FMath::Abs(int32(Pcm[i]) - int32(Pcm[i + 1]));
+		}
 	}
 	TestTrue(TEXT("never clips at half volume"), Peak <= 16384 + 64);
 	TestTrue(TEXT("audible"), Peak > 4000);
-	TestTrue(TEXT("decays"), Tail < Head * 0.2);
+	TestTrue(TEXT("decays"), Tail < Head * 0.1);
+	TestTrue(TEXT("wide: left and right differ"), Side > 0);
 	TestEqual(TEXT("starts silent (no click)"), int32(Pcm[0]), 0);
+	TestTrue(TEXT("ends silent (no click)"), FMath::Abs(int32(Pcm.Last())) < 64);
+
+	// Ambience loops: right length, never clip, and the seam (last frame -> first frame) is no bigger than a normal step.
+	const DISynth::FAmbience Ambience;
+	for (const TArray<int16>& Loop : { DISynth::Sea(Ambience, 7), DISynth::Pad(Ambience, Ambience.PadHz, Ambience.PadLevel) })
+	{
+		TestEqual(TEXT("loop length"), Loop.Num(), 2 * Ambience.LoopSeconds * DISynth::AmbienceRate);
+		int32 MaxStep = 0;
+		for (int32 i = 2; i < Loop.Num(); ++i)
+		{
+			MaxStep = FMath::Max(MaxStep, FMath::Abs(int32(Loop[i]) - int32(Loop[i - 2])));
+		}
+		const int32 Seam = FMath::Max(FMath::Abs(int32(Loop[0]) - int32(Loop[Loop.Num() - 2])), FMath::Abs(int32(Loop[1]) - int32(Loop.Last())));
+		TestTrue(TEXT("seamless loop"), Seam <= MaxStep);
+	}
 	return true;
 }
 

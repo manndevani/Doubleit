@@ -12,6 +12,8 @@ HUD.Vibration,"vibration: {0}",{0} = HUD.On / HUD.Off
 HUD.Theme,"theme: {0}",{0} = a Theme.* entry
 HUD.On,"on",
 HUD.Off,"off",
+HUD.Effects,"effects",volume slider for game sounds
+HUD.Ambience,"sea",volume slider for the sea ambience
 Theme.System,"follow phone",
 Theme.Light,"light",
 Theme.Dark,"dark",

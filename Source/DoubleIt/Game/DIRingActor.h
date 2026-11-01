@@ -13,7 +13,7 @@ class UStaticMeshComponent;
  * Draws the board: one instanced quad per visible piece and a full-screen background quad.
  * Visuals are keyed by piece id and animated in polar space: reflows and merges slide along the
  * ring arc, placements and lifts travel radially, fused pieces fade, and fusion results pulse in.
- * Per-instance custom data feeds M_Tile: [0] value, [1] kind, [2] colour rank, [3] alpha.
+ * Per-instance custom data feeds M_Tile: [0] value, [1] kind, [2] colour rank, [3] alpha, [4] seed, [5..6] deform.
  */
 UCLASS()
 class DOUBLEIT_API ADIRingActor : public AActor
@@ -67,11 +67,20 @@ private:
 		float Seed = 0.f;      // 0..1 from the piece id: pebble outline and breathing phase
 		float Alpha = 1.f;
 		float TargetAlpha = 1.f;
+		// Soft body: a damped wobble along WobbleAngle after an impact, and Deform (log-stretch [a, b], see M_Tile) to draw.
+		float WobbleAge = TNumericLimits<float>::Max();
+		float WobbleAmp = 0.f;
+		float WobbleAngle = 0.f;
+		FVector2f Deform = FVector2f::ZeroVector;
 		bool bCenter = false;
 		bool bDying = false;
 	};
 
 	void PushInstances();
+	/** Starts a wobble on V (squash along Angle by Amp, a share of size) unless a stronger one is still running. */
+	static void Wobble(FTileVisual& V, float Amp, float Angle);
+	/** Remaining wobble amplitude of V now. */
+	static float WobbleLeft(const FTileVisual& V);
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Background;
@@ -97,5 +106,14 @@ private:
 	bool bAimAtTile = false;
 	bool bLightTheme = false; // aim dots and ripples turn ink on the light background
 	FDIMode Mode; // colour ranks and ring capacity of the mode on show
+	// Status glow (M_Background custom primitive data 2..5): eased fullness, bloom, gold share, eased game over.
+	float Mood = 0.f;
+	float MoodTarget = 0.f;
+	float Bloom = 0.f;
+	float Gold = 0.f;
+	float Over = 0.f;
+	float OverTarget = 0.f;
+	void BloomGlow(float Amount, bool bGold);
+	void PushGlow();
 	bool bAnimating = false;
 };

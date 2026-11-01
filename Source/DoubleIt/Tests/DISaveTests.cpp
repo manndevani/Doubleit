@@ -1,5 +1,6 @@
 #include "Misc/AutomationTest.h"
 #include "Game/DISaveGame.h"
+#include "Game/DIGameSettings.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -17,10 +18,12 @@ bool FDISaveMigrationTest::RunTest(const FString&)
 	TestEqual(TEXT("classic best kept (higher wins)"), Old->Bests.FindRef(DIModes::Classic), int64(1152));
 	TestEqual(TEXT("addition best moved"), Old->Bests.FindRef(DIModes::Addition), int64(40));
 	TestEqual(TEXT("old field cleared"), Old->BestDoubling, int64(0));
+	TestEqual(TEXT("volume sliders get their defaults"), Old->AmbienceVolume, UDIGameSettings::Get().DefaultAmbienceVolume);
 	TestFalse(TEXT("second run is a no-op"), Old->Migrate());
 
 	UDISaveGame* Fresh = NewObject<UDISaveGame>();
 	Fresh->MarkNew();
+	TestTrue(TEXT("fresh save has volumes"), Fresh->EffectsVolume >= 0.f);
 	TestFalse(TEXT("fresh save needs nothing"), Fresh->Migrate());
 
 	UDISaveGame* Future = NewObject<UDISaveGame>();

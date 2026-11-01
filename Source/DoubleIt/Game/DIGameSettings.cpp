@@ -1,4 +1,4 @@
-#include "DIGameSettings.h"
+﻿#include "DIGameSettings.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Core/DIPieceType.h"
 
@@ -47,7 +47,7 @@ FDIMode UDIGameSettings::MakeMode(FName Key)
 
 UDIGameSettings::UDIGameSettings()
 {
-	// Default cues (C-major pentatonic steps, see Core/DISynth). DefaultGame.ini may override any of them.
+	// Default cues (steps on the current chord of Progression, see Core/DISynth). DefaultGame.ini may override any of them.
 	auto Cue = [this](const TCHAR* Name, TArray<FDICueNote> Notes, int32 HapticMs = 0) -> FDISoundCue&
 	{
 		FDISoundCue& C = Cues.Add(Name);
@@ -67,4 +67,13 @@ UDIGameSettings::UDIGameSettings()
 	Cue(TEXT("GameOver"), { { 4, 0.25f, 0.f }, { 2, 0.25f, 0.3f }, { 0, 0.25f, 0.6f } }, 40);
 	Cue(TEXT("TutorialStep"), { { 2, 0.3f, 0.f }, { 4, 0.3f, 0.1f } });
 	Cue(TEXT("HapticsOn"), {}, 20);
+
+	// Five-tone chords of C major (C D E G B, A C E G B...), so the steps keep the old pentatonic spacing and any
+	// order of moves lands in harmony. I - vi - IV - V, all with soft added notes, nothing to resolve urgently.
+	Progression = {
+		{ TEXT("Cmaj9"), { 0, 2, 4, 7, 11 } },
+		{ TEXT("Am9"), { 0, 4, 7, 9, 11 } },
+		{ TEXT("Fmaj9"), { 0, 4, 5, 7, 9 } },
+		{ TEXT("G6add9"), { 2, 4, 7, 9, 11 } },
+	};
 }

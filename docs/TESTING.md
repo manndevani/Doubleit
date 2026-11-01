@@ -23,14 +23,14 @@
 | `DoubleIt.Core.MinusAndConvert`, `Breeze`, `GameOver` | special pieces and the end condition |
 | `DoubleIt.Core.SpawnerDeterministicAndFair` | seed determinism, plus guarantee, minus/breeze gating |
 | `DoubleIt.Core.FusionEventsTrackIds` | event ids the renderer follows |
-| `DoubleIt.Core.Synth` | pentatonic frequencies, pluck PCM |
+| `DoubleIt.Core.Synth` | pentatonic and chord frequencies; note PCM (no clipping, decays, stereo width, no clicks at either end); ambience loops have the right length, never clip and loop without a seam |
 | `DoubleIt.Core.TutorialHappyPathAndRetry` | all 6 tutorial boards, retry on a wrong move |
 | `DoubleIt.Core.AdaptivePace` | neutral with no data, struggling/strong detection, bounds, one bad run is only a nudge, sim: helped runs last longer |
 | `DoubleIt.Layout.TilePositionsClockwiseFromTop`, `SlotAndTileHitTesting`, `TapRouting` | ring geometry and tap routing |
 | `DoubleIt.Layout.ReanchorIsSymmetric` | placed piece lands in the aimed gap, fusion result lands where the plus was, offset hit testing |
 | `DoubleIt.Sim.GreedyBalance`, `RandomPlayTerminates` | balance stats (`STAT` lines) and that random play always ends |
 | `DoubleIt.Modes.Registry`, `CustomModePlays`, `ConfigDrivesRules` | built-in modes, fallback key, a test-only mode registered and played with no game code changes, config fields (start ring, ring limit, breeze share, adaptive bounds) drive the rules |
-| `DoubleIt.Save.Migrations` | a pre-versioning save migrates (bests move to the per-mode map, higher wins), re-running is a no-op, fresh saves need nothing, newer saves are left alone (expected warning) |
+| `DoubleIt.Save.Migrations` | a pre-versioning save migrates (bests move to the per-mode map, higher wins; v2 volume sliders get their defaults), re-running is a no-op, fresh saves need nothing, newer saves are left alone (expected warning) |
 
 Latest: 23 passed (1 with an expected warning). Playthrough: PASS, 112 moves, 0 mismatches, settle ~0.7 s average including chain playback.
 

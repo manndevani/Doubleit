@@ -86,7 +86,7 @@ namespace
 
 		UMaterialExpression* UV = AddExpression<UMaterialExpressionTextureCoordinate>(M);
 		TArray<TPair<FName, UMaterialExpression*>> Inputs = { { TEXT("UV"), UV } };
-		const TCHAR* DataNames[] = { TEXT("Value"), TEXT("Kind"), TEXT("Rank"), TEXT("Alpha"), TEXT("Seed") };
+		const TCHAR* DataNames[] = { TEXT("Value"), TEXT("Kind"), TEXT("Rank"), TEXT("Alpha"), TEXT("Seed"), TEXT("DeformA"), TEXT("DeformB") };
 		for (uint32 i = 0; i < UE_ARRAY_COUNT(DataNames); ++i)
 		{
 			UMaterialExpressionPerInstanceCustomData* Data = AddExpression<UMaterialExpressionPerInstanceCustomData>(M);
@@ -120,17 +120,19 @@ namespace
 		UMaterialExpressionWorldPosition* World = AddExpression<UMaterialExpressionWorldPosition>(M);
 		World->WorldPositionShaderOffset = WPT_Default; // absolute: the camera may move to centre the board between HUD bands
 		UMaterialExpressionTime* Time = AddExpression<UMaterialExpressionTime>(M);
-		UMaterialExpressionScalarParameter* Fill = AddExpression<UMaterialExpressionScalarParameter>(M);
-		Fill->ParameterName = TEXT("Fill");
-		Fill->bUseCustomPrimitiveData = true;
-		Fill->PrimitiveDataIndex = 0;
-		UMaterialExpressionScalarParameter* Dark = AddExpression<UMaterialExpressionScalarParameter>(M);
-		Dark->ParameterName = TEXT("Dark");
-		Dark->bUseCustomPrimitiveData = true;
-		Dark->PrimitiveDataIndex = 1;
+		TArray<TPair<FName, UMaterialExpression*>> Inputs = { { TEXT("ScreenUV"), Screen }, { TEXT("WP"), World }, { TEXT("Time"), Time } };
+		// Custom primitive data, in index order (ADIRingActor sets them): see the input list in DI_Background.hlsl.
+		const TCHAR* DataNames[] = { TEXT("Fill"), TEXT("Dark"), TEXT("Mood"), TEXT("Bloom"), TEXT("Gold"), TEXT("Over") };
+		for (int32 i = 0; i < UE_ARRAY_COUNT(DataNames); ++i)
+		{
+			UMaterialExpressionScalarParameter* Param = AddExpression<UMaterialExpressionScalarParameter>(M);
+			Param->ParameterName = DataNames[i];
+			Param->bUseCustomPrimitiveData = true;
+			Param->PrimitiveDataIndex = i;
+			Inputs.Emplace(DataNames[i], Param);
+		}
 
-		UMaterialExpressionCustom* Custom = AddCustom(M, TEXT("DI_Background.hlsl"), CMOT_Float3,
-			{ { TEXT("ScreenUV"), Screen }, { TEXT("WP"), World }, { TEXT("Time"), Time }, { TEXT("Fill"), Fill }, { TEXT("Dark"), Dark } });
+		UMaterialExpressionCustom* Custom = AddCustom(M, TEXT("DI_Background.hlsl"), CMOT_Float3, Inputs);
 		M->GetEditorOnlyData()->EmissiveColor.Connect(0, Custom);
 		return SaveMaterial(M);
 	}

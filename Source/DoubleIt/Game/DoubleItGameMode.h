@@ -36,6 +36,9 @@ public:
 	void TogglePause() { SetBoardPaused(!bBoardPaused); }
 	void ToggleSound();
 	void ToggleHaptics();
+	/** Slider moves apply live; bPersist (on release) saves and, for effects, plays a sample note. */
+	void SetEffectsVolume(float Volume, bool bPersist);
+	void SetAmbienceVolume(float Volume, bool bPersist);
 	void CycleTheme();
 
 	UFUNCTION(BlueprintPure, Category = "DoubleIt")
