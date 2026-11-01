@@ -259,6 +259,11 @@ void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 		return;
 	}
 
+	// The tutorial judges the move first, so the board refresh below never hints at the step just finished.
+	if (bInTutorial)
+	{
+		TutorialAfterMove();
+	}
 	if (Game->GetMoves() > MovesBefore)
 	{
 		NoteMove(Placed, FPlatformTime::Seconds() - TurnStart);
@@ -270,10 +275,6 @@ void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 		RingOffset = DIRingLayout::Reanchor(Before, BeforeOffset, Game->GetRing());
 		Events->PieceLifted.Broadcast();
 		BoardChanged();
-	}
-	if (bInTutorial)
-	{
-		TutorialAfterMove();
 	}
 }
 
