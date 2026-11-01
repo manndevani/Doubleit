@@ -15,6 +15,7 @@
 
 namespace
 {
+	constexpr float CelebrateSeconds = 1.2f;
 	/** Fonts are staged as loose files (DirectoriesToAlwaysStageAsNonUFS) so Slate can load them on device. */
 	FSlateFontInfo NunitoFont(float Size, bool bLight = false)
 	{
@@ -146,8 +147,29 @@ void UDIHUDWidget::Build()
 	}
 }
 
+void UDIHUDWidget::CelebrateBest()
+{
+	CelebrateLeft = CelebrateSeconds;
+}
+
+void UDIHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	if (CelebrateLeft <= 0.f || !Score)
+	{
+		return;
+	}
+	CelebrateLeft = FMath::Max(CelebrateLeft - InDeltaTime, 0.f);
+	const float T = 1.f - CelebrateLeft / CelebrateSeconds;     // 0 -> 1
+	const float Swell = FMath::Sin(FMath::Min(T * 3.f, 1.f) * PI); // quick swell in the first third
+	const float Glow = FMath::Square(1.f - T);                      // gold fades back to ink
+	Score->SetRenderScale(FVector2D(1.f + 0.12f * Swell));
+	Score->SetColorAndOpacity(FSlateColor(FMath::Lerp(ScoreInk, FLinearColor(FColor(0xFF, 0xD4, 0x80)), Glow)));
+}
+
 void UDIHUDWidget::ApplyTheme(const FDITheme& Theme)
 {
+	ScoreInk = Theme.Ink;
 	for (UTextBlock* Text : { Score.Get(), TutorialText.Get(), GameOverTitle.Get(), PauseTitle.Get() })
 	{
 		Text->SetColorAndOpacity(FSlateColor(Theme.Ink));

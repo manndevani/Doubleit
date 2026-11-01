@@ -7,25 +7,68 @@
 #include "Sound/SoundWaveProcedural.h"
 #include "TimerManager.h"
 
-void UDIAudio::PlayPlace()
+void UDIAudio::PlayPlaceAt(float Angle)
 {
-	PlayNote(-5, 0.22f);
+	// Eight low pentatonic notes around the ring: clockwise from the top climbs gently.
+	const float Turn = FMath::Fmod(Angle + 4.f * UE_TWO_PI, UE_TWO_PI) / UE_TWO_PI;
+	PlayNote(-6 + FMath::Min(FMath::FloorToInt32(Turn * 8.f), 7), 0.2f);
 	if (bHaptics)
 	{
-		DIPlatform::Vibrate(10);
+		DIPlatform::Vibrate(8);
 	}
 }
 
-void UDIAudio::PlayFusion(int32 ChainDepth)
+void UDIAudio::PlayChainStep(int32 ChainDepth)
 {
-	// One rising note per chain step: deeper chains climb the pentatonic scale.
-	for (int32 i = 0; i < ChainDepth; ++i)
+	PlayNote(ChainDepth + 1, 0.34f);
+	if (bHaptics)
 	{
-		PlayNote(i + 1, 0.35f, i * 0.12f);
+		DIPlatform::Vibrate(14 + 6 * FMath::Min(ChainDepth, 5));
+	}
+}
+
+void UDIAudio::PlayChainSettle()
+{
+	PlayNote(-3, 0.14f, 0.05f);
+}
+
+void UDIAudio::PlayBreeze()
+{
+	for (int32 i = 0; i < 5; ++i)
+	{
+		PlayNote(7 - 2 * i, 0.16f, i * 0.06f);
 	}
 	if (bHaptics)
 	{
-		DIPlatform::Vibrate(18 + 6 * FMath::Min(ChainDepth, 5));
+		DIPlatform::Vibrate(16);
+	}
+}
+
+void UDIAudio::PlayReveal(float Delay)
+{
+	PlayNote(5, 0.26f, Delay);
+	PlayNote(7, 0.26f, Delay + 0.09f);
+	PlayNote(9, 0.3f, Delay + 0.18f);
+}
+
+void UDIAudio::PlayNewBest()
+{
+	PlayNote(2, 0.18f);
+	PlayNote(4, 0.18f, 0.03f);
+	PlayNote(7, 0.2f, 0.06f);
+	if (bHaptics)
+	{
+		DIPlatform::Vibrate(24);
+	}
+}
+
+void UDIAudio::PlayLift()
+{
+	PlayNote(3, 0.18f);
+	PlayNote(1, 0.16f, 0.07f);
+	if (bHaptics)
+	{
+		DIPlatform::Vibrate(8);
 	}
 }
 

@@ -14,8 +14,19 @@ public:
 	bool bSound = true;
 	bool bHaptics = true;
 
-	void PlayPlace();
-	void PlayFusion(int32 ChainDepth);
+	/** Soft note whose pitch follows where the piece landed (angle on the ring), so ordinary moves sound musical. */
+	void PlayPlaceAt(float Angle);
+	/** One collision of a chain: each step is a higher note and a firmer haptic tick. */
+	void PlayChainStep(int32 ChainDepth);
+	/** Low, quiet note that settles a chain of 2+. */
+	void PlayChainSettle();
+	/** Breeze: a quick high-to-low wind-chime cascade. */
+	void PlayBreeze();
+	/** A number made for the first time ever: a bright rising three-note chime. */
+	void PlayReveal(float Delay);
+	/** Passing your best score mid-run: a soft major chord. */
+	void PlayNewBest();
+	void PlayLift();
 	void PlayGameOver();
 	void PlayTutorialStep();
 

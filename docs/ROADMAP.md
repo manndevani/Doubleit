@@ -42,7 +42,13 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Full-run playthrough bot (`Scripts/playthrough.ps1`): PASS, ~0.6 s settle, ~2.6 ms average frame
 - [x] Radial motion (arc reflow/merges, radial place/lift), dotted aim guide (touch: aim while held, place on release)
 - [x] Glyph clarity: flagged "1", dark/coral minus, breeze wind lines
+- [x] Symmetric ring (re-anchored, no fixed top): fusions collapse from both sides, gaps open evenly
+- [x] Step-by-step chain playback with rising notes, ripples, haptics, small shake on 3+ chains
+- [x] Placement notes by position, breeze chime, first-ever-number reveal, new-best celebration
+- [x] Invisible adaptive pace per mode (`Core/DIAdaptive`, tested), saved with the profile
+- [x] Android Auto Backup enabled (save restored after reinstall)
 - [ ] Touch aim/release verified by hand on a phone (automation drives taps, not drags)
+- [ ] Auto Backup restore verified on a phone (`adb shell bmgr backupnow com.doubleit.game`, uninstall, reinstall)
 - [ ] Android-only code (JNI, UPL) compiled and tested on a phone, which needs UE's Android platform support installed
 - [ ] Save and restore the current run when the app is backgrounded
 
@@ -51,6 +57,9 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [ ] AdMob banner + UMP consent
 - [ ] Play Billing tips
 - [ ] Store assets, privacy policy, closed test (12 testers / 14 days)
+- [ ] Play Games Services saved game for the profile (instant, cross-device; needs a Play Console app id)
+- [ ] Evaluate Block Store for the profile (reinstall persistence without sign-in; verify on a device first)
+- [ ] Privacy policy states play stats stay on the device and in the user's Google backup
 - [ ] Production release 1.0
 
 ## Later

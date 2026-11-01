@@ -33,6 +33,8 @@ public:
 	bool IsGameOver() const { return bGameOver; }
 	bool CanConvertCenter() const { return bCenterAbsorbed; }
 	const TArray<FDIFusionEvent>& GetLastEvents() const { return LastEvents; }
+	/** Ring right after the last move placed its piece (or breeze cleared), before any fusion. */
+	const TArray<FDIPiece>& GetPlacedRing() const { return PlacedRing; }
 
 	/** Scripted board (tutorial, tests). Assigns fresh ids and clears transient state. */
 	void SetBoard(const TArray<FDIPiece>& InRing, const FDIPiece& InCenter);
@@ -53,6 +55,7 @@ private:
 	TArray<FDIPiece> Ring;
 	FDIPiece Center;
 	TArray<FDIFusionEvent> LastEvents;
+	TArray<FDIPiece> PlacedRing;
 	int64 Score = 0;
 	int64 HighestValue = 0;
 	int32 Moves = 0;

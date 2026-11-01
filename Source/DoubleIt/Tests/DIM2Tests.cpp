@@ -1,4 +1,5 @@
 #include "Misc/AutomationTest.h"
+#include "Core/DIAdaptive.h"
 #include "Core/DIGame.h"
 #include "Core/DIRingLayout.h"
 #include "Core/DISynth.h"
@@ -123,18 +124,17 @@ bool FDITutorialTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIGreedyBalanceTest, "DoubleIt.Sim.GreedyBalance", DIM2TestFlags)
-bool FDIGreedyBalanceTest::RunTest(const FString&)
+namespace
 {
-	for (EDIRuleSet Rules : { EDIRuleSet::Doubling, EDIRuleSet::Addition })
+	struct FDISimResult { int64 Moves = 0, Score = 0, Highest = 0; };
+
+	/** Average of Games greedy-bot runs (lifts the smallest number with a minus, else best immediate gain). */
+	FDISimResult SimulateGreedy(EDIRuleSet Rules, const FDISpawnTuning& Tuning, int32 Games)
 	{
-		const int32 Games = 20;
-		int64 TotalScore = 0;
-		int64 TotalMoves = 0;
-		int64 TotalHighest = 0;
+		FDISimResult Total;
 		for (int32 Seed = 0; Seed < Games; ++Seed)
 		{
-			FDIGame Game(Rules, 1000 + Seed);
+			FDIGame Game(Rules, 1000 + Seed, Tuning);
 			FRandomStream Bot(Seed);
 			int32 Guard = 0;
 			while (!Game.IsGameOver() && ++Guard < 3000)
@@ -166,15 +166,66 @@ bool FDIGreedyBalanceTest::RunTest(const FString&)
 				}
 				Game.PlaceAt(BestSlot);
 			}
-			TotalScore += Game.GetScore();
-			TotalMoves += Game.GetMoves();
-			TotalHighest += Game.GetHighestValue();
+			Total.Moves += Game.GetMoves();
+			Total.Score += Game.GetScore();
+			Total.Highest += Game.GetHighestValue();
 		}
-		const TCHAR* Name = Rules == EDIRuleSet::Doubling ? TEXT("Doubling") : TEXT("Addition");
-		AddInfo(FString::Printf(TEXT("STAT %s greedy bot: avg moves %lld, avg score %lld, avg highest %lld"),
-			Name, TotalMoves / Games, TotalScore / Games, TotalHighest / Games));
-		TestTrue(FString::Printf(TEXT("%s runs last a while"), Name), TotalMoves / Games >= 40);
+		return { Total.Moves / Games, Total.Score / Games, Total.Highest / Games };
 	}
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIGreedyBalanceTest, "DoubleIt.Sim.GreedyBalance", DIM2TestFlags)
+bool FDIGreedyBalanceTest::RunTest(const FString&)
+{
+	for (EDIRuleSet Rules : { EDIRuleSet::Doubling, EDIRuleSet::Addition })
+	{
+		const FDISimResult R = SimulateGreedy(Rules, FDISpawnTuning(), 20);
+		const TCHAR* Name = Rules == EDIRuleSet::Doubling ? TEXT("Doubling") : TEXT("Addition");
+		AddInfo(FString::Printf(TEXT("STAT %s greedy bot: avg moves %lld, avg score %lld, avg highest %lld"), Name, R.Moves, R.Score, R.Highest));
+		TestTrue(FString::Printf(TEXT("%s runs last a while"), Name), R.Moves >= 40);
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDIAdaptiveTest, "DoubleIt.Core.AdaptivePace", DIM2TestFlags)
+bool FDIAdaptiveTest::RunTest(const FString&)
+{
+	const FDISpawnTuning Base;
+	FDIPlayerProfile Fresh;
+	TestEqual(TEXT("no data is neutral"), DIAdaptive::Skill(Fresh), 0.5f, 0.001f);
+	TestEqual(TEXT("neutral keeps the plus chance"), DIAdaptive::TuningFor(Fresh).PlusChance, Base.PlusChance, 0.001f);
+
+	FDIPlayerProfile Struggling;
+	FDIPlayerProfile Strong;
+	for (int32 i = 0; i < 8; ++i)
+	{
+		DIAdaptive::Learn(Struggling, { 22, 1, 6, 2, 3.f, 16 });
+		DIAdaptive::Learn(Strong, { 160, 5, 20, 19, 2.f, 1024 });
+	}
+	TestEqual(TEXT("runs counted"), Struggling.Runs, 8);
+	TestEqual(TEXT("highest kept"), Strong.HighestEver, int64(1024));
+	TestTrue(TEXT("struggling reads low"), DIAdaptive::Skill(Struggling) < 0.25f);
+	TestTrue(TEXT("strong reads high"), DIAdaptive::Skill(Strong) > 0.75f);
+
+	const FDISpawnTuning Easy = DIAdaptive::TuningFor(Struggling);
+	const FDISpawnTuning Hard = DIAdaptive::TuningFor(Strong);
+	TestTrue(TEXT("help: more pluses"), Easy.PlusChance > Base.PlusChance && Easy.PlusChance <= 0.22f);
+	TestTrue(TEXT("help: slower growth"), Easy.MovesPerRangeStep > Base.MovesPerRangeStep && Easy.MovesPerRangeStep <= 50);
+	TestTrue(TEXT("push: fewer pluses"), Hard.PlusChance < Base.PlusChance && Hard.PlusChance >= 0.14f);
+	TestTrue(TEXT("push: faster growth"), Hard.MovesPerRangeStep < Base.MovesPerRangeStep && Hard.MovesPerRangeStep >= 34);
+
+	// One bad run after a strong history only nudges the estimate.
+	FDIPlayerProfile OneBad = Strong;
+	DIAdaptive::Learn(OneBad, { 20, 1, 5, 1, 2.f, 8 });
+	TestTrue(TEXT("one run is a nudge"), DIAdaptive::Skill(OneBad) > 0.6f);
+
+	// The tuning really changes how long a run lasts, in the intended direction.
+	const FDISimResult EasyRun = SimulateGreedy(EDIRuleSet::Doubling, Easy, 20);
+	const FDISimResult BaseRun = SimulateGreedy(EDIRuleSet::Doubling, Base, 20);
+	const FDISimResult HardRun = SimulateGreedy(EDIRuleSet::Doubling, Hard, 20);
+	AddInfo(FString::Printf(TEXT("STAT adaptive greedy moves: helped %lld, base %lld, pushed %lld"), EasyRun.Moves, BaseRun.Moves, HardRun.Moves));
+	TestTrue(TEXT("helped runs last longer"), EasyRun.Moves > BaseRun.Moves);
+	TestTrue(TEXT("pushed runs are not longer"), HardRun.Moves <= BaseRun.Moves);
 	return true;
 }
 

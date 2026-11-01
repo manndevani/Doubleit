@@ -38,4 +38,5 @@ struct FDIFusionEvent
 	int64 ResultValue = 0;
 	uint32 ResultId = 0;
 	uint32 ConsumedIds[3] = { 0, 0, 0 }; // left, right, previous centre (the plus on the first step)
+	TArray<FDIPiece> RingAfter;           // the ring right after this step, so chains can be shown one collision at a time
 };

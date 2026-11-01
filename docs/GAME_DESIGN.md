@@ -59,6 +59,21 @@ The spawner is deterministic for a given seed, so a seed always replays the same
 - **Plus:** guaranteed if none of the last 5 spawns was a Plus; otherwise a 17% chance.
 - **Minus:** 5% chance after move 10, never twice in a row.
 - **Breeze:** 1.5% chance after move 30, and only while the ring holds at least 12 pieces.
+- The values above are the neutral tuning; adaptive pace shifts the plus chance and `40` per player (below).
+
+## Adaptive pace (`Core/DIAdaptive`, invisible, no setting)
+
+Each mode keeps its own player profile, smoothed over runs (newest run weighs 30%):
+average moves survived, longest chain, plus yield (fusions per plus placed), think time (recorded only) and highest number ever.
+
+- **Skill** = 0.6 × survival (30→120 moves) + 0.25 × chains (1→5) + 0.15 × plus yield, pulled toward 0.5 until
+  there are a few runs (`confidence = runs / (runs + 2)`).
+- **Struggling (skill < 0.5):** up to +5% plus chance, growth step up to 50 moves, plus guarantee window 4.
+- **Strong (skill > 0.5):** up to −3% plus chance, growth step down to 34 moves.
+- Hard bounds: plus chance 14–22%, growth step 34–50. Help is stronger than push: early losses are what make people quit.
+- Learns from finished runs, and from abandoned runs of 15+ moves. Bots, screenshots and the tutorial never learn or adapt.
+- Sim check (`DoubleIt.Core.AdaptivePace`): greedy bot runs last 62 moves when helped, 45 neutral, 44 pushed.
+- Saved in the save game per mode; Android Auto Backup restores it after a reinstall, so a returning player is not re-learned.
 
 ## Modes
 

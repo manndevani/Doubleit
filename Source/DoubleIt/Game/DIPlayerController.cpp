@@ -2,6 +2,7 @@
 #include "DIRingActor.h"
 #include "DoubleItGameMode.h"
 #include "Components/InputComponent.h"
+#include "Misc/CommandLine.h"
 
 ADIPlayerController::ADIPlayerController()
 {
@@ -22,6 +23,14 @@ void ADIPlayerController::SetupInputComponent()
 void ADIPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+#if !UE_BUILD_SHIPPING
+	// Bots tap through SimulateScreenTap; a real cursor resting over their window must not draw a guide.
+	static const bool bBot = FCString::Strifind(FCommandLine::Get(), TEXT("DIPlaythrough")) || FCString::Strifind(FCommandLine::Get(), TEXT("DIAutoplay="));
+	if (bBot)
+	{
+		return;
+	}
+#endif
 
 	// Mouse hover aims; only re-aim when the cursor actually moved so a finger-driven guide is left alone.
 	float X, Y;

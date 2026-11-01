@@ -3,6 +3,8 @@
 <root xmlns:android="http://schemas.android.com/apk/res/android">
 	<androidManifestUpdates>
 		<addPermission android:name="android.permission.VIBRATE"/>
+		<!-- Android Auto Backup: the save (settings, bests, adaptive-pace profile) is restored after a reinstall. -->
+		<addAttribute tag="application" name="android:allowBackup" value="true"/>
 	</androidManifestUpdates>
 
 	<gameActivityClassAdditions>

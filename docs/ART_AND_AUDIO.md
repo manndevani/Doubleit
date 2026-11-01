@@ -36,15 +36,23 @@ except "1", which has a centred stem and flag (a bare seven-segment 1 reads as a
 ## Motion (`ADIRingActor`)
 
 All motion is polar (angle + radius), so nothing cuts across the inside of the ring:
+- The ring has no fixed top: after each step it re-anchors so pieces move as little as possible overall. A gap opens
+  evenly on both sides of a placed piece, and a fusion collapses onto the plus from left and right at once.
 - Pieces are tracked by id: when the ring reflows they slide along the ring arc (shortest way round) to their new angle.
+- Moves play back in steps: the piece lands, each chain collision follows ~220 ms apart, then the next centre appears.
+  Each collision: result pulses in (1.35×), a thin ripple ring spreads (0.55 s), chains of 3+ add a 2–4 px shake.
 - Placing travels straight out along the target spoke; a minus lift travels straight in along the piece's own spoke.
 - Fusion: consumed pieces slide along the arc into the merge point and fade, and the result pulses in at 1.35× its size and settles.
 - New centre pieces grow from nothing; the background drifts on a ~60 s cycle.
 - Aim guide: while a finger is down (or the mouse hovers) a dotted spoke runs from the centre to the landing gap, with a larger dot
-  at the gap. The piece is placed when the finger lifts. Settle after a move averages ~0.6 s (playthrough metric).
+  at the gap. The piece is placed when the finger lifts. Settle after a move averages ~0.7 s including chain playback.
 
 ## Audio and haptics (all generated, no assets)
 
 - `Core/DISynth`: kalimba-like plucks (soft attack, decay, inharmonic partials) on a C-major pentatonic scale.
-- Place: low soft note. Fusion: one rising note per chain step (120 ms apart). Game over: gentle descending three notes.
-- Haptics: 10 ms on place, 18–48 ms on fusion by chain depth, 40 ms on game over. Toggles for sound and vibration live in the pause menu.
+- Place: soft low note whose pitch follows where the piece lands (8 notes around the ring), so every move is musical.
+- Chain: one note per collision, each higher (step = depth + 1), played as the collision lands (~220 ms apart);
+  a quiet low note settles chains of 2+. Breeze: quick high-to-low wind-chime cascade. Minus lift: two falling notes.
+- First-ever number (32+ in Classic): bright three-note chime and a sun-gold ripple. Passing your best mid-run:
+  soft major chord, and the score swells and glows gold for 1.2 s. Game over: gentle descending three notes.
+- Haptics: 8 ms on place and lift, 20–44 ms per chain collision by depth, 24 ms new best, 40 ms game over. Toggles for sound and vibration live in the pause menu.

@@ -23,7 +23,17 @@ class DOUBLEIT_API ADIRingActor : public AActor
 public:
 	ADIRingActor();
 
-	void SyncFromGame(const FDIGame& Game);
+	/** Shows the current game state at ring offset Offset (see DIRingLayout::Reanchor). */
+	void SyncFromGame(const FDIGame& Game, float Offset);
+
+	/**
+	 * Shows one step of a move: Ring at Offset, an optional centre piece, and optionally the fusion event that produced
+	 * this ring (its consumed pieces collapse into the result from both sides, the result pulses in).
+	 */
+	void ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Center, float Offset, const FDIFusionEvent* Event, EDIRuleSet InRules);
+
+	/** Expanding ring at a board angle; Strength 0..1 scales size and shake (shake only above 0.6). */
+	void Impact(float Angle, float Strength, bool bReveal);
 	void SetDark(bool bDark);
 	bool IsAnimating() const { return bAnimating; }
 
@@ -65,7 +75,18 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UInstancedStaticMeshComponent> Tiles;
 
+	struct FRipple
+	{
+		FVector2D Pos;
+		float Age = 0.f;
+		float MaxSize = 0.f;
+		bool bReveal = false;
+	};
+
 	TArray<FTileVisual> Visuals;
+	TArray<FRipple> Ripples;
+	float ShakeAmp = 0.f;
+	FVector2D ShakeOffset = FVector2D::ZeroVector;
 	float AimAngle = 0.f;
 	float AimAlpha = 0.f;
 	float AimTargetAlpha = 0.f;

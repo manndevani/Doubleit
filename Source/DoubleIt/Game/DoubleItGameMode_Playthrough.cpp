@@ -22,15 +22,14 @@ namespace
 		return FVector2D(Radius * FMath::Sin(Angle), Radius * FMath::Cos(Angle));
 	}
 
-	FVector2D SlotPoint(int32 Slot, int32 Count)
+	FVector2D SlotPoint(int32 Slot, int32 Count, float Offset)
 	{
 		if (Count == 0)
 		{
-			return AtAngle(0.f);
+			return AtAngle(Offset);
 		}
-		const float Step = UE_TWO_PI / Count;
 		// Slot 0 and slot Count are the same gap on a circle (between the last and first tile).
-		return AtAngle(((Slot == 0 ? Count : Slot) - 0.5f) * Step);
+		return AtAngle(DIRingLayout::TileAngle(Slot == 0 ? Count : Slot, Count, Offset) - UE_PI / Count);
 	}
 
 	/** Greedy value of placing the current centre in the best slot. */
@@ -111,7 +110,7 @@ FVector2D ADoubleItGameMode::PlaythroughChooseTap() const
 				Pick = i;
 			}
 		}
-		return AtAngle(UE_TWO_PI * Pick / FMath::Max(Num, 1));
+		return AtAngle(DIRingLayout::TileAngle(Pick, FMath::Max(Num, 1), RingOffset));
 	}
 
 	int32 Slot = 0;
@@ -126,7 +125,7 @@ FVector2D ADoubleItGameMode::PlaythroughChooseTap() const
 			return FVector2D::ZeroVector; // centre tap converts
 		}
 	}
-	return SlotPoint(Slot, Num);
+	return SlotPoint(Slot, Num, RingOffset);
 }
 
 bool ADoubleItGameMode::PlaythroughTap(const FVector2D& BoardPos)
@@ -147,7 +146,7 @@ bool ADoubleItGameMode::PlaythroughTap(const FVector2D& BoardPos)
 	// Predict the outcome from the intended board point, then send the tap through the real input path.
 	const FDIGame Before = *Game;
 	FDIGame Predicted = *Game;
-	const bool bPredictedChange = DIRingLayout::ApplyTap(Predicted, BoardPos);
+	const bool bPredictedChange = DIRingLayout::ApplyTap(Predicted, BoardPos, RingOffset);
 
 	PC->SimulateScreenTap(Screen);
 
@@ -174,7 +173,7 @@ void ADoubleItGameMode::PlaythroughStep()
 		return;
 	}
 #endif
-	if (RingActor && RingActor->IsAnimating())
+	if (IsPlayingMove() || (RingActor && RingActor->IsAnimating()))
 	{
 		PlaythroughSchedule(0.02f);
 		return;
@@ -240,7 +239,7 @@ void ADoubleItGameMode::PlaythroughStep()
 		Pt.Fusions++;
 		if (Chain > Pt.MaxChain && Pt.Shots < 12)
 		{
-			PlaythroughShot(FString::Printf(TEXT("chain%d_mid"), Chain), 0.12f); // mid-glide frame
+			PlaythroughShot(FString::Printf(TEXT("chain%d_mid"), Chain), 0.24f + 0.22f * (Chain - 1)); // mid-collision of the last step
 		}
 		Pt.MaxChain = FMath::Max(Pt.MaxChain, Chain);
 	}

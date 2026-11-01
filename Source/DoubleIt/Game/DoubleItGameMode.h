@@ -4,6 +4,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "Core/DIGame.h"
 #include "Core/DITutorial.h"
+#include "Core/DIAdaptive.h"
 #include "DoubleItGameMode.generated.h"
 
 class ADIRingActor;
@@ -55,6 +56,10 @@ public:
 	bool IsGameOver() const { return Game && Game->IsGameOver(); }
 
 	bool IsBoardPaused() const { return bBoardPaused; }
+	/** A move is still being shown step by step (taps fast-forward it). */
+	bool IsPlayingMove() const { return PlayIndex < PlaySteps.Num(); }
+	/** Current ring rotation, radians (see DIRingLayout::Reanchor). */
+	float GetRingOffset() const { return RingOffset; }
 	bool IsInTutorial() const { return bInTutorial; }
 	bool IsDarkTheme() const;
 	FString GetTutorialText() const { return Tutorial.GetInstruction(); }
@@ -74,8 +79,29 @@ private:
 	void RecordBest();
 	void PersistSettings();
 	void ApplyTheme();
-	void PlayFeedback(int32 RingBefore);
 	void TutorialAfterMove();
+
+	/**
+	 * Move playback: FDIGame resolves a move instantly; it is then shown in steps (piece lands, each chain collision
+	 * ~220 ms apart, next centre appears). Each step re-anchors the ring so motion is symmetric around the action.
+	 */
+	struct FPlayStep
+	{
+		TArray<FDIPiece> Ring;
+		float Offset = 0.f;
+		int32 EventIndex = INDEX_NONE; // fusion event shown by this step
+	};
+	void StartPlayback(const TArray<FDIPiece>& Before, float BeforeOffset, const FDIPiece& Placed);
+	void PlayStep();
+	void ShowStep(int32 Index, bool bQuiet);
+	void FinishPlayback();
+	float PlaybackSeconds() const;
+
+	/** Adaptive pace: learn from finished runs, tune the next run's spawner. */
+	FName ModeKey() const;
+	FDIPlayerProfile LoadProfile() const;
+	void LearnFromRun();
+	void NoteMove(const FDIPiece& Placed, double ThinkSeconds);
 	void OnAppForeground();
 
 #if !UE_BUILD_SHIPPING
@@ -119,6 +145,22 @@ public:
 	bool bBoardPaused = false;
 	FTimerHandle TutorialTimer;
 	FDelegateHandle ForegroundHandle;
+
+	float RingOffset = 0.f;
+	TArray<FPlayStep> PlaySteps;
+	TArray<FDIFusionEvent> PlayEvents;
+	int32 PlayIndex = 0;
+	FTimerHandle PlaybackTimer;
+	bool bPlayRevealed = false;
+
+	FDIRunSummary RunStats;
+	double ThinkSum = 0.0;
+	double TurnStart = 0.0;
+	bool bRunLearned = true;
+	bool bAutomationRun = false; // bots and screenshots neither learn nor get adapted
+	int64 RunStartBest = 0;
+	bool bBestCelebrated = false;
+	int64 HighestEverAtStart = 0;
 
 	UPROPERTY()
 	TObjectPtr<ADIRingActor> RingActor;

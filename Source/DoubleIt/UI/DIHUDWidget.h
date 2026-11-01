@@ -28,8 +28,12 @@ public:
 	/** Pulls everything from the game mode (score, labels, visibility, theme). */
 	void Refresh();
 
+	/** Passing your best mid-run: the score swells and glows sun-gold, then settles back (~1.2 s). */
+	void CelebrateBest();
+
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
 	void Build();
@@ -46,6 +50,8 @@ private:
 	UFUNCTION() void HandleTheme();
 
 	TWeakObjectPtr<ADoubleItGameMode> GameMode;
+	FLinearColor ScoreInk = FLinearColor::White;
+	float CelebrateLeft = 0.f;
 
 	UPROPERTY() TObjectPtr<UCanvasPanel> Root;
 	UPROPERTY() TObjectPtr<UTextBlock> Score;

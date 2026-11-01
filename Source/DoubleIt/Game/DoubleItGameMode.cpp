@@ -6,6 +6,7 @@
 #include "DIPlayerController.h"
 #include "DIRingActor.h"
 #include "DISaveGame.h"
+#include "Core/DIAdaptive.h"
 #include "Core/DIRingLayout.h"
 #include "Engine/World.h"
 #include "GameFramework/HUD.h"
@@ -22,6 +23,14 @@
 #include "ShaderCompiler.h"
 #endif
 #endif
+
+namespace
+{
+	// Move playback timing: the piece lands, then one collision every ~220 ms, then the next centre appears.
+	constexpr float FirstCollisionDelay = 0.16f;
+	constexpr float ChainStepDelay = 0.22f;
+	constexpr float SettleDelay = 0.14f;
+}
 
 ADoubleItGameMode::ADoubleItGameMode()
 {
@@ -76,6 +85,8 @@ void ADoubleItGameMode::BeginPlay()
 
 	bool bWantTutorial = !Save->bTutorialDone;
 #if !UE_BUILD_SHIPPING
+	bAutomationRun = FCString::Strifind(FCommandLine::Get(), TEXT("DIAutoplay=")) || FCString::Strifind(FCommandLine::Get(), TEXT("DIPlaythrough"))
+		|| FCString::Strifind(FCommandLine::Get(), TEXT("DIShot="));
 	// Automation: -DITutorial forces it; -DIAutoplay (screenshots) skips it.
 	if (FParse::Param(FCommandLine::Get(), TEXT("DITutorial")) || FCString::Strifind(FCommandLine::Get(), TEXT("DITutorialStep=")))
 	{
@@ -109,11 +120,28 @@ void ADoubleItGameMode::EndPlay(const EEndPlayReason::Type Reason)
 
 void ADoubleItGameMode::StartNewGame(EDIGameModeRules Rules, int32 Seed)
 {
+	FinishPlayback();
+	LearnFromRun(); // an abandoned run still teaches us something if it went on long enough
+
 	bInTutorial = false;
 	bInputLocked = false;
 	bBoardPaused = false;
 	CurrentRules = Rules == EDIGameModeRules::Addition ? EDIRuleSet::Addition : EDIRuleSet::Doubling;
-	Game = MakeUnique<FDIGame>(CurrentRules, Seed);
+
+	const FDIPlayerProfile Profile = LoadProfile();
+	const FDISpawnTuning Tuning = bAutomationRun ? FDISpawnTuning() : DIAdaptive::TuningFor(Profile);
+	UE_LOG(LogDoubleIt, Log, TEXT("Run tuning: skill %.2f, plus %.3f, growth every %d moves (%d runs learned)"),
+		DIAdaptive::Skill(Profile), Tuning.PlusChance, Tuning.MovesPerRangeStep, Profile.Runs);
+	Game = MakeUnique<FDIGame>(CurrentRules, Seed, Tuning);
+
+	RingOffset = 0.f;
+	RunStats = FDIRunSummary();
+	ThinkSum = 0.0;
+	TurnStart = FPlatformTime::Seconds();
+	bRunLearned = false;
+	RunStartBest = GetBest();
+	bBestCelebrated = false;
+	HighestEverAtStart = Profile.HighestEver;
 	BoardChanged();
 }
 
@@ -124,10 +152,14 @@ void ADoubleItGameMode::RestartRun()
 
 void ADoubleItGameMode::StartTutorial()
 {
+	FinishPlayback();
+	LearnFromRun();
+	bRunLearned = true;
 	bInTutorial = true;
 	bInputLocked = false;
 	bBoardPaused = false;
 	CurrentRules = EDIRuleSet::Doubling;
+	RingOffset = 0.f;
 	Game = MakeUnique<FDIGame>(CurrentRules, 1);
 	int32 FirstStep = 0;
 #if !UE_BUILD_SHIPPING
@@ -153,11 +185,10 @@ void ADoubleItGameMode::HandleAim(const TOptional<FVector2D>& BoardPos)
 		return;
 	}
 
-	const float Step = UE_TWO_PI / FMath::Max(Num, 1);
 	float Angle;
 	if (bMinus)
 	{
-		Angle = DIRingLayout::TileFromPoint(*BoardPos, Num) * Step; // straight at the tile it would lift
+		Angle = DIRingLayout::TileAngle(DIRingLayout::TileFromPoint(*BoardPos, Num, RingOffset), Num, RingOffset); // the tile it would lift
 	}
 	else if (Num == 0)
 	{
@@ -165,8 +196,8 @@ void ADoubleItGameMode::HandleAim(const TOptional<FVector2D>& BoardPos)
 	}
 	else
 	{
-		const int32 Slot = DIRingLayout::SlotFromPoint(*BoardPos, Num);
-		Angle = ((Slot == 0 ? Num : Slot) - 0.5f) * Step; // the gap between the two neighbours
+		const int32 Slot = DIRingLayout::SlotFromPoint(*BoardPos, Num, RingOffset);
+		Angle = DIRingLayout::TileAngle(Slot == 0 ? Num : Slot, Num, RingOffset) - UE_PI / Num; // the gap between the two neighbours
 	}
 	RingActor->SetAim(Angle, bMinus);
 }
@@ -177,6 +208,7 @@ void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 	{
 		RingActor->ClearAim();
 	}
+	FinishPlayback(); // a tap mid-animation fast-forwards to the settled board first
 	if (!Game || bBoardPaused || bInputLocked)
 	{
 		return;
@@ -187,33 +219,200 @@ void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 		return;
 	}
 
-	const int32 RingBefore = Game->GetRing().Num();
-	if (!DIRingLayout::ApplyTap(*Game, BoardPos))
+	const TArray<FDIPiece> Before = Game->GetRing();
+	const float BeforeOffset = RingOffset;
+	const FDIPiece Placed = Game->GetCenter();
+	const int32 MovesBefore = Game->GetMoves();
+	if (!DIRingLayout::ApplyTap(*Game, BoardPos, RingOffset))
 	{
 		return;
 	}
-	PlayFeedback(RingBefore);
-	BoardChanged();
+
+	if (Game->GetMoves() > MovesBefore)
+	{
+		NoteMove(Placed, FPlatformTime::Seconds() - TurnStart);
+		StartPlayback(Before, BeforeOffset, Placed);
+	}
+	else
+	{
+		// Minus lift or convert: no placement, just re-anchor and show.
+		RingOffset = DIRingLayout::Reanchor(Before, BeforeOffset, Game->GetRing());
+		Audio->PlayLift();
+		BoardChanged();
+	}
 	if (bInTutorial)
 	{
 		TutorialAfterMove();
 	}
 }
 
-void ADoubleItGameMode::PlayFeedback(int32 RingBefore)
+void ADoubleItGameMode::StartPlayback(const TArray<FDIPiece>& Before, float BeforeOffset, const FDIPiece& Placed)
 {
-	if (Game->IsGameOver())
+	PlayEvents = Game->GetLastEvents();
+	PlaySteps.Reset();
+	bPlayRevealed = false;
+
+	FPlayStep& Land = PlaySteps.AddDefaulted_GetRef();
+	Land.Ring = Game->GetPlacedRing();
+	Land.Offset = DIRingLayout::Reanchor(Before, BeforeOffset, Land.Ring);
+	for (int32 i = 0; i < PlayEvents.Num(); ++i)
 	{
-		Audio->PlayGameOver();
+		const FPlayStep& Prev = PlaySteps.Last();
+		FPlayStep Step;
+		Step.Ring = PlayEvents[i].RingAfter;
+		Step.Offset = DIRingLayout::Reanchor(Prev.Ring, Prev.Offset, Step.Ring);
+		Step.EventIndex = i;
+		PlaySteps.Add(MoveTemp(Step));
 	}
-	else if (Game->GetLastEvents().Num() > 0 && Game->GetRing().Num() < RingBefore)
+	FPlayStep Settled;
+	Settled.Ring = Game->GetRing();
+	Settled.Offset = DIRingLayout::Reanchor(PlaySteps.Last().Ring, PlaySteps.Last().Offset, Settled.Ring);
+	PlaySteps.Add(MoveTemp(Settled));
+	RingOffset = PlaySteps.Last().Offset; // hit testing already uses the settled ring
+
+	// Landing feedback now; the rest plays on a timer.
+	if (Placed.Kind == EDIPieceKind::Breeze)
 	{
-		Audio->PlayFusion(Game->GetLastEvents().Last().ChainDepth);
+		Audio->PlayBreeze();
 	}
 	else
 	{
-		Audio->PlayPlace();
+		const int32 Index = Land.Ring.IndexOfByPredicate([&](const FDIPiece& P) { return P.Id == Placed.Id; });
+		Audio->PlayPlaceAt(DIRingLayout::TileAngle(FMath::Max(Index, 0), Land.Ring.Num(), Land.Offset));
 	}
+	PlayIndex = 0;
+	ShowStep(0, true);
+	PlayIndex = 1;
+	GetWorldTimerManager().SetTimer(PlaybackTimer, this, &ADoubleItGameMode::PlayStep, PlayEvents.Num() > 0 ? FirstCollisionDelay : SettleDelay, false);
+}
+
+void ADoubleItGameMode::PlayStep()
+{
+	if (!IsPlayingMove())
+	{
+		return;
+	}
+	const int32 Index = PlayIndex++;
+	ShowStep(Index, false);
+	if (IsPlayingMove())
+	{
+		const bool bNextIsCollision = PlaySteps[PlayIndex].EventIndex != INDEX_NONE;
+		GetWorldTimerManager().SetTimer(PlaybackTimer, this, &ADoubleItGameMode::PlayStep, bNextIsCollision ? ChainStepDelay : SettleDelay, false);
+	}
+}
+
+void ADoubleItGameMode::FinishPlayback()
+{
+	if (!IsPlayingMove())
+	{
+		return;
+	}
+	GetWorldTimerManager().ClearTimer(PlaybackTimer);
+	PlayIndex = PlaySteps.Num();
+	ShowStep(PlaySteps.Num() - 1, true);
+}
+
+float ADoubleItGameMode::PlaybackSeconds() const
+{
+	return PlayEvents.Num() > 0 ? FirstCollisionDelay + (PlayEvents.Num() - 1) * ChainStepDelay + SettleDelay : SettleDelay;
+}
+
+void ADoubleItGameMode::ShowStep(int32 Index, bool bQuiet)
+{
+	const FPlayStep& Step = PlaySteps[Index];
+	const bool bSettled = Index == PlaySteps.Num() - 1;
+	if (bSettled)
+	{
+		BoardChanged(); // next centre appears, HUD catches up
+		TurnStart = FPlatformTime::Seconds();
+		const int32 Chain = PlayEvents.Num() > 0 ? PlayEvents.Last().ChainDepth : 0;
+		if (Game->IsGameOver())
+		{
+			Audio->PlayGameOver();
+		}
+		else if (!bQuiet && Chain >= 2)
+		{
+			Audio->PlayChainSettle();
+		}
+		if (bPlayRevealed)
+		{
+			Audio->PlayReveal(0.05f);
+			bPlayRevealed = false;
+		}
+		if (!bInTutorial && !bBestCelebrated && RunStartBest > 0 && Game->GetScore() > RunStartBest)
+		{
+			bBestCelebrated = true;
+			Audio->PlayNewBest();
+			if (HUDWidget)
+			{
+				HUDWidget->CelebrateBest();
+			}
+		}
+		return;
+	}
+
+	const FDIFusionEvent* Event = Step.EventIndex != INDEX_NONE ? &PlayEvents[Step.EventIndex] : nullptr;
+	RingActor->ShowBoard(Step.Ring, nullptr, Step.Offset, Event, CurrentRules);
+	if (!Event)
+	{
+		return;
+	}
+
+	// A number never made before (past the first few) gets a sun-gold ripple and a chime once the chain settles.
+	const int64 RevealFloor = CurrentRules == EDIRuleSet::Doubling ? 32 : 6;
+	const bool bReveal = !bInTutorial && !bAutomationRun && Event->ResultValue > HighestEverAtStart && Event->ResultValue >= RevealFloor;
+	if (bReveal)
+	{
+		HighestEverAtStart = Event->ResultValue;
+		bPlayRevealed = true;
+	}
+	const int32 Index2 = Step.Ring.IndexOfByPredicate([&](const FDIPiece& P) { return P.Id == Event->ResultId; });
+	RingActor->Impact(DIRingLayout::TileAngle(FMath::Max(Index2, 0), Step.Ring.Num(), Step.Offset),
+		FMath::Clamp((Event->ChainDepth - 1) / 3.f, 0.f, 1.f), bReveal);
+	if (!bQuiet)
+	{
+		Audio->PlayChainStep(Event->ChainDepth);
+	}
+}
+
+void ADoubleItGameMode::NoteMove(const FDIPiece& Placed, double ThinkSeconds)
+{
+	RunStats.Moves = Game->GetMoves();
+	RunStats.PlusesPlaced += Placed.Kind == EDIPieceKind::Plus ? 1 : 0;
+	for (const FDIFusionEvent& E : Game->GetLastEvents())
+	{
+		RunStats.Fusions += E.ChainDepth == 1 ? 1 : 0;
+		RunStats.BestChain = FMath::Max(RunStats.BestChain, E.ChainDepth);
+	}
+	ThinkSum += FMath::Min(ThinkSeconds, 30.0); // a phone set down mid-run should not read as slow thinking
+	RunStats.AvgThinkSeconds = float(ThinkSum / FMath::Max(RunStats.Moves, 1));
+	RunStats.Highest = Game->GetHighestValue();
+}
+
+FName ADoubleItGameMode::ModeKey() const
+{
+	return CurrentRules == EDIRuleSet::Addition ? FName(TEXT("Addition")) : FName(TEXT("Classic"));
+}
+
+FDIPlayerProfile ADoubleItGameMode::LoadProfile() const
+{
+	const FDIProfileRecord* Record = Save ? Save->Profiles.Find(ModeKey()) : nullptr;
+	return Record ? Record->ToProfile() : FDIPlayerProfile();
+}
+
+void ADoubleItGameMode::LearnFromRun()
+{
+	// Finished runs always count; abandoned ones only once they say something (15+ moves).
+	if (bRunLearned || bInTutorial || bAutomationRun || !Game || !Save || (!Game->IsGameOver() && RunStats.Moves < 15))
+	{
+		return;
+	}
+	bRunLearned = true;
+	FDIPlayerProfile Profile = LoadProfile();
+	DIAdaptive::Learn(Profile, RunStats);
+	Save->Profiles.Add(ModeKey(), FDIProfileRecord::From(Profile));
+	PersistSettings();
+	UE_LOG(LogDoubleIt, Log, TEXT("Learned run: %d moves, chain %d, skill now %.2f"), RunStats.Moves, RunStats.BestChain, DIAdaptive::Skill(Profile));
 }
 
 void ADoubleItGameMode::TutorialAfterMove()
@@ -241,9 +440,11 @@ void ADoubleItGameMode::TutorialAfterMove()
 			StartNewGame(EDIGameModeRules::Doubling, FMath::Rand());
 			return;
 		}
+		FinishPlayback();
 		Tutorial.SetupStep(*Game);
+		RingOffset = 0.f;
 		BoardChanged();
-	}), bAdvance ? 1.1f : 0.8f, false);
+	}), PlaybackSeconds() + (bAdvance ? 0.9f : 0.6f), false);
 }
 
 FString ADoubleItGameMode::GetTutorialProgress() const
@@ -325,11 +526,12 @@ void ADoubleItGameMode::BoardChanged()
 {
 	if (RingActor && Game)
 	{
-		RingActor->SyncFromGame(*Game);
+		RingActor->SyncFromGame(*Game, RingOffset);
 	}
 	if (IsGameOver() && !bInTutorial)
 	{
 		RecordBest();
+		LearnFromRun();
 	}
 	if (HUDWidget)
 	{

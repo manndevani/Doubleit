@@ -55,6 +55,7 @@ bool FDIGame::PlaceAt(int32 Slot)
 		}
 	}
 
+	PlacedRing = Ring;
 	ResolveAll();
 	FinishMove();
 	return true;
@@ -68,6 +69,8 @@ bool FDIGame::AbsorbAt(int32 Index)
 	}
 	Center = Ring[Index];
 	Ring.RemoveAt(Index);
+	PlacedRing = Ring;
+	LastEvents.Reset();
 	bCenterAbsorbed = true;
 	return true;
 }
@@ -134,6 +137,7 @@ bool FDIGame::TryFuseAt(int32 PlusIndex)
 		Event.ChainDepth = Depth;
 		Event.ResultValue = NewValue;
 		Event.ResultId = Ring[CenterIndex].Id;
+		Event.RingAfter = Ring;
 		LastEvents.Add(Event);
 	}
 	return Depth > 0;

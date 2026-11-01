@@ -19,3 +19,7 @@
 | 2026-11-01 | Nunito from google/fonts (variable) + fontsource (static 400 latin) | Variable default is ExtraLight; Regular is needed for small text |
 | 2026-11-01 | Theme follows the phone via a UPL Java method + JNI | No engine API for night mode |
 | 2026-11-01 | Doubling chain rule `O < C ? 2C : 4O` | Keeps values on the power-of-two ladder; mirrors Atomas' "center+1 / outer+2" |
+| 2026-11-01 | Ring has no fixed top: after each step it re-anchors (`DIRingLayout::Reanchor`, circular mean of piece displacement) | Owner: fusions must collapse from both sides onto the plus and gaps open evenly, not rotate clockwise |
+| 2026-11-01 | Moves resolve instantly in Core, then play back in steps (land, one collision per ~220 ms, settle) | Each collision gets its own rising note, haptic and ripple; a tap mid-playback fast-forwards, so no input is lost |
+| 2026-11-01 | Invisible adaptive pace (`Core/DIAdaptive`), both ways, bounded (plus 14-22%, growth every 34-50 moves), one profile per mode | Owner: learn the player, no setting; help is stronger than push because early losses drive quitting |
+| 2026-11-01 | Profile survives reinstall via Android Auto Backup (`allowBackup`); Play Games cloud save and Block Store later | Auto Backup needs no sign-in or permission; shared Documents needs a folder picker on Android 11+, so not used |

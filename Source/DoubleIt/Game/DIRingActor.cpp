@@ -14,6 +14,8 @@ namespace
 	constexpr float FadeRate = 7.f;
 	constexpr float PulseScale = 1.35f;
 	constexpr float AimKind = 4.f; // M_Tile kind for guide dots
+	constexpr float RippleKind = 5.f;
+	constexpr float RippleSeconds = 0.55f;
 	constexpr float AimDotSize = 9.f;
 	constexpr float AimSpacing = 26.f;
 }
@@ -73,10 +75,27 @@ void ADIRingActor::SetDark(bool bDark)
 	Background->SetCustomPrimitiveDataFloat(1, bDark ? 1.f : 0.f);
 }
 
-void ADIRingActor::SyncFromGame(const FDIGame& Game)
+void ADIRingActor::SyncFromGame(const FDIGame& Game, float Offset)
 {
-	Rules = Game.GetRules();
-	const TArray<FDIPiece>& Ring = Game.GetRing();
+	ShowBoard(Game.GetRing(), Game.IsGameOver() ? nullptr : &Game.GetCenter(), Offset, nullptr, Game.GetRules());
+}
+
+void ADIRingActor::Impact(float Angle, float Strength, bool bReveal)
+{
+	FRipple& R = Ripples.AddDefaulted_GetRef();
+	R.Pos = FVector2D(DIRingLayout::RingRadius * FMath::Sin(Angle), DIRingLayout::RingRadius * FMath::Cos(Angle));
+	R.MaxSize = DIRingLayout::TileSize * (bReveal ? 3.4f : FMath::Lerp(1.8f, 2.6f, Strength));
+	R.bReveal = bReveal;
+	if (Strength > 0.6f)
+	{
+		ShakeAmp = FMath::Max(ShakeAmp, FMath::Lerp(2.5f, 3.5f, (Strength - 0.6f) / 0.4f)); // ~2-4 px: felt, not seen
+	}
+	bAnimating = true;
+}
+
+void ADIRingActor::ShowBoard(const TArray<FDIPiece>& Ring, const FDIPiece* Center, float Offset, const FDIFusionEvent* Event, EDIRuleSet InRules)
+{
+	Rules = InRules;
 
 	struct FTarget
 	{
@@ -87,23 +106,23 @@ void ADIRingActor::SyncFromGame(const FDIGame& Game)
 		bool bCenter;
 	};
 	TMap<uint32, FTarget> Targets;
-	if (!Game.IsGameOver())
+	if (Center)
 	{
-		Targets.Add(Game.GetCenter().Id, { Game.GetCenter(), 0.f, 0.f, DIRingLayout::CenterSize, true });
+		Targets.Add(Center->Id, { *Center, 0.f, 0.f, DIRingLayout::CenterSize, true });
 	}
 	for (int32 i = 0; i < Ring.Num(); ++i)
 	{
-		Targets.Add(Ring[i].Id, { Ring[i], UE_TWO_PI * i / Ring.Num(), DIRingLayout::RingRadius, DIRingLayout::TileSize, false });
+		Targets.Add(Ring[i].Id, { Ring[i], DIRingLayout::TileAngle(i, Ring.Num(), Offset), DIRingLayout::RingRadius, DIRingLayout::TileSize, false });
 	}
 
 	TMap<uint32, uint32> ConsumedBy;
 	TSet<uint32> Results;
-	for (const FDIFusionEvent& Event : Game.GetLastEvents())
+	if (Event)
 	{
-		Results.Add(Event.ResultId);
-		for (uint32 Id : Event.ConsumedIds)
+		Results.Add(Event->ResultId);
+		for (uint32 Id : Event->ConsumedIds)
 		{
-			ConsumedBy.Add(Id, Event.ResultId);
+			ConsumedBy.Add(Id, Event->ResultId);
 		}
 	}
 	auto FinalTarget = [&](uint32 Id) -> const FTarget*
@@ -211,24 +230,55 @@ void ADIRingActor::Tick(float DeltaSeconds)
 	}
 	AimAlpha = FMath::Lerp(AimAlpha, AimTargetAlpha, 1.f - FMath::Exp(-14.f * DeltaSeconds));
 	bAnimating |= !FMath::IsNearlyEqual(AimAlpha, AimTargetAlpha, 0.01f);
+
+	for (FRipple& R : Ripples)
+	{
+		R.Age += DeltaSeconds;
+	}
+	Ripples.RemoveAll([](const FRipple& R) { return R.Age >= RippleSeconds; });
+	ShakeAmp *= FMath::Exp(-14.f * DeltaSeconds);
+	ShakeOffset = ShakeAmp > 0.1f ? FVector2D(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f)) * ShakeAmp : FVector2D::ZeroVector;
+	bAnimating |= Ripples.Num() > 0 || ShakeAmp > 0.1f;
 	Visuals.RemoveAll([](const FTileVisual& V) { return V.bDying && V.Alpha < 0.02f; });
 	PushInstances();
 }
 
 void ADIRingActor::PushInstances()
 {
+	// One instance list for tiles, impact ripples and aim dots; each carries [value, kind, rank, alpha] for M_Tile.
 	TArray<FTransform> Transforms;
-	Transforms.Reserve(Visuals.Num() + 12);
+	TArray<FVector4f> Data;
+	auto Add = [&](const FVector2D& Pos, float Z, float Size, const FVector4f& Custom)
+	{
+		Transforms.Emplace(FQuat::Identity, ToWorld(Pos + ShakeOffset, Z), FVector(FMath::Max(Size, 0.01f) / PlaneMeshSize));
+		Data.Add(Custom);
+	};
+
 	for (const FTileVisual& V : Visuals)
 	{
 		// Centre above ring above dying pieces, so translucency sorts predictably.
 		const float Z = V.bCenter ? 2.f : (V.bDying ? 0.5f : 1.f);
-		const FVector2D Pos(V.Radius * FMath::Sin(V.Angle), V.Radius * FMath::Cos(V.Angle));
-		Transforms.Emplace(FQuat::Identity, ToWorld(Pos, Z), FVector(FMath::Max(V.Size, 0.01f) / PlaneMeshSize));
+		const FDIPiece& P = V.Piece;
+		float Rank = 0.f;
+		if (P.IsNumber())
+		{
+			Rank = Rules == EDIRuleSet::Doubling
+				? float(FMath::FloorLog2_64(uint64(FMath::Max<int64>(P.Value, 1))))
+				: float(P.Value);
+		}
+		Add(FVector2D(V.Radius * FMath::Sin(V.Angle), V.Radius * FMath::Cos(V.Angle)), Z, V.Size,
+			FVector4f(float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, V.Alpha));
+	}
+
+	for (const FRipple& R : Ripples)
+	{
+		const float T = R.Age / RippleSeconds;
+		const float Ease = 1.f - FMath::Square(1.f - T);
+		Add(R.Pos, 0.7f, FMath::Lerp(DIRingLayout::TileSize * 0.9f, R.MaxSize, Ease),
+			FVector4f(R.bReveal ? 1.f : 0.f, RippleKind, 0.f, 0.7f * FMath::Square(1.f - T)));
 	}
 
 	// Aim guide: dots along the spoke from the centre piece out to the gap (or the tile a minus would lift).
-	TArray<float> AimDotAlpha;
 	if (AimAlpha > 0.01f)
 	{
 		const FVector2D Dir(FMath::Sin(AimAngle), FMath::Cos(AimAngle));
@@ -239,9 +289,8 @@ void ADIRingActor::PushInstances()
 		{
 			const float T = float(d) / (Dots - 1);
 			const bool bTip = !bAimAtTile && d == Dots - 1; // a slightly larger dot marks the landing gap
-			const float Size = bTip ? AimDotSize * 1.8f : AimDotSize;
-			Transforms.Emplace(FQuat::Identity, ToWorld(Dir * FMath::Lerp(Start, End, T), 0.8f), FVector(Size / PlaneMeshSize));
-			AimDotAlpha.Add(AimAlpha * FMath::Lerp(0.3f, 0.85f, T));
+			Add(Dir * FMath::Lerp(Start, End, T), 0.8f, bTip ? AimDotSize * 1.8f : AimDotSize,
+				FVector4f(bAimAtTile ? 1.f : 0.f, AimKind, 0.f, AimAlpha * FMath::Lerp(0.3f, 0.85f, T)));
 		}
 	}
 
@@ -254,22 +303,9 @@ void ADIRingActor::PushInstances()
 	{
 		Tiles->BatchUpdateInstancesTransforms(0, Transforms, false, false, true);
 	}
-
-	for (int32 i = 0; i < Visuals.Num(); ++i)
+	for (int32 i = 0; i < Data.Num(); ++i)
 	{
-		const FDIPiece& P = Visuals[i].Piece;
-		float Rank = 0.f;
-		if (P.IsNumber())
-		{
-			Rank = Rules == EDIRuleSet::Doubling
-				? float(FMath::FloorLog2_64(uint64(FMath::Max<int64>(P.Value, 1))))
-				: float(P.Value);
-		}
-		Tiles->SetCustomData(i, { float(FMath::Min<int64>(P.Value, 999999)), float(uint8(P.Kind)), Rank, Visuals[i].Alpha }, false);
-	}
-	for (int32 d = 0; d < AimDotAlpha.Num(); ++d)
-	{
-		Tiles->SetCustomData(Visuals.Num() + d, { bAimAtTile ? 1.f : 0.f, AimKind, 0.f, AimDotAlpha[d] }, false);
+		Tiles->SetCustomData(i, { Data[i].X, Data[i].Y, Data[i].Z, Data[i].W }, false);
 	}
 	Tiles->MarkRenderStateDirty();
 }
