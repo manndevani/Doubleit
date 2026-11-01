@@ -225,6 +225,7 @@ void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 	if (RingActor)
 	{
 		RingActor->ClearAim();
+		RingActor->ClearHint(); // back after the move, for whatever the board asks next
 	}
 	FinishPlayback(); // a tap mid-animation fast-forwards to the settled board first
 	if (!Game || bBoardPaused || bInputLocked)
@@ -243,6 +244,7 @@ void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 		if (DIRingLayout::ApplyTap(Trial, BoardPos, RingOffset) && Tutorial.Judge(Trial) == EDITutorialResult::Retry)
 		{
 			Events->TutorialNudge.Broadcast();
+			UpdateHint(); // the hint stays where it was
 			return;
 		}
 	}
@@ -253,6 +255,7 @@ void ADoubleItGameMode::HandleTap(const FVector2D& BoardPos)
 	const int32 MovesBefore = Game->GetMoves();
 	if (!DIRingLayout::ApplyTap(*Game, BoardPos, RingOffset))
 	{
+		UpdateHint();
 		return;
 	}
 
@@ -457,6 +460,10 @@ void ADoubleItGameMode::TutorialAfterMove()
 
 	// Let the move's animation breathe before the next scripted board appears.
 	bInputLocked = true;
+	if (RingActor)
+	{
+		RingActor->ClearHint();
+	}
 	const bool bAdvance = Result == EDITutorialResult::Advance;
 	if (bAdvance)
 	{
@@ -656,6 +663,23 @@ int64 ADoubleItGameMode::GetBest() const
 	return FMath::Max(Stored, bInTutorial ? 0 : GetScore());
 }
 
+void ADoubleItGameMode::UpdateHint()
+{
+	if (!RingActor)
+	{
+		return;
+	}
+	const TOptional<FDITapTarget> Target = bInTutorial && !bInputLocked && Game ? Tutorial.FindTarget(*Game, RingOffset) : TOptional<FDITapTarget>();
+	if (Target)
+	{
+		RingActor->SetHint(Target->Pos, Target->Size);
+	}
+	else
+	{
+		RingActor->ClearHint();
+	}
+}
+
 void ADoubleItGameMode::BoardChanged()
 {
 	if (RingActor && Game)
@@ -663,6 +687,7 @@ void ADoubleItGameMode::BoardChanged()
 		RingActor->SyncFromGame(*Game, RingOffset);
 		Events->RingFilled.Broadcast(float(Game->GetRing().Num()) / FMath::Max(Game->GetMaxRingPieces(), 1));
 	}
+	UpdateHint();
 	if (IsGameOver() && !bInTutorial)
 	{
 		RecordBest();

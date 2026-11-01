@@ -20,6 +20,7 @@ It deliberately avoids warm beige/clay "generic app" palettes.
 | Buttons / panel | `#1E4A5C` / `#0C2433` | `#CDE9EC` / `#E3F3F4` |
 | Plus / Minus / Breeze | coral `#FF9B85` with dark + / ink `#1C2E4A` with coral rim and − / pearl `#F2F4F8` with wind lines + glow | same |
 | Aim guide dots, impact ripples | pearl `#E6EAF2` (dots: coral to the tile a minus would lift; ripples: sun-gold on a first-ever number) | ink `#1C2E4A` instead of pearl, so they show on the light background |
+| Tutorial hint circle | coral `#FF9B85`, faint fill + brighter rim, breathing | same |
 
 Tile ranks (1, 2, 4, 8… or 1, 2, 3… in Addition) cycle through 12 sea-glass colours:
 mint `#7FE0C2`, aqua `#5BC0EB`, lilac `#B9A6F5`, sun `#FFD480`, rose `#F7A8C8`, seafoam `#9EE6E0`,
@@ -110,6 +111,8 @@ plays them in response to game events; placed pieces name their own landing cue.
   a quiet low note settles chains of 2+. Breeze: quick high-to-low wind-chime cascade. Minus lift: two falling notes.
 - First-ever number (32+ in Classic): bright three-note chime and a sun-gold ripple. Passing your best mid-run:
   soft major chord, and the score swells and glows gold for 1.2 s. Game over: gentle descending three notes.
+- Tutorial hint: a coral circle 1.4x the size of what to tap, opacity 0.55, under the stones; its edge breathes (2.6 rad/s)
+  in the shader and it fades in and out at 5/s. `UDIGameSettings` > Tutorial.
 - Tutorial nudge (a refused tap): one soft low note (step -3, volume 0.12) and a 6 ms tick, the instruction swells 7%
   over 0.5 s and the centre stone wobbles. Never a buzzer.
 - Haptics: 8 ms on place and lift, 20–44 ms per chain collision by depth, 24 ms new best, 40 ms game over. Toggles for sound and vibration live in the pause menu.

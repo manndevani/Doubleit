@@ -14,7 +14,9 @@ namespace
 	constexpr float PlaneMeshSize = 100.f; // /Engine/BasicShapes/Plane is 100x100
 	constexpr float AimKind = 4.f;        // M_Tile kinds (Shaders/DI_Tile.hlsl)
 	constexpr float RippleKind = 5.f;
+	constexpr float HintKind = 6.f;
 	constexpr float LayerCenter = 2.f, LayerRing = 1.f, LayerDying = 0.5f, LayerRipple = 0.7f, LayerAim = 0.8f; // translucency order
+	constexpr float LayerHint = 0.6f; // under every stone, so the stone it marks sits on its glow
 	constexpr float GoldenRatioFrac = 0.6180339887f; // spreads ids into unlike stone seeds
 	constexpr float AimClearCentre = 18.f, AimClearTile = 12.f; // gaps before the centre piece and a target tile
 	// Settle tolerances: below these nothing visibly moves (~1 px), so Tick can stop.
@@ -48,6 +50,23 @@ void ADIRingActor::ClearAim()
 	if (AimTargetAlpha > 0.f)
 	{
 		AimTargetAlpha = 0.f;
+		bAnimating = true;
+	}
+}
+
+void ADIRingActor::SetHint(const FVector2D& Pos, float Size)
+{
+	HintPos = Pos;
+	HintSize = Size * Feel().HintScale;
+	HintTargetAlpha = 1.f;
+	bAnimating = true;
+}
+
+void ADIRingActor::ClearHint()
+{
+	if (HintTargetAlpha > 0.f)
+	{
+		HintTargetAlpha = 0.f;
 		bAnimating = true;
 	}
 }
@@ -350,6 +369,8 @@ void ADIRingActor::Tick(float DeltaSeconds)
 	}
 	AimAlpha = FMath::Lerp(AimAlpha, AimTargetAlpha, 1.f - FMath::Exp(-14.f * DeltaSeconds));
 	bAnimating |= !FMath::IsNearlyEqual(AimAlpha, AimTargetAlpha, SettleAlpha);
+	HintAlpha = FMath::Lerp(HintAlpha, HintTargetAlpha, 1.f - FMath::Exp(-Feel().HintFadeRate * DeltaSeconds));
+	bAnimating |= !FMath::IsNearlyEqual(HintAlpha, HintTargetAlpha, SettleAlpha);
 
 	for (FRipple& R : Ripples)
 	{
@@ -382,6 +403,13 @@ void ADIRingActor::PushInstances()
 		Data.Add(Custom);
 		Seeds.Add(Seed);
 	};
+
+	// Tutorial hint first: translucent instances draw in list order, so the stone it marks lands on top of it.
+	// Its breathing runs in M_Tile on the GPU, so a still hint costs no CPU.
+	if (HintAlpha > SettleAlpha)
+	{
+		Add(HintPos, LayerHint, HintSize, FVector4f(0.f, HintKind, 0.f, HintAlpha * Feel().HintOpacity));
+	}
 
 	for (const FTileVisual& V : Visuals)
 	{

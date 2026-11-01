@@ -105,6 +105,12 @@ Shown on first launch and from the pause menu ("how to play"). The tutorial is s
 board first, and a move the step does not teach is never played. The instruction swells, the centre stone wobbles and a
 soft low note sounds, and the player simply tries again. While the lifted piece waits in the centre (step 5) the aim line
 is hidden, since the ring is not the answer. "(otherwise retry)" below means such moves are refused.
+A soft coral circle breathes under the tap that completes each step (a gap, the stone to lift, or the centre). It is
+found by trying every possible tap on a copy of the board, preferring the centre, then gaps, then stones, so it always
+points at a correct answer even if a board changes. It hides while a move plays.
+A soft coral circle breathes under the tap that completes each step (a gap, the stone to lift, or the centre). It is
+found by trying every possible tap on a copy of the board, preferring the centre, then gaps, then stones, so it always
+points at a correct answer even if a board changes. It hides while a move plays.
 
 | Step | Board | Done when |
 |---|---|---|

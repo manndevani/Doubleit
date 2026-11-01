@@ -152,6 +152,17 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Glow")
 	float OverRate = 1.2f;
 
+	/** Tutorial hint: a breathing coral circle under what to tap, this many times its size, at this opacity. */
+	UPROPERTY(Config, EditAnywhere, Category = "Tutorial")
+	float HintScale = 1.4f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Tutorial")
+	float HintOpacity = 0.55f;
+
+	/** How fast the hint fades in and out (1/s). */
+	UPROPERTY(Config, EditAnywhere, Category = "Tutorial")
+	float HintFadeRate = 5.f;
+
 	/** Camera fit: world units across on a phone; we only ever zoom out from it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Layout")
 	float PhoneWidthUnits = 820.f;

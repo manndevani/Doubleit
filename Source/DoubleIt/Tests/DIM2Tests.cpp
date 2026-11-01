@@ -312,3 +312,30 @@ bool FDIAdaptiveTest::RunTest(const FString&)
 }
 
 #endif
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDITutorialHintTest, "DoubleIt.Core.TutorialHintCompletesEachStep", DIM2TestFlags)
+bool FDITutorialHintTest::RunTest(const FString&)
+{
+	// Following the coral hint alone must walk through the whole tutorial, at any ring rotation.
+	for (const float Offset : { 0.f, 0.7f })
+	{
+		FDIGame Game(DIModes::Get(DIModes::Classic), 5);
+		FDITutorial Tut;
+		while (!Tut.IsFinished())
+		{
+			const int32 Step = Tut.GetStep();
+			Tut.SetupStep(Game);
+			const TOptional<FDITapTarget> Target = Tut.FindTarget(Game, Offset);
+			if (!TestTrue(FString::Printf(TEXT("step %d has a hint"), Step), Target.IsSet()))
+			{
+				return false;
+			}
+			DIRingLayout::ApplyTap(Game, Target->Pos, Offset);
+			if (!TestTrue(FString::Printf(TEXT("tapping the hint completes step %d"), Step), Tut.Evaluate(Game) == EDITutorialResult::Advance))
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}

@@ -98,6 +98,8 @@ private:
 	void OnAppForeground();
 	/** Writes the run in progress into the save (or clears it once the run is over or the tutorial is on) and saves. */
 	void SaveRun();
+	/** Tutorial: the coral hint circle on the tap that completes the step (FDITutorial::FindTarget), else hidden. */
+	void UpdateHint();
 	/** Picks up the saved run, if there is a valid one. */
 	bool ResumeRun();
 

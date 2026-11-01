@@ -52,6 +52,7 @@ Legend: `[x]` done · `[ ]` todo · `(?)` waiting on the owner's decision
 - [x] Alive stones: squash and stretch, occasional shrug, flowing outline, number and sheen sway (all GPU)
 - [x] Soft bodies: stones stretch along their path, squash on landing and impacts, neighbours wobble
 - [x] Status glow behind the board: colour gradient by fullness, blooms on chains (gold for finds), dusk at game over
+- [x] Strict tutorial: untaught taps are refused with a gentle nudge; a coral hint circle marks where to tap
 - [x] Mobile pass: MSAA off, 60 fps cap, CPU idle on a still board; layout verified at 5 screen shapes (`Scripts/screen_sizes.ps1`)
 - [x] Data-driven modes: rule-set strategy + per-mode config + registry; feel numbers in Project Settings
 - [x] Scalable structure: event hub, piece types + spawn table, versioned save, string table, sound cue data

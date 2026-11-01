@@ -41,6 +41,10 @@ public:
 	void SetAim(float Angle, bool bAtTile);
 	void ClearAim();
 
+	/** Tutorial: a soft coral circle at a ring-space point (a gap, a stone, the centre) of the given size. */
+	void SetHint(const FVector2D& Pos, float Size);
+	void ClearHint();
+
 	/** Screen-aligned 2D board space <-> world. The camera looks down -Z with +X as screen-up. */
 	static FVector ToWorld(const FVector2D& P, float Z) { return FVector(P.Y, P.X, Z); }
 	static FVector2D FromWorld(const FVector& W) { return FVector2D(W.Y, W.X); }
@@ -104,6 +108,10 @@ private:
 	float AimAlpha = 0.f;
 	float AimTargetAlpha = 0.f;
 	bool bAimAtTile = false;
+	FVector2D HintPos = FVector2D::ZeroVector;
+	float HintSize = 0.f;
+	float HintAlpha = 0.f;
+	float HintTargetAlpha = 0.f;
 	bool bLightTheme = false; // aim dots and ripples turn ink on the light background
 	FDIMode Mode; // colour ranks and ring capacity of the mode on show
 	// Status glow (M_Background custom primitive data 2..5): eased fullness, bloom, gold share, eased game over.

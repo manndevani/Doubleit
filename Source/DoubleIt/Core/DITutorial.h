@@ -4,6 +4,13 @@
 
 class FDIGame;
 
+/** Where to tap: a point in ring space (DIRingLayout) and the size of what is there (a gap, a stone, the centre). */
+struct FDITapTarget
+{
+	FVector2D Pos = FVector2D::ZeroVector;
+	float Size = 0.f;
+};
+
 enum class EDITutorialResult : uint8
 {
 	Continue, // keep playing this step
@@ -32,6 +39,13 @@ public:
 	 * when this is not Retry, so a wrong move is never played and then taken back.
 	 */
 	EDITutorialResult Judge(const FDIGame& After) const;
+
+	/**
+	 * The tap that completes this step on Game (ring at Offset): every possible tap (centre, each gap, each stone) is
+	 * tried on a copy and judged, so the hint can never point the wrong way. The centre is preferred, then gaps, then
+	 * stones; when several of one kind complete it (any gap will do), the middle one is shown. Unset if none does.
+	 */
+	TOptional<FDITapTarget> FindTarget(const FDIGame& Game, float Offset) const;
 
 	/** Call after every action that changed the board. Moves to the next step on Advance. */
 	EDITutorialResult Evaluate(const FDIGame& Game);

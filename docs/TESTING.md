@@ -25,6 +25,7 @@
 | `DoubleIt.Core.FusionEventsTrackIds` | event ids the renderer follows |
 | `DoubleIt.Core.Synth` | pentatonic and chord frequencies; note PCM (no clipping, decays, stereo width, no clicks at either end); the pad loop has the right length and no seam; the live sea continues seamlessly across blocks, never clips, rises and falls with waves (logs `STAT sea rms`) and differs per seed |
 | `DoubleIt.Core.TutorialHappyPathAndRetry` | all 6 tutorial boards; wrong moves (a wrong gap, placing the lifted piece) are judged Retry on a copy without moving the tutorial or touching the real board |
+| `DoubleIt.Core.TutorialHintCompletesEachStep` | following only the hint (`FDITutorial::FindTarget`) completes all 6 steps, at two ring rotations |
 | `DoubleIt.Core.AdaptivePace` | neutral with no data, struggling/strong detection, bounds, one bad run is only a nudge, sim: helped runs last longer |
 | `DoubleIt.Layout.TilePositionsClockwiseFromTop`, `SlotAndTileHitTesting`, `TapRouting` | ring geometry and tap routing |
 | `DoubleIt.Layout.ReanchorIsSymmetric` | placed piece lands in the aimed gap, fusion result lands where the plus was, offset hit testing |
@@ -33,7 +34,7 @@
 | `DoubleIt.Save.Migrations` | a pre-versioning save migrates (bests move to the per-mode map, higher wins; v2 volume sliders get their defaults; v3 starts with no run to resume), re-running is a no-op, fresh saves need nothing, newer saves are left alone (expected warning) |
 | `DoubleIt.Core.RunResumes` | 20 seeded runs (with a tuned spawn table) are saved mid-game, loaded into a game built from another seed, and must play on identically, ring ids included, until game over (logs `STAT run resume`); garbage or another format is refused |
 
-Latest: 24 passed (1 with an expected warning). Playthrough: PASS, 0 mismatches, settle ~0.7 s average including chain playback.
+Latest: 25 passed (1 with an expected warning). Playthrough: PASS, 0 mismatches, settle ~0.7 s average including chain playback.
 
 ## Rules
 
